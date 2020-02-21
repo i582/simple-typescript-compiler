@@ -216,10 +216,6 @@ bool compiler::lexer::next_symbol_is_part_of_token(const char& token, const char
             return symbol == '=' || symbol == '*' || symbol == '/';
         }
 
-        case '%':
-        {
-            return symbol == '=';
-        }
 
         case '|':
         {
@@ -229,11 +225,6 @@ bool compiler::lexer::next_symbol_is_part_of_token(const char& token, const char
         case '&':
         {
             return symbol == '&';
-        }
-
-        case '\\':
-        {
-            return true;
         }
 
         default: return false;

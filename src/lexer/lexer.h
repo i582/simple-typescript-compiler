@@ -31,7 +31,7 @@ namespace compiler
         void print_current_token_line();
 
     public:
-        [[nodiscard]] bool next_token();
+        bool next_token();
         [[nodiscard]] token& current_token();
         [[nodiscard]] token_type current_token_type();
 

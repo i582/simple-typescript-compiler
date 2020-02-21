@@ -154,6 +154,8 @@ compiler::token_type compiler::token::what_type_of_lexeme(const std::string& lex
         return token_type::POINT;
     if (lexeme == "?")
         return token_type::QUESTION;
+    if (lexeme == "!")
+        return token_type::EXCLAMATION;
 
     // comment
     if (lexeme == "//")
@@ -198,4 +200,20 @@ bool compiler::token::is_this_type_is_type_of_variable(compiler::token_type type
     return  type == token_type::NUMBER ||
             type == token_type::BOOLEAN ||
             type == token_type::VOID;
+}
+
+bool compiler::token::is_unary_operator(token_type type)
+{
+    return  type == token_type::PLUS ||
+            type == token_type::MINUS ||
+            type == token_type::EXCLAMATION;
+}
+
+bool compiler::token::is_assignment_operator(compiler::token_type type)
+{
+    return  type == token_type::ASSIGN ||
+            type == token_type::ADD_ASSIGN ||
+            type == token_type::SUB_ASSIGN ||
+            type == token_type::MUL_ASSIGN ||
+            type == token_type::DIV_ASSIGN;
 }

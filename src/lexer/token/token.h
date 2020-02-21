@@ -19,16 +19,21 @@ namespace compiler
 
         // variables
         LET,
-        CONST,
+        CONST = 0x0010,
 
 
         // types
-        NUMBER,
-        BOOLEAN,
-        VOID,
+        NUMBER = 0x01000,
+        BOOLEAN = 0x02000,
+        VOID = 0x03000,
+        // types for array
+        NUMBER_ARRAY = 0x10000,
+        BOOLEAN_ARRAY = 0x20000,
+        VOID_ARRAY = 0x30000,
 
 
         // cycles
+        DO_WHILE = 0x00F0,
         WHILE,
         FOR,
         // cycles addition
@@ -98,12 +103,16 @@ namespace compiler
         COMMA, // ,
         POINT, // .
         QUESTION, // ?
+        EXCLAMATION, // !
 
         // comment
         LINE_COMMENT, // //
         BLOCK_COMMENT_START, // /*
         BLOCK_COMMENT_END, // */
 
+
+        // operator new
+        NEW,
     };
 
     class token
@@ -127,9 +136,12 @@ namespace compiler
     public:
         static bool is_number(const string& lexeme);
 
+        static bool is_unary_operator(token_type type);
+        static bool is_assignment_operator(token_type type);
+
+
         static bool is_this_type_is_type_of_variable(token_type type);
 
-    private:
         static token_type what_type_of_lexeme(const string& lexeme);
 
 
