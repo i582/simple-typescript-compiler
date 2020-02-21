@@ -72,6 +72,12 @@ namespace compiler
         FUNCTION_CALL,
         FUNCTION_ARG,
 
+        RETURN,
+
+        // function implement
+        FUNCTION_IMPLEMENTATION,
+        FUNCTION_IMPLEMENTATION_ARG,
+        FUNCTION_IMPLEMENTATION_RETURN_TYPE,
 
         // expression
         EXPRESSION,

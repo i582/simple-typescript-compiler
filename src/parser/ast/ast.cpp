@@ -52,6 +52,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::BOOLEAN_CONST:
             {
                 cout << "boolean const ";
+                cout << "" << std::any_cast<bool>(sub->_value);
                 break;
             }
             case node_type::ADD:
@@ -254,6 +255,28 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::NEW:
             {
                 cout << "new ";
+                break;
+            }
+            case node_type::FUNCTION_IMPLEMENTATION:
+            {
+                cout << "function impl ";
+                cout << "" << std::any_cast<string>(sub->_value);
+                break;
+            }
+            case node_type::FUNCTION_IMPLEMENTATION_ARG:
+            {
+                cout << "function impl arg ";
+                break;
+            }
+            case node_type::FUNCTION_IMPLEMENTATION_RETURN_TYPE:
+            {
+                cout << "function impl return type ";
+                cout << "" << (int)std::any_cast<token_type>(sub->_value);
+                break;
+            }
+            case node_type::RETURN:
+            {
+                cout << "return ";
                 break;
             }
         }

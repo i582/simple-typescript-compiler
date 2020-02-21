@@ -35,6 +35,8 @@ namespace compiler
         [[nodiscard]] token& current_token();
         [[nodiscard]] token_type current_token_type();
 
+        static bool is_correct_identifier(const string& token);
+
     private:
         void open(const string& file_path);
         void split();
@@ -43,7 +45,6 @@ namespace compiler
         static bool is_split_symbol(const char& symbol);
         static bool is_token_symbol(const char& symbol_);
         static bool next_symbol_is_part_of_token(const char& token, const char& symbol);
-
     };
 
 

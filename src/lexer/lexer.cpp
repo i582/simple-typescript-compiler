@@ -243,24 +243,61 @@ void compiler::lexer::print_current_token_line()
     }
     ++i;
 
-    size_t count_symbol_before = _current_token_index - i;
+    int count_symbol_before = _current_token_index - i;
 
     while (j < _tokens.size() && _tokens[j]->line() == current_line)
     {
         ++j;
     }
 
-
+    size_t count_symbol_before_current = 0;
+    string underline;
+    size_t size_current_token = 0;
     for (int k = i; k < j; ++k)
     {
         if (k - i == count_symbol_before)
         {
-            cout << "  ->" << _tokens[k]->lexeme() << "<-  " << " ";
+            cout << "" << _tokens[k]->lexeme() << "" << " ";
+            size_current_token = _tokens[k]->lexeme().size();
             continue;
         }
 
         cout << _tokens[k]->lexeme() << " ";
+
+        if (k - i <= count_symbol_before)
+        {
+            count_symbol_before_current += _tokens[k]->lexeme().size() + 1;
+        }
+    }
+
+    for (int l = 0; l < count_symbol_before_current; ++l)
+    {
+        underline += ' ';
+    }
+
+    for (int l = 0; l < size_current_token; ++l)
+    {
+        underline += '~';
     }
 
     cout << endl;
+    cout << underline;
+}
+
+bool compiler::lexer::is_correct_identifier(const std::string& token)
+{
+    if (!isalpha(token[0]) && token[0] != '_')
+    {
+        return false;
+    }
+
+    for (const auto& symbol : token)
+    {
+        if (!isalpha(symbol) && !isdigit(symbol) && symbol != '_')
+        {
+            return false;
+        }
+    }
+
+    return true;
 }

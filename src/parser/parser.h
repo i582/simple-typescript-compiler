@@ -59,6 +59,12 @@ namespace compiler
         node* initializer_list();
 
 
+        node* function_argument();
+        node* function_argument_list();
+        node* function_statement();
+
+
+        node* operator_statement();
 
     };
 

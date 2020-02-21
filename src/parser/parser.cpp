@@ -47,19 +47,24 @@ compiler::node* compiler::parser::primary_expression()
     }
     else if (_lex->current_token_type() == token_type::TRUE)
     {
-        temp_node = new node(node_type::BOOLEAN_CONST, "true");
+        temp_node = new node(node_type::BOOLEAN_CONST, true);
 
         _lex->next_token();
     }
     else if (_lex->current_token_type() == token_type::FALSE)
     {
-        temp_node = new node(node_type::BOOLEAN_CONST, "false");
+        temp_node = new node(node_type::BOOLEAN_CONST, false);
 
         _lex->next_token();
     }
     else if (_lex->current_token_type() == token_type::NON_TERMINAL)
     {
         auto name = _lex->current_token().lexeme();
+
+        if (!lexer::is_correct_identifier(name))
+        {
+            error("Invalid identifier: '" + _lex->current_token().lexeme() + "'");
+        }
 
         _lex->next_token();
 
@@ -462,9 +467,14 @@ compiler::node* compiler::parser::statement()
     {
         temp_node = iteration_statement();
     }
-    else if (_lex->current_token_type() == token_type::NEW)
+    else if (_lex->current_token_type() == token_type::FUNCTION)
     {
-        // TODO
+        temp_node = function_statement();
+    }
+    else if (_lex->current_token_type() == token_type::RETURN ||
+             _lex->current_token_type() == token_type::NEW)
+    {
+        temp_node = operator_statement();
     }
     else
     {
@@ -528,7 +538,7 @@ compiler::node* compiler::parser::selection_statement()
     _lex->next_token();
 
     temp_node->_operand1 = parenthesized_expression();
-    temp_node->_operand2 = statement();
+    temp_node->_operand2 = compound_statement();
 
 
     if (_lex->current_token_type() == token_type::ELSE)
@@ -536,7 +546,7 @@ compiler::node* compiler::parser::selection_statement()
         temp_node->_type = node_type::IF_ELSE;
         _lex->next_token();
 
-        temp_node->_operand3 = statement();
+        temp_node->_operand3 = compound_statement();
     }
 
 
@@ -554,7 +564,7 @@ compiler::node* compiler::parser::iteration_statement()
         _lex->next_token();
 
         temp_node->_operand1 = parenthesized_expression();
-        temp_node->_operand2 = statement();
+        temp_node->_operand2 = compound_statement();
     }
     else if (_lex->current_token_type() == token_type::DO_WHILE)
     {
@@ -562,7 +572,7 @@ compiler::node* compiler::parser::iteration_statement()
 
         _lex->next_token();
 
-        temp_node->_operand2 = statement();
+        temp_node->_operand2 = compound_statement();
 
         if (_lex->current_token_type() != token_type::WHILE)
         {
@@ -614,7 +624,7 @@ compiler::node* compiler::parser::iteration_statement()
         temp_node->_operand1 = for_variable;
         temp_node->_operand2 = for_test;
         temp_node->_operand3 = for_action;
-        temp_node->_operand4 = statement();
+        temp_node->_operand4 = compound_statement();
 
 
         auto temp_stmt = new node(node_type::STATEMENT, "");
@@ -741,6 +751,119 @@ compiler::node* compiler::parser::initializer_list()
     else
     {
         temp_node = assignment_expression();
+    }
+
+    return temp_node;
+}
+
+compiler::node* compiler::parser::function_statement()
+{
+    node* temp_node = nullptr;
+
+    _lex->next_token();
+
+    if (_lex->current_token_type() != token_type::NON_TERMINAL)
+    {
+        error("Name of function expected!");
+    }
+
+    string function_name = _lex->current_token().lexeme();
+    _lex->next_token();
+
+    auto temp_function_args = function_argument_list();
+
+
+    if (_lex->current_token_type() != token_type::COLON)
+    {
+        error("':' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+    }
+    _lex->next_token();
+
+    if (!token::is_this_type_is_type_of_variable(_lex->current_token_type()))
+    {
+        error("Type of function expected!");
+    }
+    auto function_type = token::what_type_of_lexeme(_lex->current_token().lexeme());
+    _lex->next_token();
+
+
+    auto temp_function_compound_statement = compound_statement();
+
+    auto temp_function_return_type = new node(node_type::FUNCTION_IMPLEMENTATION_RETURN_TYPE, function_type);
+
+    temp_node = new node(node_type::FUNCTION_IMPLEMENTATION, function_name, temp_function_return_type,
+                                                                        temp_function_args, temp_function_compound_statement);
+
+    return temp_node;
+}
+
+compiler::node* compiler::parser::function_argument_list()
+{
+    node* temp_node = nullptr;
+
+    if (_lex->current_token_type() != token_type::LPAR)
+    {
+        error("'(' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+    }
+    _lex->next_token();
+
+    while (_lex->current_token_type() != token_type::RPAR)
+    {
+        auto temp_function_argument = function_argument();
+
+        temp_node = new node(node_type::FUNCTION_IMPLEMENTATION_ARG, "", temp_node, temp_function_argument);
+
+        if (_lex->current_token_type() == token_type::COMMA)
+        {
+            _lex->next_token();
+        }
+    }
+
+
+    if (_lex->current_token_type() != token_type::RPAR)
+    {
+        error("')' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+    }
+    _lex->next_token();
+
+    return temp_node;
+}
+
+compiler::node* compiler::parser::function_argument()
+{
+    node* temp_node = nullptr;
+
+    if (_lex->current_token_type() != token_type::NON_TERMINAL)
+    {
+        error("Name of variable expected!");
+    }
+
+    string variable_name = _lex->current_token().lexeme();
+    _lex->next_token();
+
+
+    auto temp_variable_type = declaration_type();
+
+
+    temp_node = new node(node_type::FUNCTION_IMPLEMENTATION_ARG, variable_name, temp_variable_type);
+
+    return temp_node;
+}
+
+compiler::node* compiler::parser::operator_statement()
+{
+    node* temp_node = nullptr;
+
+    if (_lex->current_token_type() == token_type::RETURN)
+    {
+        _lex->next_token();
+        auto temp_expression_statement = expression_statement();
+
+        temp_node = new node(node_type::RETURN, 0, temp_expression_statement);
+    }
+    else if (_lex->current_token_type() == token_type::NEW)
+    {
+
     }
 
     return temp_node;
