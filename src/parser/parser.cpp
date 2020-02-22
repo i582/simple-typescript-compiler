@@ -15,13 +15,18 @@ compiler::parser::~parser()
     delete _tree;
 }
 
-void compiler::parser::error(const std::string& message_)
+void compiler::parser::error(const std::string& message)
 {
-    cout << "Parse error: " << message_ << "" << endl;
+    cout << "Parse error: " << message << " ";
+
+    cout << "Current token: '" << _lex->current_token().lexeme() + "' (" +
+                                 std::to_string(_lex->current_token().line()) + ", " +
+                                 std::to_string(_lex->current_token().pos()) + ")"
+                                 << endl;
 
     _lex->print_current_token_line();
 
-    throw std::logic_error(message_);
+    throw std::logic_error(message);
 }
 
 compiler::node* compiler::parser::parse()
@@ -29,7 +34,13 @@ compiler::node* compiler::parser::parse()
     node* new_node = statement();
     _tree->_tree = new node(node_type::PROGRAM, "", new_node);
 
-    _tree->print(_tree->_tree, 0);
+    _tree->designate_blocks();
+    _tree->mark_block();
+    _tree->mark_break_continue_operators();
+    _tree->mark_return_operator();
+
+
+    compiler::ast::print(_tree->_tree, 0);
 
     return new_node;
 }
@@ -85,7 +96,8 @@ compiler::node* compiler::parser::primary_expression()
     }
     else
     {
-        cout << "What happens? Current token: '" + _lex->current_token().lexeme() + "'" << endl;
+        cout << "What happens? Current token: '" + _lex->current_token().lexeme() + "' ("
+        << _lex->current_token().line() << ", " << _lex->current_token().pos() << ")" << endl;
     }
 
     return temp_node;
@@ -95,7 +107,7 @@ compiler::node* compiler::parser::parenthesized_expression()
 {
     if (_lex->current_token_type() != token_type::LPAR)
     {
-        error("'(' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+        error("'(' expected!");
     }
     _lex->next_token();
 
@@ -105,7 +117,7 @@ compiler::node* compiler::parser::parenthesized_expression()
 
     if (_lex->current_token_type() != token_type::RPAR)
     {
-        error("')' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+        error("')' expected!");
     }
     _lex->next_token();
 
@@ -123,7 +135,7 @@ compiler::node* compiler::parser::postfix_expression()
 
         if (_lex->current_token_type() != token_type::RSQR)
         {
-            error("']' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+            error("']' expected!");
         }
         _lex->next_token();
 
@@ -136,7 +148,7 @@ compiler::node* compiler::parser::postfix_expression()
 
         if (_lex->current_token_type() != token_type::RPAR)
         {
-            error("')' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+            error("')' expected!");
         }
         _lex->next_token();
 
@@ -366,7 +378,7 @@ compiler::node* compiler::parser::conditional_expression()
 
         if (_lex->current_token_type() != token_type::COLON)
         {
-            error("':' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+            error("':' expected!");
         }
         _lex->next_token();
 
@@ -454,7 +466,6 @@ compiler::node* compiler::parser::statement()
 
     if (_lex->current_token_type() == token_type::LBRA)
     {
-        _lex->next_token();
         temp_node = compound_statement();
     }
     else if (_lex->current_token_type() == token_type::IF)
@@ -472,13 +483,15 @@ compiler::node* compiler::parser::statement()
         temp_node = function_statement();
     }
     else if (_lex->current_token_type() == token_type::RETURN ||
+             _lex->current_token_type() == token_type::BREAK ||
+             _lex->current_token_type() == token_type::CONTINUE ||
              _lex->current_token_type() == token_type::NEW)
     {
-        temp_node = operator_statement();
+        return operator_statement();
     }
     else
     {
-        temp_node = expression_statement();
+        return expression_statement();
     }
 
     temp_node = new node(node_type::STATEMENT, "", temp_node);
@@ -489,31 +502,30 @@ compiler::node* compiler::parser::statement()
 
 compiler::node* compiler::parser::compound_statement()
 {
-    node* temp_node = statement_list();
-
-
-
-    if (_lex->current_token_type() != token_type::RBRA)
-    {
-        error("'}' expected! Current token: '" + _lex->current_token().lexeme() + "'");
-    }
     _lex->next_token();
 
-    temp_node = new node(node_type::SEQ_STATEMENT, "", temp_node);
-
+    node* temp_node = statement_list();
 
     return temp_node;
 }
 
 compiler::node* compiler::parser::statement_list()
 {
-    node* temp_node = statement();
+    node* temp_node = nullptr;
 
-    if (_lex->current_token_type() != token_type::RBRA)
+//    if (_lex->current_token_type() != token_type::RBRA)
+//    {
+//        auto temp_statement_list = statement_list();
+//        temp_node = new node(node_type::STATEMENT_LIST, "", temp_node, temp_statement_list);
+//    }
+
+    while (_lex->current_token_type() != token_type::RBRA)
     {
-        auto temp_statement_list = statement_list();
-        temp_node = new node(node_type::STATEMENT_LIST, "", temp_node, temp_statement_list);
+        auto temp_statement = statement();
+        temp_node = new node(node_type::STATEMENT_LIST, "", temp_node, temp_statement);
     }
+    _lex->next_token();
+
 
     return temp_node;
 }
@@ -524,7 +536,7 @@ compiler::node* compiler::parser::expression_statement()
 
     if (_lex->current_token_type() != token_type::SEMICOLON)
     {
-        error("';' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+        error("';' expected!");
     }
     _lex->next_token();
 
@@ -546,7 +558,15 @@ compiler::node* compiler::parser::selection_statement()
         temp_node->_type = node_type::IF_ELSE;
         _lex->next_token();
 
-        temp_node->_operand3 = compound_statement();
+        if (_lex->current_token_type() == token_type::IF)
+        {
+            temp_node->_operand3 = selection_statement();
+        }
+        else
+        {
+            temp_node->_operand3 = compound_statement();
+        }
+
     }
 
 
@@ -576,7 +596,7 @@ compiler::node* compiler::parser::iteration_statement()
 
         if (_lex->current_token_type() != token_type::WHILE)
         {
-            error("'while' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+            error("'while' expected!");
         }
         _lex->next_token();
 
@@ -590,7 +610,7 @@ compiler::node* compiler::parser::iteration_statement()
 
         if (_lex->current_token_type() != token_type::LPAR)
         {
-            error("'(' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+            error("'(' expected!");
         }
 
         _lex->next_token();
@@ -598,7 +618,7 @@ compiler::node* compiler::parser::iteration_statement()
 
         if (_lex->current_token_type() != token_type::SEMICOLON)
         {
-            error("';' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+            error("';' expected!");
         }
         _lex->next_token();
 
@@ -607,7 +627,7 @@ compiler::node* compiler::parser::iteration_statement()
 
         if (_lex->current_token_type() != token_type::SEMICOLON)
         {
-            error("';' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+            error("';' expected!");
         }
         _lex->next_token();
 
@@ -616,7 +636,7 @@ compiler::node* compiler::parser::iteration_statement()
 
         if (_lex->current_token_type() != token_type::RPAR)
         {
-            error("')' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+            error("')' expected!");
         }
 
         _lex->next_token();
@@ -775,7 +795,7 @@ compiler::node* compiler::parser::function_statement()
 
     if (_lex->current_token_type() != token_type::COLON)
     {
-        error("':' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+        error("':' expected!");
     }
     _lex->next_token();
 
@@ -803,7 +823,7 @@ compiler::node* compiler::parser::function_argument_list()
 
     if (_lex->current_token_type() != token_type::LPAR)
     {
-        error("'(' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+        error("'(' expected!");
     }
     _lex->next_token();
 
@@ -822,7 +842,7 @@ compiler::node* compiler::parser::function_argument_list()
 
     if (_lex->current_token_type() != token_type::RPAR)
     {
-        error("')' expected! Current token: '" + _lex->current_token().lexeme() + "'");
+        error("')' expected!");
     }
     _lex->next_token();
 
@@ -860,6 +880,18 @@ compiler::node* compiler::parser::operator_statement()
         auto temp_expression_statement = expression_statement();
 
         temp_node = new node(node_type::RETURN, 0, temp_expression_statement);
+    }
+    else if (_lex->current_token_type() == token_type::BREAK)
+    {
+        _lex->next_token();
+        temp_node = new node(node_type::BREAK, 0);
+        _lex->next_token();
+    }
+    else if (_lex->current_token_type() == token_type::CONTINUE)
+    {
+        _lex->next_token();
+        temp_node = new node(node_type::CONTINUE, 0);
+        _lex->next_token();
     }
     else if (_lex->current_token_type() == token_type::NEW)
     {

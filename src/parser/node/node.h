@@ -108,11 +108,16 @@ namespace compiler
         node* _operand3;
         node* _operand4;
 
+
+        size_t _statement_id;
+
     public:
         explicit node(node_type type_, const any& value_ = "", node* operand1_ = nullptr, node* operand2_ = nullptr,
                       node* operand3_ = nullptr, node* operand4_ = nullptr);
 
-
+    public:
+        void statement_id(size_t statement_id);
+        size_t statement_id() const;
     };
 
 

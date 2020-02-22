@@ -19,7 +19,7 @@ namespace compiler
         node* parse();
 
     private:
-        void error(const string& message_);
+        void error(const string& message);
 
 
 

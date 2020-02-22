@@ -35,15 +35,16 @@
 
 * [x] `if`
 * [x] `else`
+* [x] `else if`
 * [x] `for`
-    * [ ] `break`
-    * [ ] `continue`
+    * [x] `break`
+    * [x] `continue`
 * [x] `while`
-    * [ ] `break`
-    * [ ] `continue`
+    * [x] `break`
+    * [x] `continue`
 * [x] `do while` 
-    * [ ] `break`
-    * [ ] `continue`
+    * [x] `break`
+    * [x] `continue`
 
 * [x] Функции    
     * [x] `return`

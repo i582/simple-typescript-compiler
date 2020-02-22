@@ -9,4 +9,15 @@ compiler::node::node(compiler::node_type type_, const any& value_, compiler::nod
     this->_operand2 = operand2_;
     this->_operand3 = operand3_;
     this->_operand4 = operand4_;
+    this->_statement_id = -1;
+}
+
+void compiler::node::statement_id(size_t statement_id)
+{
+    _statement_id = statement_id;
+}
+
+size_t compiler::node::statement_id() const
+{
+    return _statement_id;
 }

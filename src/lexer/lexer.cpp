@@ -43,6 +43,27 @@ bool compiler::lexer::next_token()
     }
 }
 
+bool compiler::lexer::prev_token()
+{
+    if (_current_token_index > 0)
+    {
+        --_current_token_index;
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+compiler::token_type compiler::lexer::next_token_type()
+{
+    next_token();
+    auto token_type = current_token_type();
+    prev_token();
+    return token_type;
+}
+
 compiler::token& compiler::lexer::current_token()
 {
     return *_tokens[_current_token_index];

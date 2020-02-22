@@ -32,6 +32,8 @@ namespace compiler
 
     public:
         bool next_token();
+        bool prev_token();
+        [[nodiscard]] token_type next_token_type();
         [[nodiscard]] token& current_token();
         [[nodiscard]] token_type current_token_type();
 

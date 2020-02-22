@@ -2,7 +2,7 @@
 
 compiler::ast::ast()
 {
-
+    this->_count_blocks = 1;
 }
 
 void compiler::ast::print(compiler::node* sub, size_t level)
@@ -229,7 +229,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             }
             case node_type::STATEMENT_LIST:
             {
-                cout << "statement list ";
+                cout << "seq ";
                 break;
             }
             case node_type::PROGRAM:
@@ -281,16 +281,178 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             }
         }
 
-        //cout << "" << sub->_value << endl;
-
-
-
+        if (sub->_statement_id != 4294967295)
+        {
+            cout << "\t\tstmt-id " << sub->_statement_id;
+        }
         cout << endl;
 
         print(sub->_operand1, level + 1);
-
         print(sub->_operand2, level + 1);
         print(sub->_operand3, level + 1);
         print(sub->_operand4, level + 1);
     }
+}
+
+void compiler::ast::designate_blocks()
+{
+    designate_blocks_recursive(_tree->_operand1, nullptr);
+    designate_blocks_recursive(_tree->_operand2, nullptr);
+    designate_blocks_recursive(_tree->_operand3, nullptr);
+    designate_blocks_recursive(_tree->_operand4, nullptr);
+}
+
+void compiler::ast::designate_blocks_recursive(node* current_node, node* current_stmt)
+{
+    if (current_node == nullptr)
+        return;
+
+
+    if (current_node->_type == node_type::STATEMENT)
+    {
+        _stmts.emplace_back(current_stmt, current_node);
+        current_stmt = current_node;
+    }
+
+    designate_blocks_recursive(current_node->_operand1, current_stmt);
+    designate_blocks_recursive(current_node->_operand2, current_stmt);
+    designate_blocks_recursive(current_node->_operand3, current_stmt);
+    designate_blocks_recursive(current_node->_operand4, current_stmt);
+}
+
+void compiler::ast::mark_block()
+{
+    mark_block_recursive(_tree->_operand1);
+    mark_block_recursive(_tree->_operand2);
+    mark_block_recursive(_tree->_operand3);
+    mark_block_recursive(_tree->_operand4);
+}
+
+void compiler::ast::mark_block_recursive(node* current_node)
+{
+    if (current_node == nullptr)
+        return;
+
+    if (current_node->_type == node_type::STATEMENT)
+    {
+        if (current_node->_operand1->_type == node_type::IF ||
+            current_node->_operand1->_type == node_type::IF_ELSE ||
+            current_node->_operand1->_type == node_type::WHILE ||
+            current_node->_operand1->_type == node_type::DO_WHILE ||
+            current_node->_operand1->_type == node_type::FOR ||
+            current_node->_operand1->_type == node_type::FUNCTION_IMPLEMENTATION)
+        {
+            current_node->statement_id(_count_blocks);
+            ++_count_blocks;
+        }
+    }
+    else if (current_node->_type == node_type::IF ||
+        current_node->_type == node_type::IF_ELSE ||
+        current_node->_type == node_type::WHILE ||
+        current_node->_type == node_type::WHILE ||
+        current_node->_type == node_type::DO_WHILE)
+    {
+        current_node->_operand2->statement_id(_count_blocks);
+        ++_count_blocks;
+    }
+    else if (current_node->_type == node_type::FOR)
+    {
+        current_node->_operand4->statement_id(_count_blocks);
+        ++_count_blocks;
+    }
+    else if (current_node->_type == node_type::FUNCTION_IMPLEMENTATION)
+    {
+        current_node->_operand3->statement_id(_count_blocks);
+        ++_count_blocks;
+    }
+
+
+
+    mark_block_recursive(current_node->_operand1);
+    mark_block_recursive(current_node->_operand2);
+    mark_block_recursive(current_node->_operand3);
+    mark_block_recursive(current_node->_operand4);
+}
+
+void compiler::ast::mark_break_continue_operators()
+{
+    for (auto& [parent_stmt, stmt] : _stmts)
+    {
+        if (stmt->_operand1 != nullptr &&
+           (stmt->_operand1->_type == node_type::FOR ||
+            stmt->_operand1->_type == node_type::WHILE ||
+            stmt->_operand1->_type == node_type::DO_WHILE))
+        {
+            mark_break_continue_operators_recursive(stmt->_operand1->_operand1, stmt->statement_id());
+            mark_break_continue_operators_recursive(stmt->_operand1->_operand2, stmt->statement_id());
+            mark_break_continue_operators_recursive(stmt->_operand1->_operand3, stmt->statement_id());
+            mark_break_continue_operators_recursive(stmt->_operand1->_operand4, stmt->statement_id());
+        }
+    }
+}
+
+void compiler::ast::mark_break_continue_operators_recursive(compiler::node* current_node, size_t current_block)
+{
+    if (current_node == nullptr)
+        return;
+
+
+    // if there is another cycle in the cycle, then you do not need to enter it
+    if (current_node->_type == node_type::FOR ||
+        current_node->_type == node_type::WHILE ||
+        current_node->_type == node_type::DO_WHILE)
+    {
+        return;
+    }
+
+
+
+    if (current_node->_type == node_type::BREAK ||
+        current_node->_type == node_type::CONTINUE)
+    {
+        current_node->statement_id(current_block);
+    }
+
+
+    mark_break_continue_operators_recursive(current_node->_operand1, current_block);
+    mark_break_continue_operators_recursive(current_node->_operand2, current_block);
+    mark_break_continue_operators_recursive(current_node->_operand3, current_block);
+    mark_break_continue_operators_recursive(current_node->_operand4, current_block);
+}
+
+void compiler::ast::mark_return_operator()
+{
+    for (auto& [parent_stmt, stmt] : _stmts)
+    {
+        if (stmt->_operand1 != nullptr &&
+            stmt->_operand1->_type == node_type::FUNCTION_IMPLEMENTATION)
+        {
+            mark_return_operator_recursive(stmt->_operand1->_operand3, stmt->statement_id());
+        }
+    }
+}
+
+void compiler::ast::mark_return_operator_recursive(compiler::node* current_node, size_t current_block)
+{
+    if (current_node == nullptr)
+        return;
+
+
+    if (current_node->_type == node_type::FUNCTION_IMPLEMENTATION)
+    {
+        return;
+    }
+
+
+
+    if (current_node->_type == node_type::RETURN)
+    {
+        current_node->statement_id(current_block);
+    }
+
+
+    mark_return_operator_recursive(current_node->_operand1, current_block);
+    mark_return_operator_recursive(current_node->_operand2, current_block);
+    mark_return_operator_recursive(current_node->_operand3, current_block);
+    mark_return_operator_recursive(current_node->_operand4, current_block);
 }
