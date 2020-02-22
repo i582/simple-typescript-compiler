@@ -1,15 +1,22 @@
-# simple-typescript-compiler
+# Simple compailer from TypeScript to Assembler 
 
+![](https://img.shields.io/badge/language-c%2B%2B-brightgreen)
 
-## Парсер
+![](docs/ts.png)
 
-### Операторы
+## Description
+
+Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeScript has been changed and now this language is fully statically typed. With support for a minimum number of parts of the language. 
+
+## Syntax parser
+
+### Operators
 
 * [x] `+`
 * [x] `-`
 * [x] `/`
 * [x] `*`
-* [x] `() <- выражения в скобках`
+* [x] `() <- Expressions in brackets`
 * [x] `++a` 
 * [x] `--a`
 * [x] `a++` 
@@ -31,7 +38,7 @@
 * [x] `!=`
 * [x] `[]`
 
-### Блоки
+### Blocks
 
 * [x] `if`
 * [x] `else`
@@ -46,10 +53,45 @@
     * [x] `break`
     * [x] `continue`
 
-* [x] Функции    
+* [x] `functions`    
     * [x] `return`
 
-### Прочее
 
-* [x] Списки инициализации для массивов
-* [x] Проверка корректности идентификаторов
+### Types
+
+* [x] `number`
+* [x] `boolean`
+* [x] `void`
+* [x] `number[]`
+
+### Other
+
+* [x] Initialization lists for arrays.
+* [x] Validation of identifiers.
+
+## Semantic analysis
+
+* [x] The absence of a variable with this name in the current program scope.
+* [ ] The absence of functions with this name and semantics in the current place of the program.
+* [x] Assignment to constants.
+* [x] Uninitialized constants.
+* [ ] A function call with the wrong type or number of parameters.
+* [ ] Uninitialized arrays.
+* [ ] Incorrect assignment to an array.
+* [ ] Assignment to one type of another.
+
+## Code generation
+
+* [ ] Assignment expressions.
+* [ ] Arithmetic expressions.
+* [ ] Conditional expressions.
+* [ ] `if`
+* [ ] `else`
+* [ ] `else if`
+* [ ] `while`
+* [ ] `for`
+* [ ] functions.
+
+### Optimizations
+
+* [ ] Replacing an arithmetic action with constants with a constant with the result of this action.
