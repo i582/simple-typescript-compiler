@@ -76,8 +76,8 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 * [x] Assignment to constants.
 * [x] Uninitialized constants.
 * [ ] A function call with the wrong type or number of parameters.
-* [ ] Uninitialized arrays.
-* [ ] Incorrect assignment to an array.
+* [x] Uninitialized arrays.
+* [x] Incorrect assignment to an array.
 * [ ] Assignment to one type of another.
 
 ## Code generation

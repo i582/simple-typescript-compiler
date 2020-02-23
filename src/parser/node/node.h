@@ -2,6 +2,7 @@
 
 #include <any>
 #include "../lexer/lexer.h"
+#include "../variable/variable_table.h"
 
 namespace compiler
 {
@@ -13,7 +14,7 @@ namespace compiler
 
         // variables
         VARIABLE_DECLARATION,
-        USE_VAR,
+        USING_VARIABLE,
         VARIABLE_TYPE,
 
         // const
@@ -110,14 +111,15 @@ namespace compiler
 
 
         size_t _statement_id;
+        variable_table* _vars;
 
     public:
         explicit node(node_type type_, const any& value_ = "", node* operand1_ = nullptr, node* operand2_ = nullptr,
-                      node* operand3_ = nullptr, node* operand4_ = nullptr);
+                      node* operand3_ = nullptr, node* operand4_ = nullptr, variable_table* vars_ = nullptr);
 
     public:
         void statement_id(size_t statement_id);
-        size_t statement_id() const;
+        [[nodiscard]] size_t statement_id() const;
     };
 
 

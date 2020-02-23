@@ -137,6 +137,10 @@ compiler::token_type compiler::token::what_type_of_lexeme(const std::string& lex
     if (lexeme == "return")
         return token_type::RETURN;
 
+    // new
+    if (lexeme == "new")
+        return token_type::NEW;
+
     // boolean values
     if (lexeme == "true")
         return token_type::TRUE;

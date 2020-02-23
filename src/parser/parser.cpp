@@ -38,6 +38,11 @@ compiler::node* compiler::parser::parse()
     _tree->mark_block();
     _tree->mark_break_continue_operators();
     _tree->mark_return_operator();
+    _tree->designate_variables();
+
+    // checks
+    _tree->check_const();
+    _tree->check_array();
 
 
     compiler::ast::print(_tree->_tree, 0);
@@ -70,7 +75,7 @@ compiler::node* compiler::parser::primary_expression()
     }
     else if (_lex->current_token_type() == token_type::NON_TERMINAL)
     {
-        auto name = _lex->current_token().lexeme();
+        string name = _lex->current_token().lexeme();
 
         if (!lexer::is_correct_identifier(name))
         {
@@ -79,7 +84,16 @@ compiler::node* compiler::parser::primary_expression()
 
         _lex->next_token();
 
-        temp_node = new node(node_type::NON_TERMINAL_NAME, name);
+
+        if (_lex->current_token_type() == token_type::LPAR)
+        {
+            temp_node = new node(node_type::FUNCTION_CALL, name);
+        }
+        else
+        {
+            temp_node = new node(node_type::USING_VARIABLE, name);
+        }
+
     }
     else if (_lex->current_token_type() == token_type::LPAR)
     {
@@ -93,6 +107,10 @@ compiler::node* compiler::parser::primary_expression()
              _lex->current_token_type() == token_type::CONST)
     {
         temp_node = declaration_statement();
+    }
+    else if (_lex->current_token_type() == token_type::NEW)
+    {
+        temp_node = operator_statement();
     }
     else
     {
@@ -152,7 +170,7 @@ compiler::node* compiler::parser::postfix_expression()
         }
         _lex->next_token();
 
-        temp_node = new node(node_type::FUNCTION_CALL, 0, temp_node, temp_argument_expression_list);
+        temp_node = new node(node_type::FUNCTION_CALL, "none", temp_node, temp_argument_expression_list);
     }
     else if (_lex->current_token_type() == token_type::INC)
     {
@@ -484,8 +502,7 @@ compiler::node* compiler::parser::statement()
     }
     else if (_lex->current_token_type() == token_type::RETURN ||
              _lex->current_token_type() == token_type::BREAK ||
-             _lex->current_token_type() == token_type::CONTINUE ||
-             _lex->current_token_type() == token_type::NEW)
+             _lex->current_token_type() == token_type::CONTINUE)
     {
         return operator_statement();
     }
@@ -550,7 +567,7 @@ compiler::node* compiler::parser::selection_statement()
     _lex->next_token();
 
     temp_node->_operand1 = parenthesized_expression();
-    temp_node->_operand2 = compound_statement();
+    temp_node->_operand2 = statement();
 
 
     if (_lex->current_token_type() == token_type::ELSE)
@@ -566,7 +583,6 @@ compiler::node* compiler::parser::selection_statement()
         {
             temp_node->_operand3 = compound_statement();
         }
-
     }
 
 
@@ -584,7 +600,7 @@ compiler::node* compiler::parser::iteration_statement()
         _lex->next_token();
 
         temp_node->_operand1 = parenthesized_expression();
-        temp_node->_operand2 = compound_statement();
+        temp_node->_operand2 = statement();
     }
     else if (_lex->current_token_type() == token_type::DO_WHILE)
     {
@@ -592,7 +608,7 @@ compiler::node* compiler::parser::iteration_statement()
 
         _lex->next_token();
 
-        temp_node->_operand2 = compound_statement();
+        temp_node->_operand2 = statement();
 
         if (_lex->current_token_type() != token_type::WHILE)
         {
@@ -644,7 +660,7 @@ compiler::node* compiler::parser::iteration_statement()
         temp_node->_operand1 = for_variable;
         temp_node->_operand2 = for_test;
         temp_node->_operand3 = for_action;
-        temp_node->_operand4 = compound_statement();
+        temp_node->_operand4 = statement();
 
 
         auto temp_stmt = new node(node_type::STATEMENT, "");
@@ -895,7 +911,9 @@ compiler::node* compiler::parser::operator_statement()
     }
     else if (_lex->current_token_type() == token_type::NEW)
     {
-
+        _lex->next_token();
+        temp_node = postfix_expression();
+        temp_node = new node(node_type::NEW, 0, temp_node);
     }
 
     return temp_node;
