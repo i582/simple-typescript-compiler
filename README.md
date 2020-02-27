@@ -8,6 +8,18 @@
 
 Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeScript has been changed and now this language is fully statically typed. With support for a minimum number of parts of the language. 
 
+## Lexer
+
+* [x] `Integer numbers`
+    * [ ] `binary`
+    * [ ] `hexadecimal`
+    * [ ] `_ separator`
+* [x] `Double numbers`
+    * [ ] `exponential form`
+* [x] `String const`
+
+* [x] Validation of identifiers.
+
 ## Syntax parser
 
 ### Operators
@@ -37,6 +49,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 * [x] `==` 
 * [x] `!=`
 * [x] `[]`
+* [x] `? : `
 
 ### Blocks
 
@@ -61,24 +74,27 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 
 * [x] `number`
 * [x] `boolean`
+* [x] `string`
 * [x] `void`
 * [x] `number[]`
+* [x] `boolean[]`
+* [x] `string[]`
 
 ### Other
 
 * [x] Initialization lists for arrays.
-* [x] Validation of identifiers.
 
 ## Semantic analysis
 
 * [x] The absence of a variable with this name in the current program scope.
-* [ ] The absence of functions with this name and semantics in the current place of the program.
 * [x] Assignment to constants.
 * [x] Uninitialized constants.
-* [ ] A function call with the wrong type or number of parameters.
+* [x] A function call with the wrong type or number of parameters.
 * [x] Uninitialized arrays.
 * [x] Incorrect assignment to an array.
-* [ ] Assignment to one type of another.
+* [x] Validation of assignments.
+* [x] Type checking operands.
+
 
 ## Code generation
 

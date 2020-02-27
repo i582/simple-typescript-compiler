@@ -46,7 +46,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::NUMBER_CONST:
             {
                 cout << "number const ";
-                cout << "" << std::any_cast<int>(sub->_value);
+                cout << "" << std::any_cast<long double>(sub->_value);
                 break;
             }
             case node_type::BOOLEAN_CONST:
@@ -200,15 +200,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::FUNCTION_CALL:
             {
                 cout << "function call ";
-                try
-                {
-                    cout << std::any_cast<string>(sub->_value);
-                }
-                catch (...)
-                {
-
-                }
-
+                cout << std::any_cast<string>(sub->_value);
                 break;
             }
             case node_type::FUNCTION_ARG:
@@ -286,6 +278,22 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::RETURN:
             {
                 cout << "return ";
+                break;
+            }
+            case node_type::FUNCTION_IMPLEMENTATION_ARGS:
+            {
+                cout << "function impl args ";
+                break;
+            }
+            case node_type::FUNCTION_ARGS:
+            {
+                cout << "function args ";
+                break;
+            }
+            case node_type::STRING_CONST:
+            {
+                cout << "string const ";
+                cout << "" << std::any_cast<string>(sub->_value);
                 break;
             }
         }
@@ -517,11 +525,13 @@ void compiler::ast::designate_variables_recursive(compiler::node* node, compiler
 
         auto variable_type = std::any_cast<token_type>(node->_operand1->_value);
 
+        auto variable_value = variable::default_value(variable::variable_type_from_token_type(variable_type));
+
         auto new_variable = new variable
         (
             variable_name,
             variable::variable_type_from_token_type(variable_type),
-            variable::default_value(variable::variable_type_from_token_type(variable_type)),
+            variable_value,
             is_const
         );
 
@@ -646,7 +656,7 @@ void compiler::ast::check_array_recursive(compiler::node* current_node)
             auto variable = _all_variables.get_variable_by_name(variable_name);
             auto variable_type = variable->type();
 
-            if (variable_type > variable_type::DOUBLE)
+            if (variable_type >= variable_type::NUMBER_ARRAY)
             {
                 cout << "Explicit array assignment is prohibited!" << endl;
                 throw std::logic_error("");
@@ -674,4 +684,274 @@ void compiler::ast::check_array_recursive(compiler::node* current_node)
     check_array_recursive(current_node->_operand2);
     check_array_recursive(current_node->_operand3);
     check_array_recursive(current_node->_operand4);
+}
+
+void compiler::ast::designate_functions()
+{
+    designate_functions_recursive(_stmts[0].second->_operand1);
+}
+
+void compiler::ast::designate_functions_recursive(compiler::node* node_)
+{
+    if (node_ == nullptr)
+        return;
+
+
+    if (node_->_type == node_type::FUNCTION_IMPLEMENTATION)
+    {
+        auto function_name = any_cast<string>(node_->_value);
+        auto type = (int)any_cast<token_type>(node_->_operand1->_value);
+
+
+        vector<variable_type> arguments;
+
+        designate_function_arguments_recursive(node_->_operand2, &arguments);
+
+        auto temp_func = new func(function_name, static_cast<return_type>(type), arguments);
+
+        _functions.add_function(temp_func);
+    }
+
+    designate_functions_recursive(node_->_operand1);
+    designate_functions_recursive(node_->_operand2);
+}
+
+void compiler::ast::designate_function_arguments_recursive(compiler::node* node, vector<variable_type>* arguments)
+{
+    if (node == nullptr)
+        return;
+
+
+    if (node->_type == node_type::FUNCTION_IMPLEMENTATION_ARG)
+    {
+        auto type = (argument_type)any_cast<token_type>(node->_operand1->_value);
+        arguments->push_back(type);
+    }
+
+    designate_function_arguments_recursive(node->_operand1, arguments);
+    designate_function_arguments_recursive(node->_operand2, arguments);
+}
+
+void compiler::ast::check_functions_call()
+{
+    check_functions_call_recursive(_tree);
+}
+
+void compiler::ast::check_functions_call_recursive(compiler::node* node)
+{
+    if (node == nullptr)
+        return;
+
+
+    if (node->_type == node_type::FUNCTION_CALL)
+    {
+        auto function_name = any_cast<string>(node->_value);
+        vector<variable_type> types;
+
+        designate_function_call_arguments_recursive(node, &types);
+
+        _functions.get_function(function_name, types);
+    }
+
+    check_functions_call_recursive(node->_operand1);
+    check_functions_call_recursive(node->_operand2);
+    check_functions_call_recursive(node->_operand3);
+    check_functions_call_recursive(node->_operand4);
+}
+
+void compiler::ast::designate_function_call_arguments_recursive(compiler::node* node,
+                                                                std::vector<compiler::variable_type>* arguments)
+{
+    if (node == nullptr)
+        return;
+
+
+    if (node->_type == node_type::FUNCTION_ARGS)
+    {
+        variable_type type;
+
+        if (node->_operand1->_type == node_type::NUMBER_CONST)
+        {
+            type = variable_type::NUMBER;
+        }
+        else if (node->_operand1->_type == node_type::BOOLEAN_CONST)
+        {
+            type = variable_type::BOOLEAN;
+        }
+        else if (node->_operand1->_type == node_type::STRING_CONST)
+        {
+            type = variable_type::STRING;
+        }
+        else
+        {
+            auto variable_name = any_cast<string>(node->_operand1->_value);
+            variable* var = _all_variables.get_variable_by_name(variable_name);
+
+            type = var->type();
+        }
+
+
+        arguments->push_back(type);
+    }
+
+    designate_function_call_arguments_recursive(node->_operand1, arguments);
+    designate_function_call_arguments_recursive(node->_operand2, arguments);
+}
+
+void compiler::ast::give_expression_type_recursive(compiler::node* current_node, variable_type& type)
+{
+    if (current_node == nullptr)
+        return;
+
+    if (current_node->_type == node_type::ADD ||
+        current_node->_type == node_type::SUB ||
+        current_node->_type == node_type::MUL ||
+        current_node->_type == node_type::DIV)
+    {
+        auto op1 = current_node->_operand1;
+        auto op2 = current_node->_operand2;
+
+        variable_type op1_type = variable_type::UNDEFINED;
+        variable_type op2_type = variable_type::UNDEFINED;
+
+        give_expression_type_recursive(op1, op1_type);
+        give_expression_type_recursive(op2, op2_type);
+
+        auto is_reducible = variable::is_types_reducible(op1_type, op2_type);
+
+        if (!is_reducible)
+        {
+            string op1_type_str = variable::variable_type_to_string(op1_type);
+            string op2_type_str = variable::variable_type_to_string(op2_type);
+
+            string action = node::node_type_to_string(current_node->_type);
+
+            error("Operator " + action + " cannot be applied to types '" + op1_type_str + "' and '" + op2_type_str + "'.");
+        }
+
+        type = op1_type;
+    }
+    else if (current_node->_type == node_type::UNARY_EXCLAMATION)
+    {
+        auto op1 = current_node->_operand1;
+
+        variable_type op1_type = variable_type::UNDEFINED;
+        give_expression_type_recursive(op1, op1_type);
+
+        type = variable_type::BOOLEAN;
+    }
+    else if (current_node->_type == node_type::UNARY_MINUS ||
+             current_node->_type == node_type::UNARY_PLUS)
+    {
+        auto op1 = current_node->_operand1;
+
+        variable_type op1_type = variable_type::UNDEFINED;
+        give_expression_type_recursive(op1, op1_type);
+
+        type = variable_type::BOOLEAN;
+    }
+    else if (current_node->_type == node_type::USING_VARIABLE ||
+             current_node->_type == node_type::NUMBER_CONST ||
+             current_node->_type == node_type::BOOLEAN_CONST ||
+             current_node->_type == node_type::STRING_CONST)
+    {
+        type = variable_type_of_node(current_node);
+    }
+
+    give_expression_type_recursive(current_node->_operand1, type);
+    give_expression_type_recursive(current_node->_operand2, type);
+    give_expression_type_recursive(current_node->_operand3, type);
+    give_expression_type_recursive(current_node->_operand4, type);
+}
+
+void compiler::ast::error(const string& message)
+{
+    cout << "Semantic error! " << message << endl;
+    throw std::logic_error(message);
+}
+
+
+compiler::variable_type compiler::ast::variable_type_of_node(compiler::node* current_node)
+{
+    if (current_node->_type == node_type::NUMBER_CONST)
+    {
+        return variable_type::NUMBER;
+    }
+    else if (current_node->_type == node_type::BOOLEAN_CONST)
+    {
+        return variable_type::BOOLEAN;
+    }
+    else if (current_node->_type == node_type::STRING_CONST)
+    {
+        return variable_type::STRING;
+    }
+    else if (current_node->_type == node_type::USING_VARIABLE)
+    {
+        auto variable_name = any_cast<string>(current_node->_value);
+        variable* var = _all_variables.get_variable_by_name(variable_name);
+
+        return var->type();
+    }
+
+    return variable_type::VOID;
+}
+
+void compiler::ast::check_expression()
+{
+    check_expression_recursive(_tree);
+}
+
+void compiler::ast::check_expression_recursive(compiler::node* node)
+{
+    if (node == nullptr)
+        return;
+
+
+    if (node->_type == node_type::EXPRESSION)
+    {
+        if (node->_operand1->_type == node_type::SET)
+        {
+            auto lvalue = node->_operand1->_operand1;
+            if (lvalue->_type != node_type::USING_VARIABLE &&
+                lvalue->_type != node_type::VARIABLE_DECLARATION)
+            {
+                error("Invalid assignment!");
+            }
+
+            variable_type lvalue_type = variable_type::NUMBER;
+
+            if (lvalue->_type == node_type::USING_VARIABLE)
+            {
+                auto variable_name = any_cast<string>(lvalue->_value);
+                variable* var = _all_variables.get_variable_by_name(variable_name);
+
+                lvalue_type = var->type();
+            }
+            else if (lvalue->_type == node_type::VARIABLE_DECLARATION)
+            {
+                lvalue_type = any_cast<variable_type>(lvalue->_operand1->_value);
+            }
+
+
+            auto start_node = node->_operand1->_operand2;
+            variable_type expression_type;
+            give_expression_type_recursive(start_node, expression_type);
+
+            if (!variable::is_types_reducible(lvalue_type, expression_type))
+            {
+                string lvalue_type_str = variable::variable_type_to_string(lvalue_type);
+                string expression_type_str = variable::variable_type_to_string(expression_type);
+
+                error("Cannot assign a variable of type '" + lvalue_type_str + "' to '" + expression_type_str + "'!");
+            }
+        }
+
+
+    }
+
+
+    check_expression_recursive(node->_operand1);
+    check_expression_recursive(node->_operand2);
+    check_expression_recursive(node->_operand3);
+    check_expression_recursive(node->_operand4);
 }

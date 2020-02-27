@@ -3,6 +3,7 @@
 compiler::lexer::lexer(const std::string& file_path)
 {
     this->_current_token_index = 0;
+    this->_state = lexer_state::DEFAULT;
 
     open(file_path);
 }
@@ -106,9 +107,41 @@ void compiler::lexer::split()
 
         const auto& symbol = _code[i];
 
+        if (symbol == '"')
+        {
+            if (_state == lexer_state::IN_STRING)
+            {
+                _state = lexer_state::DEFAULT;
+                temp_token += symbol;
+                continue;
+            }
+            else
+            {
+                _state = lexer_state::IN_STRING;
+                temp_token += symbol;
+                continue;
+            }
+        }
+
+        if (_state == lexer_state::IN_STRING)
+        {
+            temp_token += symbol;
+            continue;
+        }
+
         if (is_split_symbol(symbol))
         {
             ++current_pos;
+
+
+            if (_state == lexer_state::IN_NUMBER)
+            {
+                if (symbol == '.')
+                {
+                    temp_token += symbol;
+                    continue;
+                }
+            }
 
             if (!temp_token.empty())
             {
@@ -136,12 +169,25 @@ void compiler::lexer::split()
 
 
             }
-
-            continue;
         }
+        else
+        {
+            ++current_pos;
 
-        ++current_pos;
-        temp_token += symbol;
+            if (_state != lexer_state::IN_STRING)
+            {
+                if (symbol >= '0' && symbol <= '9')
+                {
+                    _state = lexer_state::IN_NUMBER;
+                }
+                else
+                {
+                    _state = lexer_state::DEFAULT;
+                }
+            }
+
+            temp_token += symbol;
+        }
     }
 
 

@@ -10,20 +10,26 @@ namespace compiler
     using std::cout;
     using std::endl;
 
-    using variable_value = std::variant<int, float, bool, string>;
+    using number = long double;
+
+    using variable_value = std::variant<number, bool, string>;
+
 
     enum class variable_type
     {
-        INT = 0x01000,
-        BOOLEAN = 0x02000,
-        VOID = 0x03000,
-        DOUBLE = 0x04000,
+        UNDEFINED       = 0xffffff,
+
+        NUMBER          = 0x001000,
+        BOOLEAN         = 0x002000,
+        STRING          = 0x003000,
+        VOID            = 0x004000,
+
 
         // types for array
-        INT_ARRAY = 0x10000,
-        BOOLEAN_ARRAY = 0x20000,
-        VOID_ARRAY = 0x30000,
-        DOUBLE_ARRAY = 0x040000,
+        NUMBER_ARRAY    = 0x020000,
+        BOOLEAN_ARRAY   = 0x030000,
+        STRING_ARRAY    = 0x050000,
+        VOID_ARRAY      = 0x040000,
     };
 
     class variable
@@ -55,6 +61,9 @@ namespace compiler
     public:
         static variable_value default_value(variable_type variable_type_);
         static variable_type variable_type_from_token_type(token_type token_type_);
+
+        static bool is_types_reducible(variable_type type1, variable_type type2);
+        static string variable_type_to_string(variable_type type);
 
     };
 

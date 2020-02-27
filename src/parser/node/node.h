@@ -7,6 +7,7 @@
 namespace compiler
 {
     using std::any;
+    using std::any_cast;
 
     enum class node_type
     {
@@ -22,6 +23,7 @@ namespace compiler
         USE_CONST,
         NUMBER_CONST,
         BOOLEAN_CONST,
+        STRING_CONST,
 
         // math
         ADD,
@@ -71,6 +73,7 @@ namespace compiler
 
         // function
         FUNCTION_CALL,
+        FUNCTION_ARGS,
         FUNCTION_ARG,
 
         RETURN,
@@ -78,6 +81,7 @@ namespace compiler
         // function implement
         FUNCTION_IMPLEMENTATION,
         FUNCTION_IMPLEMENTATION_ARG,
+        FUNCTION_IMPLEMENTATION_ARGS,
         FUNCTION_IMPLEMENTATION_RETURN_TYPE,
 
         // expression
@@ -120,6 +124,9 @@ namespace compiler
     public:
         void statement_id(size_t statement_id);
         [[nodiscard]] size_t statement_id() const;
+
+
+        static string node_type_to_string(node_type type);
     };
 
 

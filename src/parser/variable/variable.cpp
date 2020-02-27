@@ -15,34 +15,34 @@ compiler::variable_value compiler::variable::default_value(compiler::variable_ty
 {
     switch (variable_type_)
     {
-        case variable_type::INT:
+        case variable_type::NUMBER:
         {
-            return 0;
-        }
-        case variable_type::DOUBLE:
-        {
-            return 0.f;
+            return (long double)0.0;
         }
         case variable_type::BOOLEAN:
         {
             return false;
         }
-        case variable_type::INT_ARRAY:
+        case variable_type::STRING:
         {
-            return 0;
+            return "";
         }
-        case variable_type::DOUBLE_ARRAY:
+        case variable_type::NUMBER_ARRAY:
         {
-            return 0.f;
+            return (long double)0.0;
         }
         case variable_type::BOOLEAN_ARRAY:
         {
             return false;
         }
+        case variable_type::STRING_ARRAY:
+        {
+            return "";
+        }
         case variable_type::VOID:
         case variable_type::VOID_ARRAY:
         default:
-            break;
+            return (long double)0;
     }
 }
 
@@ -74,11 +74,41 @@ compiler::variable_type compiler::variable::type() const
 
 bool compiler::variable::is_array()
 {
-    return (int)_variable_type > 0x04000;
+    return (size_t)_variable_type >= (size_t)variable_type::NUMBER_ARRAY;
 }
 
 compiler::variable_type compiler::variable::variable_type_from_token_type(compiler::token_type token_type_)
 {
     int value = (int)token_type_;
     return variable_type(value);
+}
+
+bool compiler::variable::is_types_reducible(variable_type type1, variable_type type2)
+{
+    return type1 == type2;
+}
+
+std::string compiler::variable::variable_type_to_string(variable_type type)
+{
+    switch (type)
+    {
+        case variable_type::UNDEFINED:
+            return "undefined";
+        case variable_type::NUMBER:
+            return "number";
+        case variable_type::BOOLEAN:
+            return "boolean";
+        case variable_type::VOID:
+            return "void";
+        case variable_type::STRING:
+            return "string";
+        case variable_type::NUMBER_ARRAY:
+            return "number[]";
+        case variable_type::BOOLEAN_ARRAY:
+            return "boolean[]";
+        case variable_type::VOID_ARRAY:
+            return "void[]";
+        case variable_type::STRING_ARRAY:
+            return "string[]";
+    }
 }

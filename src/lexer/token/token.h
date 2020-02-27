@@ -10,8 +10,8 @@ namespace compiler
 
     enum class token_type
     {
-        // num
-        NUM, // number
+        NUMBER_CONST, // number const
+        STRING_CONST, // string const
 
         // general for variable and function
         NON_TERMINAL,
@@ -23,13 +23,17 @@ namespace compiler
 
 
         // types
-        NUMBER = 0x01000,
-        BOOLEAN = 0x02000,
-        VOID = 0x03000,
+        NUMBER          = 0x001000,
+        BOOLEAN         = 0x002000,
+        STRING          = 0x003000,
+        VOID            = 0x004000,
+
+
         // types for array
-        NUMBER_ARRAY = 0x10000,
-        BOOLEAN_ARRAY = 0x20000,
-        VOID_ARRAY = 0x30000,
+        NUMBER_ARRAY    = 0x020000,
+        BOOLEAN_ARRAY   = 0x030000,
+        STRING_ARRAY    = 0x050000,
+        VOID_ARRAY      = 0x040000,
 
 
         // cycles
@@ -135,6 +139,7 @@ namespace compiler
 
     public:
         static bool is_number(const string& lexeme);
+        static bool is_string(const string& lexeme);
 
         static bool is_unary_operator(token_type type);
         static bool is_assignment_operator(token_type type);
@@ -143,7 +148,6 @@ namespace compiler
         static bool is_this_type_is_type_of_variable(token_type type);
 
         static token_type what_type_of_lexeme(const string& lexeme);
-
 
 
     };

@@ -13,11 +13,19 @@ namespace compiler
     using std::vector;
 
 
+    enum class lexer_state
+    {
+        DEFAULT,
+        IN_NUMBER,
+        IN_STRING,
+    };
+
     class lexer
     {
     private:
         string _code;
         vector<token*> _tokens;
+        lexer_state _state;
 
         size_t _current_token_index;
 

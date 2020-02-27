@@ -38,11 +38,17 @@ compiler::node* compiler::parser::parse()
     _tree->mark_block();
     _tree->mark_break_continue_operators();
     _tree->mark_return_operator();
+
+
     _tree->designate_variables();
+    _tree->designate_functions();
+
 
     // checks
     _tree->check_const();
     _tree->check_array();
+    _tree->check_functions_call();
+    _tree->check_expression();
 
 
     compiler::ast::print(_tree->_tree, 0);
@@ -54,11 +60,21 @@ compiler::node* compiler::parser::primary_expression()
 {
     node* temp_node = nullptr;
 
-    if (_lex->current_token_type() == token_type::NUM)
+    if (_lex->current_token_type() == token_type::NUMBER_CONST)
     {
-        int number = stoi(_lex->current_token().lexeme());
-        temp_node = new node(node_type::NUMBER_CONST, number);
+        string number_str = _lex->current_token().lexeme();
 
+
+        number number_val = stold(number_str);
+        temp_node = new node(node_type::NUMBER_CONST, number_val);
+
+        _lex->next_token();
+    }
+    else if (_lex->current_token_type() == token_type::STRING_CONST)
+    {
+        string str = _lex->current_token().lexeme();
+
+        temp_node = new node(node_type::STRING_CONST, str);
         _lex->next_token();
     }
     else if (_lex->current_token_type() == token_type::TRUE)
@@ -162,6 +178,7 @@ compiler::node* compiler::parser::postfix_expression()
     else if (_lex->current_token_type() == token_type::LPAR)
     {
         _lex->next_token();
+        auto function_name = any_cast<string>(temp_node->_value);
         auto temp_argument_expression_list = argument_expression_list();
 
         if (_lex->current_token_type() != token_type::RPAR)
@@ -170,7 +187,7 @@ compiler::node* compiler::parser::postfix_expression()
         }
         _lex->next_token();
 
-        temp_node = new node(node_type::FUNCTION_CALL, "none", temp_node, temp_argument_expression_list);
+        temp_node = new node(node_type::FUNCTION_CALL, function_name, temp_argument_expression_list);
     }
     else if (_lex->current_token_type() == token_type::INC)
     {
@@ -188,15 +205,18 @@ compiler::node* compiler::parser::postfix_expression()
 
 compiler::node* compiler::parser::argument_expression_list()
 {
-    node* temp_node = assignment_expression();
+    node* temp_node = nullptr;
 
-    if (_lex->current_token_type() == token_type::COMMA)
+    while (_lex->current_token_type() != token_type::RPAR)
     {
-        _lex->next_token();
+        auto temp_function_argument = assignment_expression();
 
-        auto temp_argument_expression_list = argument_expression_list();
+        temp_node = new node(node_type::FUNCTION_ARGS, "", temp_function_argument, temp_node);
 
-        temp_node = new node(node_type::FUNCTION_ARG, 0, temp_node, temp_argument_expression_list);
+        if (_lex->current_token_type() == token_type::COMMA)
+        {
+            _lex->next_token();
+        }
     }
 
     return temp_node;
@@ -828,7 +848,7 @@ compiler::node* compiler::parser::function_statement()
     auto temp_function_return_type = new node(node_type::FUNCTION_IMPLEMENTATION_RETURN_TYPE, function_type);
 
     temp_node = new node(node_type::FUNCTION_IMPLEMENTATION, function_name, temp_function_return_type,
-                                                                        temp_function_args, temp_function_compound_statement);
+                                                                temp_function_args, temp_function_compound_statement);
 
     return temp_node;
 }
@@ -847,7 +867,7 @@ compiler::node* compiler::parser::function_argument_list()
     {
         auto temp_function_argument = function_argument();
 
-        temp_node = new node(node_type::FUNCTION_IMPLEMENTATION_ARG, "", temp_node, temp_function_argument);
+        temp_node = new node(node_type::FUNCTION_IMPLEMENTATION_ARGS, "", temp_node, temp_function_argument);
 
         if (_lex->current_token_type() == token_type::COMMA)
         {
@@ -917,4 +937,4 @@ compiler::node* compiler::parser::operator_statement()
     }
 
     return temp_node;
-}
+}     

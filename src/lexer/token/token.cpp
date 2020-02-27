@@ -32,8 +32,10 @@ size_t compiler::token::pos() const
 compiler::token_type compiler::token::what_type_of_lexeme(const std::string& lexeme)
 {
     if (is_number(lexeme))
-        return token_type::NUM;
+        return token_type::NUMBER_CONST;
 
+    if (is_string(lexeme))
+        return token_type::STRING_CONST;
 
     // variables
     if (lexeme == "let")
@@ -48,6 +50,8 @@ compiler::token_type compiler::token::what_type_of_lexeme(const std::string& lex
         return token_type::BOOLEAN;
     if (lexeme == "void")
         return token_type::VOID;
+    if (lexeme == "string")
+        return token_type::STRING;
     
 
     // cycles
@@ -199,11 +203,17 @@ bool compiler::token::is_number(const std::string& lexeme)
     return true;
 }
 
+bool compiler::token::is_string(const std::string& lexeme)
+{
+    return lexeme.front() == '"' && lexeme.back() == '"';
+}
+
 bool compiler::token::is_this_type_is_type_of_variable(compiler::token_type type)
 {
     return  type == token_type::NUMBER ||
             type == token_type::BOOLEAN ||
-            type == token_type::VOID;
+            type == token_type::VOID ||
+            type == token_type::STRING;
 }
 
 bool compiler::token::is_unary_operator(token_type type)
