@@ -136,7 +136,7 @@ void compiler::lexer::split()
 
             if (_state == lexer_state::IN_NUMBER)
             {
-                if (symbol == '.')
+                if (symbol == '.' || symbol == 'e' || symbol == '-' || symbol == '+')
                 {
                     temp_token += symbol;
                     continue;
@@ -176,13 +176,23 @@ void compiler::lexer::split()
 
             if (_state != lexer_state::IN_STRING)
             {
-                if (symbol >= '0' && symbol <= '9')
+                if (_state == lexer_state::IN_NUMBER)
                 {
-                    _state = lexer_state::IN_NUMBER;
+                    if (symbol != '.' && symbol != 'e' && symbol != '-' && symbol != '+')
+                    {
+                        _state = lexer_state::DEFAULT;
+                    }
                 }
                 else
                 {
-                    _state = lexer_state::DEFAULT;
+                    if (symbol >= '0' && symbol <= '9')
+                    {
+                        _state = lexer_state::IN_NUMBER;
+                    }
+                    else
+                    {
+                        _state = lexer_state::DEFAULT;
+                    }
                 }
             }
 
@@ -275,7 +285,7 @@ bool compiler::lexer::next_symbol_is_part_of_token(const char& token, const char
 
         case '*':
         {
-            return symbol == '=' || symbol == '/';
+            return symbol == '=' || symbol == '/' || symbol == '*';
         }
 
         case '/':
@@ -293,6 +303,7 @@ bool compiler::lexer::next_symbol_is_part_of_token(const char& token, const char
         {
             return symbol == '&';
         }
+
 
         default: return false;
     }

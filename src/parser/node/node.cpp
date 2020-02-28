@@ -44,7 +44,7 @@ std::string compiler::node::node_type_to_string(compiler::node_type type)
         {
             return "const decl";
         }
-        case node_type::USE_CONST:
+        case node_type::USING_CONSTANT:
         {
             return "const use";
         }
@@ -243,6 +243,10 @@ std::string compiler::node::node_type_to_string(compiler::node_type type)
         case node_type::STRING_CONST:
         {
             return "string const";
+        }
+        case node_type::EXPONENTIATION:
+        {
+            return "exponentiation (**)";
         }
     }
 }

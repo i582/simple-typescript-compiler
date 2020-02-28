@@ -74,6 +74,7 @@ namespace compiler
         SLASH, // /
         INC, // ++
         DEC, // --
+        STAR_STAR, // **
 
 
         // brackets
@@ -138,6 +139,8 @@ namespace compiler
         [[nodiscard]] size_t pos() const;
 
     public:
+        static bool is_hexadecimal(const string& lexeme);
+
         static bool is_number(const string& lexeme);
         static bool is_string(const string& lexeme);
 

@@ -17,6 +17,7 @@ namespace compiler
     {
         DEFAULT,
         IN_NUMBER,
+
         IN_STRING,
     };
 

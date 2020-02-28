@@ -20,7 +20,7 @@ namespace compiler
 
         // const
         CONSTANT_DECLARATION,
-        USE_CONST,
+        USING_CONSTANT,
         NUMBER_CONST,
         BOOLEAN_CONST,
         STRING_CONST,
@@ -30,6 +30,8 @@ namespace compiler
         SUB,
         MUL,
         DIV,
+
+        EXPONENTIATION,
 
         BEFORE_INC,
         BEFORE_DEC,

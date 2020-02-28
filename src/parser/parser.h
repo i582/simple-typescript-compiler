@@ -31,6 +31,7 @@ namespace compiler
         node* argument_expression_list();
 
         node* unary_expression();
+        node* exponentiation_expression();
         node* multiplicative_expression();
         node* additive_expression();
         node* relational_expression();

@@ -37,7 +37,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
                 cout << "" << std::any_cast<string>(sub->_value);
                 break;
             }
-            case node_type::USE_CONST:
+            case node_type::USING_CONSTANT:
             {
                 cout << "use const ";
                 cout << "" << std::any_cast<string>(sub->_value);
@@ -73,6 +73,11 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::DIV:
             {
                 cout << "div ";
+                break;
+            }
+            case node_type::EXPONENTIATION:
+            {
+                cout << "exponentiation (**)";
                 break;
             }
             case node_type::LESS:
@@ -850,12 +855,33 @@ void compiler::ast::give_expression_type_recursive(compiler::node* current_node,
 
         type = variable_type::BOOLEAN;
     }
+    else if (current_node->_type == node_type::EXPONENTIATION)
+    {
+        auto op1 = current_node->_operand1;
+
+        variable_type op1_type = variable_type::UNDEFINED;
+        give_expression_type_recursive(op1, op1_type);
+
+        type = op1_type;
+    }
     else if (current_node->_type == node_type::USING_VARIABLE ||
              current_node->_type == node_type::NUMBER_CONST ||
              current_node->_type == node_type::BOOLEAN_CONST ||
              current_node->_type == node_type::STRING_CONST)
     {
         type = variable_type_of_node(current_node);
+    }
+    else if (current_node->_type == node_type::FUNCTION_CALL)
+    {
+        auto function_name = any_cast<string>(current_node->_value);
+        vector<variable_type> types;
+
+        designate_function_call_arguments_recursive(current_node, &types);
+
+        auto function = _functions.get_function(function_name, types);
+
+        type = function->return_type();
+        return;
     }
 
     give_expression_type_recursive(current_node->_operand1, type);
@@ -913,23 +939,26 @@ void compiler::ast::check_expression_recursive(compiler::node* node)
         {
             auto lvalue = node->_operand1->_operand1;
             if (lvalue->_type != node_type::USING_VARIABLE &&
-                lvalue->_type != node_type::VARIABLE_DECLARATION)
+                lvalue->_type != node_type::VARIABLE_DECLARATION &&
+                lvalue->_type != node_type::CONSTANT_DECLARATION)
             {
                 error("Invalid assignment!");
             }
 
-            variable_type lvalue_type = variable_type::NUMBER;
+            variable_type lvalue_type = variable_type::UNDEFINED;
 
-            if (lvalue->_type == node_type::USING_VARIABLE)
+            if (lvalue->_type == node_type::USING_VARIABLE ||
+                lvalue->_type == node_type::USING_CONSTANT)
             {
                 auto variable_name = any_cast<string>(lvalue->_value);
                 variable* var = _all_variables.get_variable_by_name(variable_name);
 
                 lvalue_type = var->type();
             }
-            else if (lvalue->_type == node_type::VARIABLE_DECLARATION)
+            else if (lvalue->_type == node_type::VARIABLE_DECLARATION ||
+                     lvalue->_type == node_type::CONSTANT_DECLARATION)
             {
-                lvalue_type = any_cast<variable_type>(lvalue->_operand1->_value);
+                lvalue_type = (variable_type)any_cast<token_type>(lvalue->_operand1->_value);
             }
 
 

@@ -261,9 +261,24 @@ compiler::node* compiler::parser::unary_expression()
     return temp_node;
 }
 
-compiler::node* compiler::parser::multiplicative_expression()
+compiler::node* compiler::parser::exponentiation_expression()
 {
     node* temp_node = unary_expression();
+
+    if (_lex->current_token_type() == token_type::STAR_STAR)
+    {
+        _lex->next_token();
+        auto temp_expression = unary_expression();
+
+        temp_node = new node(node_type::EXPONENTIATION, "", temp_node, temp_expression);
+    }
+
+    return temp_node;
+}
+
+compiler::node* compiler::parser::multiplicative_expression()
+{
+    node* temp_node = exponentiation_expression();
 
 
     if (_lex->current_token_type() == token_type::STAR || _lex->current_token_type() == token_type::SLASH)
@@ -937,4 +952,6 @@ compiler::node* compiler::parser::operator_statement()
     }
 
     return temp_node;
-}     
+}
+
+     

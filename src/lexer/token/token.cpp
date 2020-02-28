@@ -107,6 +107,8 @@ compiler::token_type compiler::token::what_type_of_lexeme(const std::string& lex
         return token_type::INC;
     if (lexeme == "--")
         return token_type::DEC;
+    if (lexeme == "**")
+        return token_type::STAR_STAR;
 
     // brackets
     if (lexeme == "{")
@@ -230,4 +232,9 @@ bool compiler::token::is_assignment_operator(compiler::token_type type)
             type == token_type::SUB_ASSIGN ||
             type == token_type::MUL_ASSIGN ||
             type == token_type::DIV_ASSIGN;
+}
+
+bool compiler::token::is_hexadecimal(const std::string& lexeme)
+{
+    return false;
 }
