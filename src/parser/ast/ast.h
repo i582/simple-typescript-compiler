@@ -9,6 +9,8 @@
 namespace compiler
 {
 
+    class assembler;
+
     using std::any_cast;
 
     class ast
@@ -33,6 +35,8 @@ namespace compiler
     public:
         ast();
 
+    public:
+        friend assembler;
 
     public:
         void print_variable_table();
@@ -85,6 +89,7 @@ namespace compiler
 
 
         variable_type variable_type_of_node(node* current_node);
+
 
     private:
         void error(const string& message);

@@ -4,6 +4,7 @@ compiler::parser::parser(const std::string& file_path_)
 {
     _lex = new lexer(file_path_);
     _tree = new ast();
+    _assembler = new assembler("test.asm", _tree);
 
     _lex->parse();
     _lex->print_tokens();
@@ -29,7 +30,7 @@ void compiler::parser::error(const std::string& message)
     throw std::logic_error(message);
 }
 
-compiler::node* compiler::parser::parse()
+void compiler::parser::parse()
 {
     node* new_node = statement();
     _tree->_tree = new node(node_type::PROGRAM, "", new_node);
@@ -54,8 +55,6 @@ compiler::node* compiler::parser::parse()
     _tree->print(_tree->_tree, 0);
 
     _tree->print_variable_table();
-
-    return new_node;
 }
 
 compiler::node* compiler::parser::primary_expression()
@@ -947,6 +946,11 @@ compiler::node* compiler::parser::operator_statement()
     }
 
     return temp_node;
+}
+
+void compiler::parser::generate()
+{
+    _assembler->generate();
 }
 
    

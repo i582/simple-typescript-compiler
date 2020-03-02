@@ -31,3 +31,19 @@ bool compiler::global_functions::has_function(compiler::func* function)
 {
     return _table->has_function(function);
 }
+
+bool compiler::global_functions::has_function(const std::string& name)
+{
+    func* function = nullptr;
+
+    if (name == "Array")
+    {
+        function = new func(name, return_type::ANY, { argument_type::NUMBER });
+    }
+    else if (name == "input")
+    {
+        function = new func(name, return_type::NUMBER, {});
+    }
+
+    return _table->has_function(function);
+}

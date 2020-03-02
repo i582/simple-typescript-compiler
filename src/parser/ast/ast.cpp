@@ -809,10 +809,12 @@ void compiler::ast::designate_function_call_arguments_recursive(compiler::node* 
         }
         else
         {
-            auto variable_name = any_cast<string>(node->operand1->value);
-            variable* var = _all_variables.get_variable_by_name(variable_name);
+            give_expression_type_recursive(node->operand1, type);
 
-            type = var->type();
+//            auto variable_name = any_cast<string>(node->operand1->value);
+//            variable* var = _all_variables.get_variable_by_name(variable_name);
+//
+//            type = var->type();
         }
 
 

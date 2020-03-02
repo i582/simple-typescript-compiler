@@ -1,4 +1,4 @@
-# Simple compailer from TypeScript to Assembler 
+# Simple compailer from TypeScript to Assembler
 
 ![](https://img.shields.io/badge/language-c%2B%2B-brightgreen)
 
@@ -51,7 +51,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 * [x] `!=`
 * [x] `[]`
 * [x] `? : `
-* [x] `new`
+* [x] `new` (only for arrays)
 
 ### Blocks
 
@@ -95,20 +95,24 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 * [x] Uninitialized arrays.
 * [x] Incorrect assignment to an array.
 * [x] Validation of assignments.
-* [x] Type checking operands.
-
+* [x] Type checking for operands.
 
 ## Code generation
 
-* [ ] Assignment expressions.
-* [ ] Arithmetic expressions.
+* [x] Assignment expressions.
+* [x] Arithmetic expressions.
 * [ ] Conditional expressions.
 * [ ] `if`
 * [ ] `else`
 * [ ] `else if`
 * [ ] `while`
 * [ ] `for`
-* [ ] functions.
+* [ ] `functions`
+* [ ] `std functions`
+  * [x] `std input` (only for number for now)
+  * [x] `std print`(only for number for now)
+  * [ ] `std sqrt`
+  * [ ] `std to_string`
 
 ### Optimizations
 

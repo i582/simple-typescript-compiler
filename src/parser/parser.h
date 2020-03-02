@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ast/ast.h"
+#include "asm/assembler.h"
 
 namespace compiler
 {
@@ -10,13 +10,16 @@ namespace compiler
     private:
         lexer* _lex;
         ast* _tree;
+        assembler* _assembler;
 
     public:
         explicit parser(const string& file_path_);
         ~parser();
 
     public:
-        node* parse();
+        void parse();
+
+        void generate();
 
     private:
         void error(const string& message);
