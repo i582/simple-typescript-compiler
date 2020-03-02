@@ -48,7 +48,8 @@ compiler::variable_value compiler::variable::default_value(compiler::variable_ty
 
 void compiler::variable::print() const
 {
-    cout << "name: " << _variable_name << " type: " << (int)_variable_type << endl;
+    cout << "name: '" << _variable_name << "' with type: '" << variable_type_to_string(_variable_type) << "' in block: '"
+                                                                                        << _block_id  << "'" << endl;
 }
 
 std::string compiler::variable::name() const
@@ -85,7 +86,7 @@ compiler::variable_type compiler::variable::variable_type_from_token_type(compil
 
 bool compiler::variable::is_types_reducible(variable_type type1, variable_type type2)
 {
-    return type1 == type2;
+    return type1 == type2 || type2 == variable_type::ANY;
 }
 
 std::string compiler::variable::variable_type_to_string(variable_type type)
@@ -110,5 +111,22 @@ std::string compiler::variable::variable_type_to_string(variable_type type)
             return "void[]";
         case variable_type::STRING_ARRAY:
             return "string[]";
+        default:
+            return "not defined, possible error";
     }
+}
+
+void compiler::variable::block_id(size_t block_id)
+{
+    _block_id = block_id;
+}
+
+size_t compiler::variable::block_id() const
+{
+    return _block_id;
+}
+
+bool compiler::variable::is_array_type(compiler::variable_type type)
+{
+    return (size_t)type >= (size_t)variable_type::NUMBER_ARRAY;
 }

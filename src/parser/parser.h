@@ -51,19 +51,15 @@ namespace compiler
         node* selection_statement();
         node* iteration_statement();
 
-
         node* declaration_type();
         node* declaration_statement();
-
 
         node* initializer();
         node* initializer_list();
 
-
         node* function_argument();
         node* function_argument_list();
         node* function_statement();
-
 
         node* operator_statement();
 

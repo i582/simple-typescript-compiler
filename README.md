@@ -51,6 +51,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 * [x] `!=`
 * [x] `[]`
 * [x] `? : `
+* [x] `new`
 
 ### Blocks
 

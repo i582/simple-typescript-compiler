@@ -1,5 +1,10 @@
 #include "variable_table.h"
 
+compiler::variable_table::variable_table(size_t block_id) : _block_id(block_id)
+{
+    this->_parent = nullptr;
+}
+
 compiler::variable_table::variable_table()
 {
     this->_parent = nullptr;
@@ -80,7 +85,46 @@ compiler::variable* compiler::variable_table::get_variable_by_name(const string&
     return *it;
 }
 
+std::tuple<size_t, compiler::variable*> compiler::variable_table::get_variable(const string& name)
+{
+    auto it = std::find_if(_vars.begin(), _vars.end(), [&name](variable* var)
+    {
+        return var->name() == name;
+    });
+
+
+    if (it == _vars.end())
+    {
+        if (_parent == nullptr)
+        {
+            cout << "Variable '" << name << "' not found!" << endl;
+            throw std::logic_error("Variable not found!");
+        }
+        else
+        {
+            return _parent->get_variable(name);
+        }
+    }
+
+    return std::make_tuple(_block_id, *it);
+}
+
 std::vector<compiler::variable*>& compiler::variable_table::vars()
 {
     return _vars;
+}
+
+std::string compiler::variable_table::generate_prefix()
+{
+    return "__" + std::to_string(_block_id);
+}
+
+std::string compiler::variable_table::generate_variable_with_prefix(const string& variable_name)
+{
+    return generate_prefix() + variable_name;
+}
+
+size_t compiler::variable_table::block_id() const
+{
+    return _block_id;
 }

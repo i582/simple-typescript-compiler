@@ -107,17 +107,18 @@ namespace compiler
     class node
     {
     public:
-        any _value;
-        node_type _type;
+        any value;
+        node_type type;
 
-        node* _operand1;
-        node* _operand2;
-        node* _operand3;
-        node* _operand4;
+        node* operand1;
+        node* operand2;
+        node* operand3;
+        node* operand4;
 
+        variable_table* vars;
 
+    private:
         size_t _statement_id;
-        variable_table* _vars;
 
     public:
         explicit node(node_type type_, const any& value_ = "", node* operand1_ = nullptr, node* operand2_ = nullptr,

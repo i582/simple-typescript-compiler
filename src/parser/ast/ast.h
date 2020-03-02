@@ -3,7 +3,8 @@
 #include <iostream>
 #include <chrono>
 #include "../node/node.h"
-#include "../function/function_table.h"
+#include "../function/global_functions.h"
+#include "../array/array.h"
 
 namespace compiler
 {
@@ -22,6 +23,9 @@ namespace compiler
 
         function_table _functions;
 
+        global_functions _global_functions;
+
+        vector<array> _arrays;
 
     public:
         node* _tree;
@@ -29,6 +33,9 @@ namespace compiler
     public:
         ast();
 
+
+    public:
+        void print_variable_table();
 
     public:
         void mark_block();
@@ -40,7 +47,7 @@ namespace compiler
         void designate_blocks();
         void designate_variables();
         void designate_functions();
-
+        void designate_arrays();
 
         // check functions
         void check_const();
@@ -54,6 +61,8 @@ namespace compiler
         void mark_break_continue_operators_recursive(node* current_node, size_t current_block);
         void mark_return_operator_recursive(node* current_node, size_t current_block);
 
+
+
         // designate functions
         void designate_blocks_recursive(node* current_node, node* current_stmt);
         void designate_variables_recursive(node* node, variable_table* table);
@@ -64,7 +73,9 @@ namespace compiler
 
         void check_expression_recursive(node* node);
 
+        void designate_arrays_recursive(node* node);
 
+        void calculate_array_initialize_list(node* node, size_t* count);
 
         // check functions
         static void check_const_recursive(node* current_node, node* current_stmt);
@@ -79,7 +90,7 @@ namespace compiler
         void error(const string& message);
 
     public:
-        static void print(node* sub, size_t level);
+        void print(node* sub, size_t level);
     };
 
 }

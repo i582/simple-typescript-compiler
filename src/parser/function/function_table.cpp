@@ -12,9 +12,13 @@ void compiler::function_table::add_function(compiler::func* new_function)
 
 bool compiler::function_table::has_function(compiler::func* function)
 {
-    auto it = std::find(_functions.begin(), _functions.end(), function);
+    for (const auto& item : _functions)
+    {
+        if (*item == *function)
+            return true;
+    }
 
-    return it == _functions.end();
+    return false;
 }
 
 compiler::func* compiler::function_table::get_function(const std::string& name,

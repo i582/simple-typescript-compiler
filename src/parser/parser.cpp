@@ -41,17 +41,19 @@ compiler::node* compiler::parser::parse()
 
 
     _tree->designate_variables();
+    _tree->designate_arrays();
     _tree->designate_functions();
-
 
     // checks
     _tree->check_const();
     _tree->check_array();
     _tree->check_functions_call();
     _tree->check_expression();
+    
 
+    _tree->print(_tree->_tree, 0);
 
-    compiler::ast::print(_tree->_tree, 0);
+    _tree->print_variable_table();
 
     return new_node;
 }
@@ -178,7 +180,7 @@ compiler::node* compiler::parser::postfix_expression()
     else if (_lex->current_token_type() == token_type::LPAR)
     {
         _lex->next_token();
-        auto function_name = any_cast<string>(temp_node->_value);
+        auto function_name = any_cast<string>(temp_node->value);
         auto temp_argument_expression_list = argument_expression_list();
 
         if (_lex->current_token_type() != token_type::RPAR)
@@ -523,7 +525,7 @@ compiler::node* compiler::parser::statement()
     }
     else if (_lex->current_token_type() == token_type::IF)
     {
-        temp_node = selection_statement();
+        return selection_statement();
     }
     else if (_lex->current_token_type() == token_type::WHILE ||
              _lex->current_token_type() == token_type::DO_WHILE ||
@@ -601,23 +603,16 @@ compiler::node* compiler::parser::selection_statement()
 
     _lex->next_token();
 
-    temp_node->_operand1 = parenthesized_expression();
-    temp_node->_operand2 = statement();
+    temp_node->operand1 = parenthesized_expression();
+    temp_node->operand2 = statement();
 
 
     if (_lex->current_token_type() == token_type::ELSE)
     {
-        temp_node->_type = node_type::IF_ELSE;
+        temp_node->type = node_type::IF_ELSE;
         _lex->next_token();
 
-        if (_lex->current_token_type() == token_type::IF)
-        {
-            temp_node->_operand3 = selection_statement();
-        }
-        else
-        {
-            temp_node->_operand3 = compound_statement();
-        }
+        temp_node->operand3 = statement();
     }
 
 
@@ -634,8 +629,8 @@ compiler::node* compiler::parser::iteration_statement()
 
         _lex->next_token();
 
-        temp_node->_operand1 = parenthesized_expression();
-        temp_node->_operand2 = statement();
+        temp_node->operand1 = parenthesized_expression();
+        temp_node->operand2 = statement();
     }
     else if (_lex->current_token_type() == token_type::DO_WHILE)
     {
@@ -643,7 +638,7 @@ compiler::node* compiler::parser::iteration_statement()
 
         _lex->next_token();
 
-        temp_node->_operand2 = statement();
+        temp_node->operand2 = statement();
 
         if (_lex->current_token_type() != token_type::WHILE)
         {
@@ -651,7 +646,7 @@ compiler::node* compiler::parser::iteration_statement()
         }
         _lex->next_token();
 
-        temp_node->_operand1 = parenthesized_expression();
+        temp_node->operand1 = parenthesized_expression();
     }
     else if (_lex->current_token_type() == token_type::FOR)
     {
@@ -692,15 +687,15 @@ compiler::node* compiler::parser::iteration_statement()
 
         _lex->next_token();
 
-        temp_node->_operand1 = for_variable;
-        temp_node->_operand2 = for_test;
-        temp_node->_operand3 = for_action;
-        temp_node->_operand4 = statement();
+        temp_node->operand1 = for_variable;
+        temp_node->operand2 = for_test;
+        temp_node->operand3 = for_action;
+        temp_node->operand4 = statement();
 
 
         auto temp_stmt = new node(node_type::STATEMENT, "");
 
-        temp_stmt->_operand1 = temp_node;
+        temp_stmt->operand1 = temp_node;
         temp_node = temp_stmt;
     }
 
@@ -778,7 +773,7 @@ compiler::node* compiler::parser::declaration_type()
         auto current_type = (int)variable_type;
         auto new_array_type = token_type(current_type << 4);
 
-        temp_node->_value = new_array_type;
+        temp_node->value = new_array_type;
         _lex->next_token();
 
         if (_lex->current_token_type() != token_type::RSQR)
@@ -954,4 +949,4 @@ compiler::node* compiler::parser::operator_statement()
     return temp_node;
 }
 
-     
+   

@@ -9,50 +9,55 @@ void compiler::ast::print(compiler::node* sub, size_t level)
 {
     if (sub != nullptr)
     {
-        for (size_t i = 0; i < level; i++) std::cout << "  ";
+        for (size_t i = 0; i < level; i++) cout << "  ";
 
-        switch (sub->_type)
+
+        switch (sub->type)
         {
             case node_type::VARIABLE_DECLARATION:
             {
                 cout << "new var ";
-                cout << "" << std::any_cast<string>(sub->_value);
+                cout << "" << std::any_cast<string>(sub->value);
                 break;
             }
             case node_type::USING_VARIABLE:
             {
                 cout << "use var ";
-                cout << "" << std::any_cast<string>(sub->_value);
+                auto variable_block_id = sub->statement_id();
+                auto variable_name = any_cast<string>(sub->value);
+
+                cout << "" << variable_name;
+                cout << " (block_id: "  << variable_block_id << ")";
                 break;
             }
             case node_type::VARIABLE_TYPE:
             {
                 cout << "var type ";
-                cout << "" << (int)std::any_cast<token_type>(sub->_value);
+                cout << "" << (int)std::any_cast<token_type>(sub->value);
                 break;
             }
             case node_type::CONSTANT_DECLARATION:
             {
                 cout << "new const ";
-                cout << "" << std::any_cast<string>(sub->_value);
+                cout << "" << std::any_cast<string>(sub->value);
                 break;
             }
             case node_type::USING_CONSTANT:
             {
                 cout << "use const ";
-                cout << "" << std::any_cast<string>(sub->_value);
+                cout << "" << std::any_cast<string>(sub->value);
                 break;
             }
             case node_type::NUMBER_CONST:
             {
                 cout << "number const ";
-                cout << "" << std::any_cast<long double>(sub->_value);
+                cout << "" << std::any_cast<long double>(sub->value);
                 break;
             }
             case node_type::BOOLEAN_CONST:
             {
                 cout << "boolean const ";
-                cout << "" << std::any_cast<bool>(sub->_value);
+                cout << "" << std::any_cast<bool>(sub->value);
                 break;
             }
             case node_type::ADD:
@@ -144,7 +149,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             {
                 cout << "non terminal name ";
 
-                cout << "" << std::any_cast<string>(sub->_value);
+                cout << "" << std::any_cast<string>(sub->value);
                 break;
             }
             case node_type::BEFORE_INC:
@@ -205,7 +210,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::FUNCTION_CALL:
             {
                 cout << "function call ";
-                cout << std::any_cast<string>(sub->_value);
+                cout << std::any_cast<string>(sub->value);
                 break;
             }
             case node_type::FUNCTION_ARG:
@@ -240,7 +245,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             }
             case node_type::PROGRAM:
             {
-                cout << "program ";
+                cout << "prog ";
                 break;
             }
             case node_type::DO_WHILE:
@@ -266,7 +271,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::FUNCTION_IMPLEMENTATION:
             {
                 cout << "function impl ";
-                cout << "" << std::any_cast<string>(sub->_value);
+                cout << "" << std::any_cast<string>(sub->value);
                 break;
             }
             case node_type::FUNCTION_IMPLEMENTATION_ARG:
@@ -277,7 +282,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::FUNCTION_IMPLEMENTATION_RETURN_TYPE:
             {
                 cout << "function impl return type ";
-                cout << "" << (int)std::any_cast<token_type>(sub->_value);
+                cout << "" << (int)std::any_cast<token_type>(sub->value);
                 break;
             }
             case node_type::RETURN:
@@ -298,30 +303,30 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::STRING_CONST:
             {
                 cout << "string const ";
-                cout << "" << std::any_cast<string>(sub->_value);
+                cout << "" << std::any_cast<string>(sub->value);
                 break;
             }
         }
 
-        if (sub->_statement_id != 4294967295)
+        if (sub->statement_id() != 4294967295)
         {
-            cout << "\t\tstmt-id " << sub->_statement_id;
+            cout << "\t\tstmt-id " << sub->statement_id();
         }
         cout << endl;
 
-        print(sub->_operand1, level + 1);
-        print(sub->_operand2, level + 1);
-        print(sub->_operand3, level + 1);
-        print(sub->_operand4, level + 1);
+        print(sub->operand1, level + 1);
+        print(sub->operand2, level + 1);
+        print(sub->operand3, level + 1);
+        print(sub->operand4, level + 1);
     }
 }
 
 void compiler::ast::designate_blocks()
 {
-    designate_blocks_recursive(_tree->_operand1, nullptr);
-    designate_blocks_recursive(_tree->_operand2, nullptr);
-    designate_blocks_recursive(_tree->_operand3, nullptr);
-    designate_blocks_recursive(_tree->_operand4, nullptr);
+    designate_blocks_recursive(_tree->operand1, nullptr);
+    designate_blocks_recursive(_tree->operand2, nullptr);
+    designate_blocks_recursive(_tree->operand3, nullptr);
+    designate_blocks_recursive(_tree->operand4, nullptr);
 }
 
 void compiler::ast::designate_blocks_recursive(node* current_node, node* current_stmt)
@@ -330,24 +335,24 @@ void compiler::ast::designate_blocks_recursive(node* current_node, node* current
         return;
 
 
-    if (current_node->_type == node_type::STATEMENT)
+    if (current_node->type == node_type::STATEMENT)
     {
         _stmts.emplace_back(current_stmt, current_node);
         current_stmt = current_node;
     }
 
-    designate_blocks_recursive(current_node->_operand1, current_stmt);
-    designate_blocks_recursive(current_node->_operand2, current_stmt);
-    designate_blocks_recursive(current_node->_operand3, current_stmt);
-    designate_blocks_recursive(current_node->_operand4, current_stmt);
+    designate_blocks_recursive(current_node->operand1, current_stmt);
+    designate_blocks_recursive(current_node->operand2, current_stmt);
+    designate_blocks_recursive(current_node->operand3, current_stmt);
+    designate_blocks_recursive(current_node->operand4, current_stmt);
 }
 
 void compiler::ast::mark_block()
 {
-    mark_block_recursive(_tree->_operand1);
-    mark_block_recursive(_tree->_operand2);
-    mark_block_recursive(_tree->_operand3);
-    mark_block_recursive(_tree->_operand4);
+    mark_block_recursive(_tree->operand1);
+    mark_block_recursive(_tree->operand2);
+    mark_block_recursive(_tree->operand3);
+    mark_block_recursive(_tree->operand4);
 }
 
 void compiler::ast::mark_block_recursive(node* current_node)
@@ -355,60 +360,62 @@ void compiler::ast::mark_block_recursive(node* current_node)
     if (current_node == nullptr)
         return;
 
-    if (current_node->_type == node_type::STATEMENT)
+    if (current_node->type == node_type::STATEMENT)
     {
-        if (current_node->_operand1->_type == node_type::IF ||
-            current_node->_operand1->_type == node_type::IF_ELSE ||
-            current_node->_operand1->_type == node_type::WHILE ||
-            current_node->_operand1->_type == node_type::DO_WHILE ||
-            current_node->_operand1->_type == node_type::FOR ||
-            current_node->_operand1->_type == node_type::FUNCTION_IMPLEMENTATION)
-        {
+//        if (current_node->operand1->type == node_type::IF ||
+//            current_node->operand1->type == node_type::IF_ELSE ||
+//            current_node->operand1->type == node_type::WHILE ||
+//            current_node->operand1->type == node_type::DO_WHILE ||
+//            current_node->operand1->type == node_type::FOR ||
+//            current_node->operand1->type == node_type::FUNCTION_IMPLEMENTATION)
+//        {
             current_node->statement_id(_count_blocks);
             ++_count_blocks;
-        }
+//        }
     }
-    else if (current_node->_type == node_type::IF ||
-        current_node->_type == node_type::IF_ELSE ||
-        current_node->_type == node_type::WHILE ||
-        current_node->_type == node_type::WHILE ||
-        current_node->_type == node_type::DO_WHILE)
+    else if (current_node->type == node_type::IF ||
+             current_node->type == node_type::IF_ELSE ||
+             current_node->type == node_type::WHILE ||
+             current_node->type == node_type::WHILE ||
+             current_node->type == node_type::DO_WHILE)
     {
-        current_node->_operand2->statement_id(_count_blocks);
+
+
+        current_node->operand2->statement_id(_count_blocks);
         ++_count_blocks;
     }
-    else if (current_node->_type == node_type::FOR)
+    else if (current_node->type == node_type::FOR)
     {
-        current_node->_operand4->statement_id(_count_blocks);
+        current_node->operand4->statement_id(_count_blocks);
         ++_count_blocks;
     }
-    else if (current_node->_type == node_type::FUNCTION_IMPLEMENTATION)
+    else if (current_node->type == node_type::FUNCTION_IMPLEMENTATION)
     {
-        current_node->_operand3->statement_id(_count_blocks);
+        current_node->operand3->statement_id(_count_blocks);
         ++_count_blocks;
     }
 
 
 
-    mark_block_recursive(current_node->_operand1);
-    mark_block_recursive(current_node->_operand2);
-    mark_block_recursive(current_node->_operand3);
-    mark_block_recursive(current_node->_operand4);
+    mark_block_recursive(current_node->operand1);
+    mark_block_recursive(current_node->operand2);
+    mark_block_recursive(current_node->operand3);
+    mark_block_recursive(current_node->operand4);
 }
 
 void compiler::ast::mark_break_continue_operators()
 {
     for (auto& [parent_stmt, stmt] : _stmts)
     {
-        if (stmt->_operand1 != nullptr &&
-           (stmt->_operand1->_type == node_type::FOR ||
-            stmt->_operand1->_type == node_type::WHILE ||
-            stmt->_operand1->_type == node_type::DO_WHILE))
+        if (stmt->operand1 != nullptr &&
+            (stmt->operand1->type == node_type::FOR ||
+             stmt->operand1->type == node_type::WHILE ||
+             stmt->operand1->type == node_type::DO_WHILE))
         {
-            mark_break_continue_operators_recursive(stmt->_operand1->_operand1, stmt->statement_id());
-            mark_break_continue_operators_recursive(stmt->_operand1->_operand2, stmt->statement_id());
-            mark_break_continue_operators_recursive(stmt->_operand1->_operand3, stmt->statement_id());
-            mark_break_continue_operators_recursive(stmt->_operand1->_operand4, stmt->statement_id());
+            mark_break_continue_operators_recursive(stmt->operand1->operand1, stmt->statement_id());
+            mark_break_continue_operators_recursive(stmt->operand1->operand2, stmt->statement_id());
+            mark_break_continue_operators_recursive(stmt->operand1->operand3, stmt->statement_id());
+            mark_break_continue_operators_recursive(stmt->operand1->operand4, stmt->statement_id());
         }
     }
 }
@@ -420,36 +427,36 @@ void compiler::ast::mark_break_continue_operators_recursive(compiler::node* curr
 
 
     // if there is another cycle in the cycle, then you do not need to enter it
-    if (current_node->_type == node_type::FOR ||
-        current_node->_type == node_type::WHILE ||
-        current_node->_type == node_type::DO_WHILE)
+    if (current_node->type == node_type::FOR ||
+        current_node->type == node_type::WHILE ||
+        current_node->type == node_type::DO_WHILE)
     {
         return;
     }
 
 
 
-    if (current_node->_type == node_type::BREAK ||
-        current_node->_type == node_type::CONTINUE)
+    if (current_node->type == node_type::BREAK ||
+        current_node->type == node_type::CONTINUE)
     {
         current_node->statement_id(current_block);
     }
 
 
-    mark_break_continue_operators_recursive(current_node->_operand1, current_block);
-    mark_break_continue_operators_recursive(current_node->_operand2, current_block);
-    mark_break_continue_operators_recursive(current_node->_operand3, current_block);
-    mark_break_continue_operators_recursive(current_node->_operand4, current_block);
+    mark_break_continue_operators_recursive(current_node->operand1, current_block);
+    mark_break_continue_operators_recursive(current_node->operand2, current_block);
+    mark_break_continue_operators_recursive(current_node->operand3, current_block);
+    mark_break_continue_operators_recursive(current_node->operand4, current_block);
 }
 
 void compiler::ast::mark_return_operator()
 {
     for (auto& [parent_stmt, stmt] : _stmts)
     {
-        if (stmt->_operand1 != nullptr &&
-            stmt->_operand1->_type == node_type::FUNCTION_IMPLEMENTATION)
+        if (stmt->operand1 != nullptr &&
+            stmt->operand1->type == node_type::FUNCTION_IMPLEMENTATION)
         {
-            mark_return_operator_recursive(stmt->_operand1->_operand3, stmt->statement_id());
+            mark_return_operator_recursive(stmt->operand1->operand3, stmt->statement_id());
         }
     }
 }
@@ -459,20 +466,20 @@ void compiler::ast::mark_return_operator_recursive(compiler::node* current_node,
     if (current_node == nullptr)
         return;
 
-    if (current_node->_type == node_type::FUNCTION_IMPLEMENTATION)
+    if (current_node->type == node_type::FUNCTION_IMPLEMENTATION)
         return;
 
 
-    if (current_node->_type == node_type::RETURN)
+    if (current_node->type == node_type::RETURN)
     {
         current_node->statement_id(current_block);
     }
 
 
-    mark_return_operator_recursive(current_node->_operand1, current_block);
-    mark_return_operator_recursive(current_node->_operand2, current_block);
-    mark_return_operator_recursive(current_node->_operand3, current_block);
-    mark_return_operator_recursive(current_node->_operand4, current_block);
+    mark_return_operator_recursive(current_node->operand1, current_block);
+    mark_return_operator_recursive(current_node->operand2, current_block);
+    mark_return_operator_recursive(current_node->operand3, current_block);
+    mark_return_operator_recursive(current_node->operand4, current_block);
 }
 
 void compiler::ast::designate_variables()
@@ -481,19 +488,20 @@ void compiler::ast::designate_variables()
 
     for (auto& [parent_stmt, stmt] : _stmts)
     {
-        auto new_variable_table = new variable_table();
+        size_t stmt_id = stmt->statement_id();
+        auto new_variable_table = new variable_table(stmt_id);
         _variables_tables.push_back(new_variable_table);
 
 
         if (parent_stmt != nullptr)
         {
-            new_variable_table->set_parent(parent_stmt->_vars);
+            new_variable_table->set_parent(parent_stmt->vars);
         }
 
 
-        stmt->_vars = new_variable_table;
+        stmt->vars = new_variable_table;
 
-        designate_variables_recursive(stmt->_operand1, new_variable_table);
+        designate_variables_recursive(stmt->operand1, new_variable_table);
     }
 }
 
@@ -503,18 +511,18 @@ void compiler::ast::designate_variables_recursive(compiler::node* node, compiler
         return;
 
 
-    if (node->_type == node_type::STATEMENT ||
-        node->_type == node_type::FUNCTION_IMPLEMENTATION)
+    if (node->type == node_type::STATEMENT ||
+        node->type == node_type::FUNCTION_IMPLEMENTATION)
         return;
 
 
 
-    if (node->_type == node_type::VARIABLE_DECLARATION || node->_type == node_type::CONSTANT_DECLARATION)
+    if (node->type == node_type::VARIABLE_DECLARATION || node->type == node_type::CONSTANT_DECLARATION)
     {
-        auto variable_name = std::any_cast<string>(node->_value);
+        auto variable_name = std::any_cast<string>(node->value);
 
 
-        if (table->has_variable_or_has_in_parent(variable_name))
+        if (table->has_variable(variable_name))
         {
             cout << "ERROR: The variable '" << variable_name << "' has already been declared!" << endl;
 
@@ -523,12 +531,12 @@ void compiler::ast::designate_variables_recursive(compiler::node* node, compiler
 
         bool is_const = false;
 
-        if (node->_type == node_type::CONSTANT_DECLARATION)
+        if (node->type == node_type::CONSTANT_DECLARATION)
         {
             is_const = true;
         }
 
-        auto variable_type = std::any_cast<token_type>(node->_operand1->_value);
+        auto variable_type = std::any_cast<token_type>(node->operand1->value);
 
         auto variable_value = variable::default_value(variable::variable_type_from_token_type(variable_type));
 
@@ -540,34 +548,43 @@ void compiler::ast::designate_variables_recursive(compiler::node* node, compiler
             is_const
         );
 
-        table->add_variable(new_variable);
+        new_variable->block_id(table->block_id());
 
+        table->add_variable(new_variable);
         _all_variables.add_variable(new_variable);
+
         return;
     }
-    else if (node->_type == node_type::USING_VARIABLE)
+    else if (node->type == node_type::USING_VARIABLE)
     {
-        auto variable_name = std::any_cast<string>(node->_value);
+        auto variable_name = std::any_cast<string>(node->value);
+
 
         if (!table->has_variable_or_has_in_parent(variable_name))
         {
             cout << "ERROR: The name '" << variable_name << "' is not declared in the current scope!" << endl;
             throw std::logic_error("");
         }
+
+
+        auto [block_id, variable] = table->get_variable(variable_name);
+
+        node->statement_id(block_id);
+        variable->block_id(block_id);
     }
 
 
-    designate_variables_recursive(node->_operand1, table);
-    designate_variables_recursive(node->_operand2, table);
-    designate_variables_recursive(node->_operand3, table);
-    designate_variables_recursive(node->_operand4, table);
+    designate_variables_recursive(node->operand1, table);
+    designate_variables_recursive(node->operand2, table);
+    designate_variables_recursive(node->operand3, table);
+    designate_variables_recursive(node->operand4, table);
 }
 
 void compiler::ast::check_const()
 {
     for (auto& [parent_stmt, stmt] : _stmts)
     {
-        check_const_recursive(stmt->_operand1, stmt);
+        check_const_recursive(stmt->operand1, stmt);
     }
 }
 
@@ -576,18 +593,18 @@ void compiler::ast::check_const_recursive(compiler::node* current_node, compiler
     if (current_node == nullptr)
         return;
 
-    if (current_node->_type == node_type::STATEMENT)
+    if (current_node->type == node_type::STATEMENT)
         return;
 
-    if (current_node->_type == node_type::SET)
+    if (current_node->type == node_type::SET)
     {
-        node* op1 = current_node->_operand1;
-        node* op2 = current_node->_operand2;
+        node* op1 = current_node->operand1;
+        node* op2 = current_node->operand2;
 
-        if (op1->_type == node_type::USING_VARIABLE)
+        if (op1->type == node_type::USING_VARIABLE)
         {
-            auto variable_name = std::any_cast<string>(op1->_value);
-            auto* variable = current_stmt->_vars->get_variable_by_name(variable_name);
+            auto variable_name = std::any_cast<string>(op1->value);
+            auto* variable = current_stmt->vars->get_variable_by_name(variable_name);
 
             if (variable->is_const())
             {
@@ -597,28 +614,28 @@ void compiler::ast::check_const_recursive(compiler::node* current_node, compiler
         }
     }
 
-    if (current_node->_type == node_type::EXPRESSION && current_node->_operand1 != nullptr &&
-        current_node->_operand1->_type == node_type::CONSTANT_DECLARATION)
+    if (current_node->type == node_type::EXPRESSION && current_node->operand1 != nullptr &&
+        current_node->operand1->type == node_type::CONSTANT_DECLARATION)
     {
-        cout << "ERROR: The constant '" << std::any_cast<string>(current_node->_operand1->_value) <<
-                "' must be initialized when defining!" << endl;
+        cout << "ERROR: The constant '" << std::any_cast<string>(current_node->operand1->value) <<
+             "' must be initialized when defining!" << endl;
 
         throw std::logic_error("");
     }
 
 
 
-    check_const_recursive(current_node->_operand1, current_stmt);
-    check_const_recursive(current_node->_operand2, current_stmt);
-    check_const_recursive(current_node->_operand3, current_stmt);
-    check_const_recursive(current_node->_operand4, current_stmt);
+    check_const_recursive(current_node->operand1, current_stmt);
+    check_const_recursive(current_node->operand2, current_stmt);
+    check_const_recursive(current_node->operand3, current_stmt);
+    check_const_recursive(current_node->operand4, current_stmt);
 }
 
 void compiler::ast::check_array()
 {
     for (auto& [parent_stmt, stmt] : _stmts)
     {
-        check_array_recursive(stmt->_operand1);
+        check_array_recursive(stmt->operand1);
     }
 }
 
@@ -627,37 +644,37 @@ void compiler::ast::check_array_recursive(compiler::node* current_node)
     if (current_node == nullptr)
         return;
 
-    if (current_node->_type == node_type::STATEMENT)
+    if (current_node->type == node_type::STATEMENT)
         return;
 
 
-    if (current_node->_type == node_type::SET)
+    if (current_node->type == node_type::SET)
     {
-        node* op1 = current_node->_operand1;
-        node* op2 = current_node->_operand2;
+        node* op1 = current_node->operand1;
+        node* op2 = current_node->operand2;
 
-        if (op1->_type == node_type::VARIABLE_DECLARATION)
+        if (op1->type == node_type::VARIABLE_DECLARATION)
         {
-            auto op1_type = (int)any_cast<token_type>(op1->_operand1->_value);
+            auto op1_type = (int)any_cast<token_type>(op1->operand1->value);
 
             if (op1_type > (int)token_type::VOID)
             {
-                bool is_initializer_list = op2->_type == node_type::INITIALIZER_LIST;
-                bool is_operator_new_array = op2->_type == node_type::NEW &&
-                                             any_cast<string>(op2->_operand1->_operand1->_value) == "Array";
+                bool is_initializer_list = op2->type == node_type::INITIALIZER;
+                bool is_operator_new_array = op2->type == node_type::NEW &&
+                                             any_cast<string>(op2->operand1->value) == "Array";
 
                 if (!is_initializer_list && !is_operator_new_array)
                 {
-                    cout << "Invalid assignment to '" << any_cast<string>(op1->_value) <<
+                    cout << "Invalid assignment to '" << any_cast<string>(op1->value) <<
                          "'! You can only assign a value of the form [...] or new Array(const_number) to an array!" << endl;
-                    throw std::logic_error("");
+                   throw std::logic_error("");
                 }
             }
         }
 
-        if (op1->_type == node_type::USING_VARIABLE)
+        if (op1->type == node_type::USING_VARIABLE)
         {
-            auto variable_name = any_cast<string>(op1->_value);
+            auto variable_name = any_cast<string>(op1->value);
             auto variable = _all_variables.get_variable_by_name(variable_name);
             auto variable_type = variable->type();
 
@@ -671,29 +688,29 @@ void compiler::ast::check_array_recursive(compiler::node* current_node)
 
 
 
-    if (current_node->_type == node_type::EXPRESSION && current_node->_operand1 != nullptr &&
-        current_node->_operand1->_type == node_type::VARIABLE_DECLARATION)
+    if (current_node->type == node_type::EXPRESSION && current_node->operand1 != nullptr &&
+        current_node->operand1->type == node_type::VARIABLE_DECLARATION)
     {
-        bool is_array = (int)any_cast<token_type>(current_node->_operand1->_operand1->_value) > (int)token_type::VOID;
+        bool is_array = (int)any_cast<token_type>(current_node->operand1->operand1->value) > (int)token_type::VOID;
 
         if (is_array)
         {
-            cout << "ERROR: The array '" << any_cast<string>(current_node->_operand1->_value) <<
+            cout << "ERROR: The array '" << any_cast<string>(current_node->operand1->value) <<
                  "' must be initialized when defining!" << endl;
             throw std::logic_error("");
         }
     }
 
 
-    check_array_recursive(current_node->_operand1);
-    check_array_recursive(current_node->_operand2);
-    check_array_recursive(current_node->_operand3);
-    check_array_recursive(current_node->_operand4);
+    check_array_recursive(current_node->operand1);
+    check_array_recursive(current_node->operand2);
+    check_array_recursive(current_node->operand3);
+    check_array_recursive(current_node->operand4);
 }
 
 void compiler::ast::designate_functions()
 {
-    designate_functions_recursive(_stmts[0].second->_operand1);
+    designate_functions_recursive(_stmts[0].second->operand1);
 }
 
 void compiler::ast::designate_functions_recursive(compiler::node* node_)
@@ -702,23 +719,23 @@ void compiler::ast::designate_functions_recursive(compiler::node* node_)
         return;
 
 
-    if (node_->_type == node_type::FUNCTION_IMPLEMENTATION)
+    if (node_->type == node_type::FUNCTION_IMPLEMENTATION)
     {
-        auto function_name = any_cast<string>(node_->_value);
-        auto type = (int)any_cast<token_type>(node_->_operand1->_value);
+        auto function_name = any_cast<string>(node_->value);
+        auto type = (int)any_cast<token_type>(node_->operand1->value);
 
 
         vector<variable_type> arguments;
 
-        designate_function_arguments_recursive(node_->_operand2, &arguments);
+        designate_function_arguments_recursive(node_->operand2, &arguments);
 
         auto temp_func = new func(function_name, static_cast<return_type>(type), arguments);
 
         _functions.add_function(temp_func);
     }
 
-    designate_functions_recursive(node_->_operand1);
-    designate_functions_recursive(node_->_operand2);
+    designate_functions_recursive(node_->operand1);
+    designate_functions_recursive(node_->operand2);
 }
 
 void compiler::ast::designate_function_arguments_recursive(compiler::node* node, vector<variable_type>* arguments)
@@ -727,14 +744,14 @@ void compiler::ast::designate_function_arguments_recursive(compiler::node* node,
         return;
 
 
-    if (node->_type == node_type::FUNCTION_IMPLEMENTATION_ARG)
+    if (node->type == node_type::FUNCTION_IMPLEMENTATION_ARG)
     {
-        auto type = (argument_type)any_cast<token_type>(node->_operand1->_value);
+        auto type = (argument_type)any_cast<token_type>(node->operand1->value);
         arguments->push_back(type);
     }
 
-    designate_function_arguments_recursive(node->_operand1, arguments);
-    designate_function_arguments_recursive(node->_operand2, arguments);
+    designate_function_arguments_recursive(node->operand1, arguments);
+    designate_function_arguments_recursive(node->operand2, arguments);
 }
 
 void compiler::ast::check_functions_call()
@@ -748,20 +765,23 @@ void compiler::ast::check_functions_call_recursive(compiler::node* node)
         return;
 
 
-    if (node->_type == node_type::FUNCTION_CALL)
+    if (node->type == node_type::FUNCTION_CALL)
     {
-        auto function_name = any_cast<string>(node->_value);
+        auto function_name = any_cast<string>(node->value);
         vector<variable_type> types;
 
         designate_function_call_arguments_recursive(node, &types);
 
-        _functions.get_function(function_name, types);
+        if (!_global_functions.has_function(new func(function_name, variable_type::ANY, types)))
+        {
+            _functions.get_function(function_name, types);
+        }
     }
 
-    check_functions_call_recursive(node->_operand1);
-    check_functions_call_recursive(node->_operand2);
-    check_functions_call_recursive(node->_operand3);
-    check_functions_call_recursive(node->_operand4);
+    check_functions_call_recursive(node->operand1);
+    check_functions_call_recursive(node->operand2);
+    check_functions_call_recursive(node->operand3);
+    check_functions_call_recursive(node->operand4);
 }
 
 void compiler::ast::designate_function_call_arguments_recursive(compiler::node* node,
@@ -771,25 +791,25 @@ void compiler::ast::designate_function_call_arguments_recursive(compiler::node* 
         return;
 
 
-    if (node->_type == node_type::FUNCTION_ARGS)
+    if (node->type == node_type::FUNCTION_ARGS)
     {
         variable_type type;
 
-        if (node->_operand1->_type == node_type::NUMBER_CONST)
+        if (node->operand1->type == node_type::NUMBER_CONST)
         {
             type = variable_type::NUMBER;
         }
-        else if (node->_operand1->_type == node_type::BOOLEAN_CONST)
+        else if (node->operand1->type == node_type::BOOLEAN_CONST)
         {
             type = variable_type::BOOLEAN;
         }
-        else if (node->_operand1->_type == node_type::STRING_CONST)
+        else if (node->operand1->type == node_type::STRING_CONST)
         {
             type = variable_type::STRING;
         }
         else
         {
-            auto variable_name = any_cast<string>(node->_operand1->_value);
+            auto variable_name = any_cast<string>(node->operand1->value);
             variable* var = _all_variables.get_variable_by_name(variable_name);
 
             type = var->type();
@@ -799,8 +819,8 @@ void compiler::ast::designate_function_call_arguments_recursive(compiler::node* 
         arguments->push_back(type);
     }
 
-    designate_function_call_arguments_recursive(node->_operand1, arguments);
-    designate_function_call_arguments_recursive(node->_operand2, arguments);
+    designate_function_call_arguments_recursive(node->operand1, arguments);
+    designate_function_call_arguments_recursive(node->operand2, arguments);
 }
 
 void compiler::ast::give_expression_type_recursive(compiler::node* current_node, variable_type& type)
@@ -808,13 +828,13 @@ void compiler::ast::give_expression_type_recursive(compiler::node* current_node,
     if (current_node == nullptr)
         return;
 
-    if (current_node->_type == node_type::ADD ||
-        current_node->_type == node_type::SUB ||
-        current_node->_type == node_type::MUL ||
-        current_node->_type == node_type::DIV)
+    if (current_node->type == node_type::ADD ||
+        current_node->type == node_type::SUB ||
+        current_node->type == node_type::MUL ||
+        current_node->type == node_type::DIV)
     {
-        auto op1 = current_node->_operand1;
-        auto op2 = current_node->_operand2;
+        auto op1 = current_node->operand1;
+        auto op2 = current_node->operand2;
 
         variable_type op1_type = variable_type::UNDEFINED;
         variable_type op2_type = variable_type::UNDEFINED;
@@ -829,65 +849,103 @@ void compiler::ast::give_expression_type_recursive(compiler::node* current_node,
             string op1_type_str = variable::variable_type_to_string(op1_type);
             string op2_type_str = variable::variable_type_to_string(op2_type);
 
-            string action = node::node_type_to_string(current_node->_type);
+            string action = node::node_type_to_string(current_node->type);
 
             error("Operator " + action + " cannot be applied to types '" + op1_type_str + "' and '" + op2_type_str + "'.");
         }
 
         type = op1_type;
     }
-    else if (current_node->_type == node_type::UNARY_EXCLAMATION)
+    else if (current_node->type == node_type::UNARY_EXCLAMATION)
     {
-        auto op1 = current_node->_operand1;
+        auto op1 = current_node->operand1;
 
         variable_type op1_type = variable_type::UNDEFINED;
         give_expression_type_recursive(op1, op1_type);
 
         type = variable_type::BOOLEAN;
     }
-    else if (current_node->_type == node_type::UNARY_MINUS ||
-             current_node->_type == node_type::UNARY_PLUS)
+    else if (current_node->type == node_type::UNARY_MINUS ||
+             current_node->type == node_type::UNARY_PLUS)
     {
-        auto op1 = current_node->_operand1;
+        auto op1 = current_node->operand1;
 
         variable_type op1_type = variable_type::UNDEFINED;
         give_expression_type_recursive(op1, op1_type);
 
         type = variable_type::BOOLEAN;
     }
-    else if (current_node->_type == node_type::EXPONENTIATION)
+    else if (current_node->type == node_type::EXPONENTIATION)
     {
-        auto op1 = current_node->_operand1;
+        auto op1 = current_node->operand1;
 
         variable_type op1_type = variable_type::UNDEFINED;
         give_expression_type_recursive(op1, op1_type);
 
         type = op1_type;
     }
-    else if (current_node->_type == node_type::USING_VARIABLE ||
-             current_node->_type == node_type::NUMBER_CONST ||
-             current_node->_type == node_type::BOOLEAN_CONST ||
-             current_node->_type == node_type::STRING_CONST)
+    else if (current_node->type == node_type::USING_VARIABLE ||
+             current_node->type == node_type::NUMBER_CONST ||
+             current_node->type == node_type::BOOLEAN_CONST ||
+             current_node->type == node_type::STRING_CONST)
     {
         type = variable_type_of_node(current_node);
     }
-    else if (current_node->_type == node_type::FUNCTION_CALL)
+    else if (current_node->type == node_type::FUNCTION_CALL)
     {
-        auto function_name = any_cast<string>(current_node->_value);
+        auto function_name = any_cast<string>(current_node->value);
         vector<variable_type> types;
 
         designate_function_call_arguments_recursive(current_node, &types);
 
-        auto function = _functions.get_function(function_name, types);
+        func* function = nullptr;
+
+        if (!_global_functions.has_function(new func(function_name, variable_type::UNDEFINED, types)))
+        {
+            function = _functions.get_function(function_name, types);
+        }
+        else
+        {
+            function = _global_functions.get_function(function_name, types);
+        }
 
         type = function->return_type();
         return;
     }
+    else if (current_node->type == node_type::NEW)
+    {
+        current_node = current_node->operand1;
 
-    give_expression_type_recursive(current_node->_operand1, type);
-    give_expression_type_recursive(current_node->_operand2, type);
-    give_expression_type_recursive(current_node->_operand3, type);
-    give_expression_type_recursive(current_node->_operand4, type);
+        auto function_name = any_cast<string>(current_node->value);
+        vector<variable_type> types;
+
+        designate_function_call_arguments_recursive(current_node, &types);
+
+        func* function = nullptr;
+
+        if (!_global_functions.has_function(new func(function_name, variable_type::ANY, types)))
+        {
+            function = _functions.get_function(function_name, types);
+        }
+        else
+        {
+            function = _global_functions.get_function(function_name, types);
+        }
+
+        type = function->return_type();
+        return;
+    }
+    else if (current_node->type == node_type::INITIALIZER)
+    {
+        type = variable_type::ANY;
+        return;
+    }
+
+
+    give_expression_type_recursive(current_node->operand1, type);
+    give_expression_type_recursive(current_node->operand2, type);
+    give_expression_type_recursive(current_node->operand3, type);
+    give_expression_type_recursive(current_node->operand4, type);
 }
 
 void compiler::ast::error(const string& message)
@@ -899,21 +957,21 @@ void compiler::ast::error(const string& message)
 
 compiler::variable_type compiler::ast::variable_type_of_node(compiler::node* current_node)
 {
-    if (current_node->_type == node_type::NUMBER_CONST)
+    if (current_node->type == node_type::NUMBER_CONST)
     {
         return variable_type::NUMBER;
     }
-    else if (current_node->_type == node_type::BOOLEAN_CONST)
+    else if (current_node->type == node_type::BOOLEAN_CONST)
     {
         return variable_type::BOOLEAN;
     }
-    else if (current_node->_type == node_type::STRING_CONST)
+    else if (current_node->type == node_type::STRING_CONST)
     {
         return variable_type::STRING;
     }
-    else if (current_node->_type == node_type::USING_VARIABLE)
+    else if (current_node->type == node_type::USING_VARIABLE)
     {
-        auto variable_name = any_cast<string>(current_node->_value);
+        auto variable_name = any_cast<string>(current_node->value);
         variable* var = _all_variables.get_variable_by_name(variable_name);
 
         return var->type();
@@ -933,36 +991,36 @@ void compiler::ast::check_expression_recursive(compiler::node* node)
         return;
 
 
-    if (node->_type == node_type::EXPRESSION)
+    if (node->type == node_type::EXPRESSION)
     {
-        if (node->_operand1->_type == node_type::SET)
+        if (node->operand1 != nullptr && node->operand1->type == node_type::SET)
         {
-            auto lvalue = node->_operand1->_operand1;
-            if (lvalue->_type != node_type::USING_VARIABLE &&
-                lvalue->_type != node_type::VARIABLE_DECLARATION &&
-                lvalue->_type != node_type::CONSTANT_DECLARATION)
+            auto lvalue = node->operand1->operand1;
+            if (lvalue->type != node_type::USING_VARIABLE &&
+                lvalue->type != node_type::VARIABLE_DECLARATION &&
+                lvalue->type != node_type::CONSTANT_DECLARATION)
             {
                 error("Invalid assignment!");
             }
 
             variable_type lvalue_type = variable_type::UNDEFINED;
 
-            if (lvalue->_type == node_type::USING_VARIABLE ||
-                lvalue->_type == node_type::USING_CONSTANT)
+            if (lvalue->type == node_type::USING_VARIABLE ||
+                lvalue->type == node_type::USING_CONSTANT)
             {
-                auto variable_name = any_cast<string>(lvalue->_value);
+                auto variable_name = any_cast<string>(lvalue->value);
                 variable* var = _all_variables.get_variable_by_name(variable_name);
 
                 lvalue_type = var->type();
             }
-            else if (lvalue->_type == node_type::VARIABLE_DECLARATION ||
-                     lvalue->_type == node_type::CONSTANT_DECLARATION)
+            else if (lvalue->type == node_type::VARIABLE_DECLARATION ||
+                     lvalue->type == node_type::CONSTANT_DECLARATION)
             {
-                lvalue_type = (variable_type)any_cast<token_type>(lvalue->_operand1->_value);
+                lvalue_type = (variable_type)any_cast<token_type>(lvalue->operand1->value);
             }
 
 
-            auto start_node = node->_operand1->_operand2;
+            auto start_node = node->operand1->operand2;
             variable_type expression_type;
             give_expression_type_recursive(start_node, expression_type);
 
@@ -979,8 +1037,90 @@ void compiler::ast::check_expression_recursive(compiler::node* node)
     }
 
 
-    check_expression_recursive(node->_operand1);
-    check_expression_recursive(node->_operand2);
-    check_expression_recursive(node->_operand3);
-    check_expression_recursive(node->_operand4);
+    check_expression_recursive(node->operand1);
+    check_expression_recursive(node->operand2);
+    check_expression_recursive(node->operand3);
+    check_expression_recursive(node->operand4);
+}
+
+void compiler::ast::print_variable_table()
+{
+    cout << "\n";
+    cout << "Variable table\n";
+    _all_variables.print();
+    cout << "\n";
+}
+
+void compiler::ast::designate_arrays()
+{
+    designate_arrays_recursive(_tree);
+}
+
+void compiler::ast::designate_arrays_recursive(compiler::node* node)
+{
+    if (node == nullptr)
+        return;
+
+
+    if (node->type == node_type::SET &&
+        node->operand1 != nullptr &&
+        node->operand2 != nullptr)
+    {
+        if (node->operand1->type == node_type::VARIABLE_DECLARATION)
+        {
+            auto array_node = node->operand1;
+            auto array_type_node = array_node->operand1;
+            auto array_type = (variable_type) any_cast<token_type>(array_type_node->value);
+
+            auto initializer_node = node->operand2;
+
+            if (variable::is_array_type(array_type))
+            {
+                if (initializer_node->type == node_type::INITIALIZER)
+                {
+                    auto array_name = any_cast<string>(array_node->value);
+                    size_t temp_array_size;
+                    temp_array_size = 0;
+
+                    calculate_array_initialize_list(initializer_node, &temp_array_size);
+
+                    _arrays.emplace_back(array_name, temp_array_size);
+                }
+                else if (initializer_node->type == node_type::NEW)
+                {
+                    auto calling_function_node = initializer_node->operand1;
+                    auto calling_function_name = any_cast<string>(calling_function_node->value);
+                    if (calling_function_name == "Array")
+                    {
+                        auto array_name = any_cast<string>(array_node->value);
+                        auto temp_array_size = (size_t)any_cast<number>(calling_function_node->operand1->operand1->value);
+
+                        _arrays.emplace_back(array_name, temp_array_size);
+                    }
+                }
+            }
+        }
+
+    }
+
+
+    designate_arrays_recursive(node->operand1);
+    designate_arrays_recursive(node->operand2);
+    designate_arrays_recursive(node->operand3);
+    designate_arrays_recursive(node->operand4);
+}
+
+void compiler::ast::calculate_array_initialize_list(compiler::node* node, size_t* count)
+{
+    if (node == nullptr)
+        return;
+
+    if (node->type == node_type::INITIALIZER_LIST)
+    {
+        ++(*count);
+    }
+
+    calculate_array_initialize_list(node->operand1, count);
+    calculate_array_initialize_list(node->operand2, count);
+    calculate_array_initialize_list(node->operand3, count);
 }

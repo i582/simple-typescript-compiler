@@ -1,0 +1,33 @@
+#include "global_functions.h"
+
+compiler::global_functions::global_functions()
+{
+    this->_table = nullptr;
+
+    this->init();
+}
+
+compiler::global_functions::~global_functions()
+{
+    delete _table;
+}
+
+void compiler::global_functions::init()
+{
+    _table = new function_table();
+
+    auto array_new_function = new func("Array", return_type::ANY, {variable_type::NUMBER});
+
+    _table->add_function(array_new_function);
+}
+
+compiler::func* compiler::global_functions::get_function(const std::string& name,
+                                                         const std::vector<compiler::argument_type>& arguments_description)
+{
+    return _table->get_function(name, arguments_description);
+}
+
+bool compiler::global_functions::has_function(compiler::func* function)
+{
+    return _table->has_function(function);
+}

@@ -23,16 +23,19 @@ namespace compiler
 
 
         // types
+        UNDEFINED       = 0xffffff,
+
         NUMBER          = 0x001000,
         BOOLEAN         = 0x002000,
         STRING          = 0x003000,
         VOID            = 0x004000,
+        ANY             = 0x005000,
 
 
         // types for array
-        NUMBER_ARRAY    = 0x020000,
-        BOOLEAN_ARRAY   = 0x030000,
-        STRING_ARRAY    = 0x050000,
+        NUMBER_ARRAY    = 0x010000,
+        BOOLEAN_ARRAY   = 0x020000,
+        STRING_ARRAY    = 0x030000,
         VOID_ARRAY      = 0x040000,
 
 

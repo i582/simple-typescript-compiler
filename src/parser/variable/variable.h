@@ -23,12 +23,13 @@ namespace compiler
         BOOLEAN         = 0x002000,
         STRING          = 0x003000,
         VOID            = 0x004000,
+        ANY             = 0x005000,
 
 
         // types for array
-        NUMBER_ARRAY    = 0x020000,
-        BOOLEAN_ARRAY   = 0x030000,
-        STRING_ARRAY    = 0x050000,
+        NUMBER_ARRAY    = 0x010000,
+        BOOLEAN_ARRAY   = 0x020000,
+        STRING_ARRAY    = 0x030000,
         VOID_ARRAY      = 0x040000,
     };
 
@@ -40,6 +41,8 @@ namespace compiler
         variable_value _variable_value;
 
         bool _is_const;
+        size_t _block_id;
+
 
     public:
         variable(const string& variable_name_, variable_type variable_type_, const variable_value& variable_value_,
@@ -58,12 +61,18 @@ namespace compiler
         bool is_const();
         bool is_array();
 
+        void block_id(size_t block_id);
+        size_t block_id() const;
+
+        static bool is_array_type(variable_type type);
+
     public:
         static variable_value default_value(variable_type variable_type_);
         static variable_type variable_type_from_token_type(token_type token_type_);
 
         static bool is_types_reducible(variable_type type1, variable_type type2);
         static string variable_type_to_string(variable_type type);
+
 
     };
 
