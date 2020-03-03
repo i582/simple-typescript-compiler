@@ -51,13 +51,13 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             case node_type::NUMBER_CONST:
             {
                 cout << "number const ";
-                cout << "" << std::any_cast<long double>(sub->value);
+                cout << "" << std::any_cast<number>(sub->value);
                 break;
             }
             case node_type::BOOLEAN_CONST:
             {
                 cout << "boolean const ";
-                cout << "" << std::any_cast<bool>(sub->value);
+                cout << "" << std::any_cast<int>(sub->value);
                 break;
             }
             case node_type::ADD:

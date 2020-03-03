@@ -80,13 +80,13 @@ compiler::node* compiler::parser::primary_expression()
     }
     else if (_lex->current_token_type() == token_type::TRUE)
     {
-        temp_node = new node(node_type::BOOLEAN_CONST, true);
+        temp_node = new node(node_type::BOOLEAN_CONST, 1);
 
         _lex->next_token();
     }
     else if (_lex->current_token_type() == token_type::FALSE)
     {
-        temp_node = new node(node_type::BOOLEAN_CONST, false);
+        temp_node = new node(node_type::BOOLEAN_CONST, 0);
 
         _lex->next_token();
     }

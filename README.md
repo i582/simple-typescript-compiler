@@ -101,10 +101,37 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 
 * [x] Assignment expressions.
 * [x] Arithmetic expressions.
+  * [x] `+`
+  * [x] `-`
+  * [ ] `/`
+  * [x] `*`
+  * [ ] `**`
+  * [ ] `++a` 
+  * [ ] `--a`
+  * [ ] `a++` 
+  * [ ] `a++`
+  * [ ] `+a` 
+  * [ ] `-a`
+  * [ ] `!a`
+  * [x] `+=`
+  * [x] `-=`
+  * [ ] `/=`
+  * [x] `*=`
+  * [ ] `[]`
+  * [x] `? : `
+  * [ ] `new` (only for arrays)
 * [ ] Conditional expressions.
-* [ ] `if`
-* [ ] `else`
-* [ ] `else if`
+  * [ ] `&&` 
+  * [ ] `||`
+  * [x] `<` 
+  * [x] `>`
+  * [x] `>=` 
+  * [x] `<=`
+  * [x] `==` 
+  * [x] `!=`
+* [x] `if`
+* [x] `else`
+* [x] `else if`
 * [ ] `while`
 * [ ] `for`
 * [ ] `functions`
