@@ -130,3 +130,35 @@ bool compiler::variable::is_array_type(compiler::variable_type type)
 {
     return (size_t)type >= (size_t)variable_type::NUMBER_ARRAY;
 }
+
+std::string compiler::variable::name_with_postfix() const
+{
+    return _variable_name + std::to_string(_block_id);
+}
+
+compiler::variable_type compiler::variable::type_of_array_type(variable_type type)
+{
+    return (variable_type)(size_t(type) >> 4);
+}
+
+compiler::variable_type compiler::variable::type_variable_value(variable_value value)
+{
+    variable_type type = variable_type::UNDEFINED;
+
+    std::visit(overload {
+        [&](const number& n)
+        {
+            type = variable_type::NUMBER;
+        },
+        [&](const string& s)
+        {
+            type = variable_type::STRING;
+        },
+        [&](const bool b)
+        {
+            type = variable_type::BOOLEAN;
+        }
+    }, value);
+
+    return type;
+}

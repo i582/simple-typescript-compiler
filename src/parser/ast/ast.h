@@ -60,6 +60,8 @@ namespace compiler
         void check_expression();
 
 
+
+
     private:
         void mark_block_recursive(node* current_node);
         void mark_break_continue_operators_recursive(node* current_node, size_t current_block);
@@ -80,6 +82,7 @@ namespace compiler
         void designate_arrays_recursive(node* node);
 
         void calculate_array_initialize_list(node* node, size_t* count);
+        void designate_array_initialize_list_recursive(node* node, vector<variable_value>& list, variable_type array_type);
 
         // check functions
         static void check_const_recursive(node* current_node, node* current_stmt);

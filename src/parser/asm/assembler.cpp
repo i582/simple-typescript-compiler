@@ -185,6 +185,13 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
         {
             auto variable_name = any_cast<string>(op1->value);
 
+            auto var_type = _ast->_all_variables.get_variable_by_name(variable_name)->type();
+            if (variable::is_array_type(var_type))
+                return;
+
+            auto block_id = op1->statement_id();
+
+            variable_name += std::to_string(block_id);
 
             expression_recursive(op2);
 
@@ -263,6 +270,9 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
         else if (condition->type == node_type::USING_VARIABLE)
         {
             auto variable_name = any_cast<string>(condition->value);
+            auto block_id = condition->statement_id();
+
+            variable_name += std::to_string(block_id);
 
             cmp(variable_name, null);
 
@@ -516,8 +526,13 @@ void compiler::assembler::expression_recursive(node* current_node)
     }
     else if (current_node->type == node_type::USING_VARIABLE || current_node->type == node_type::USING_CONSTANT)
     {
-        // push const
+
         auto variable_name = any_cast<string>(current_node->value);
+        auto block_id = current_node->statement_id();
+
+        variable_name += std::to_string(block_id);
+
+        // push const
         push(variable_name);
     }
     else if (current_node->type == node_type::FUNCTION_CALL)
@@ -537,54 +552,156 @@ void compiler::assembler::expression_recursive(node* current_node)
 
         return;
     }
+    else if (current_node->type == node_type::INDEX_CAPTURE)
+    {
+        auto op1 = current_node->operand1;
+        auto op2 = current_node->operand2;
+
+        auto array_name = any_cast<string>(op1->value);
+        auto block_id = op1->statement_id();
+
+        auto array_type = _ast->_all_variables.get_variable_by_name(array_name)->type();
+        string array_item_shift;
+
+        switch (array_type)
+        {
+            case variable_type::NUMBER_ARRAY:
+            {
+                array_item_shift = "4";
+                break;
+            }
+            case variable_type::BOOLEAN_ARRAY:
+            {
+                array_item_shift = "1";
+                break;
+            }
+            case variable_type::STRING_ARRAY:
+            {
+                array_item_shift = "4";
+                break;
+            }
+
+            case variable_type::UNDEFINED:
+            case variable_type::NUMBER:
+            case variable_type::BOOLEAN:
+            case variable_type::STRING:
+            case variable_type::VOID:
+            case variable_type::ANY:
+            case variable_type::VOID_ARRAY:
+                break;
+        }
+
+        array_name += std::to_string(block_id);
+
+        auto array_name_with_index = array_name + "[" + eax + "]";
+
+        expression_recursive(op2->operand1);
+        pop(eax);
+        imul(eax, array_item_shift);
+        mov(eax, array_name_with_index);
+        push(eax);
+    }
 }
 
 void compiler::assembler::init_variable()
 {
-    init_variable_recursive(_ast->_tree);
-}
-
-void compiler::assembler::init_variable_recursive(node* current_node)
-{
-    if (current_node == nullptr)
-        return;
-
-    if (current_node->type == node_type::VARIABLE_DECLARATION)
+    for (const auto& variable : _ast->_all_variables.vars())
     {
-        auto var_type = (variable_type)any_cast<token_type>(current_node->operand1->value);
+        auto var_type = variable->type();
+        auto variable_name = variable->name_with_postfix();
+
+        auto block_id = variable->block_id();
+
 
         switch (var_type)
         {
-            case variable_type::UNDEFINED:
-                break;
             case variable_type::NUMBER:
             {
-                auto variable_name = any_cast<string>(current_node->value);
-
                 _data += "   " + variable_name + " dd 0\n";
                 break;
             }
             case variable_type::BOOLEAN:
+            {
+                _data += "   " + variable_name + " dd 0\n";
                 break;
+            }
             case variable_type::STRING:
+            {
+                _data += "   " + variable_name + " db \"\",0\n";
                 break;
-            case variable_type::VOID:
-                break;
-            case variable_type::ANY:
-                break;
+            }
             case variable_type::NUMBER_ARRAY:
-                break;
             case variable_type::BOOLEAN_ARRAY:
-                break;
             case variable_type::STRING_ARRAY:
-                break;
             case variable_type::VOID_ARRAY:
+            case variable_type::UNDEFINED:
+            case variable_type::VOID:
+            case variable_type::ANY:
                 break;
         }
     }
 
-    init_variable_recursive(current_node->operand1);
-    init_variable_recursive(current_node->operand2);
-    init_variable_recursive(current_node->operand3);
-    init_variable_recursive(current_node->operand4);
+    for (const auto& array : _ast->_arrays)
+    {
+        auto array_name = array.name();
+        auto variable = _ast->_all_variables.get_variable_by_name(array_name);
+        auto array_type = variable->type();
+        auto array_size = array.size();
+        auto block_id = variable->block_id();
+        const auto& array_values = array.values();
+
+        array_name = variable->name_with_postfix();
+
+
+
+        switch (array_type)
+        {
+            case variable_type::NUMBER_ARRAY:
+            {
+                if (array_values.empty())
+                {
+                    _data += "   " + array_name + " dd " + std::to_string(array_size) + " dup (0)\n";
+                }
+                else
+                {
+                    _data += "   " + array_name + " dd " + array.values_to_string() + "\n";
+                }
+                break;
+            }
+            case variable_type::BOOLEAN_ARRAY:
+            {
+                if (array_values.empty())
+                {
+                    _data += "   " + array_name + " dd " + std::to_string(array_size) + " dup (0)\n";
+                }
+                else
+                {
+                    _data += "   " + array_name + " dd " + array.values_to_string() + "\n";
+                }
+                break;
+            }
+            case variable_type::STRING_ARRAY:
+            {
+                if (array_values.empty())
+                {
+                    _data += "   " + array_name + " db " + std::to_string(array_size) + " dup (0)\n";
+                }
+                else
+                {
+                    _data += "   " + array_name + " db " + array.values_to_string() + "\n";
+                }
+                break;
+            }
+
+            case variable_type::NUMBER:
+            case variable_type::BOOLEAN:
+            case variable_type::STRING:
+            case variable_type::VOID_ARRAY:
+            case variable_type::UNDEFINED:
+            case variable_type::VOID:
+            case variable_type::ANY:
+                break;
+        }
+
+    }
 }

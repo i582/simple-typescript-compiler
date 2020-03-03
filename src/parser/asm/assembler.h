@@ -67,8 +67,6 @@ namespace compiler
         void init_arguments_on_stack_recursive(node* current_node);
         void init_argument_on_stack(node* current_node);
 
-        void init_variable_recursive(node* current_node);
-
 
         void to_asm_recursive(node* current_node);
 

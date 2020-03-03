@@ -1,4 +1,4 @@
-# Simple compailer from TypeScript to Assembler
+Simple compailer from TypeScript to Assembler
 
 ![](https://img.shields.io/badge/language-c%2B%2B-brightgreen)
 
@@ -33,7 +33,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 * [x] `++a` 
 * [x] `--a`
 * [x] `a++` 
-* [x] `a++`
+* [x] `a--`
 * [x] `+a` 
 * [x] `-a`
 * [x] `!a`
@@ -88,12 +88,27 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 
 ## Semantic analysis
 
+#### Variables
+
 * [x] The absence of a variable with this name in the current program scope.
+
+#### Constants
+
 * [x] Assignment to constants.
 * [x] Uninitialized constants.
+
+#### Functions
+
 * [x] A function call with the wrong type or number of parameters.
+
+#### Array
+
 * [x] Uninitialized arrays.
 * [x] Incorrect assignment to an array.
+* [x] Checking the types of initialization list for an array.
+
+#### Other
+
 * [x] Validation of assignments.
 * [x] Type checking for operands.
 
@@ -109,7 +124,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   * [ ] `++a` 
   * [ ] `--a`
   * [ ] `a++` 
-  * [ ] `a++`
+  * [ ] `a--`
   * [ ] `+a` 
   * [ ] `-a`
   * [ ] `!a`
@@ -119,7 +134,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   * [x] `*=`
   * [ ] `[]`
   * [x] `? : `
-  * [ ] `new` (only for arrays)
+  * [x] `new` (only for arrays)
 * [ ] Conditional expressions.
   * [ ] `&&` 
   * [ ] `||`
@@ -140,6 +155,17 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   * [x] `std print`(only for number for now)
   * [ ] `std sqrt`
   * [ ] `std to_string`
+* [x] `arrays`
+  * [x] `number`
+  * [x] `boolean`
+  * [x] `string`
+  * [x] `new initializing`
+  * [x] `initializer list`
+* [ ] Access to an array element
+  * [x] `number`
+  * [x] `boolean`
+  * [ ] `string`
+* [ ] Assigning an array element.
 
 ### Optimizations
 

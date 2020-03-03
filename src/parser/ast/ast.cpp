@@ -548,6 +548,7 @@ void compiler::ast::designate_variables_recursive(compiler::node* node, compiler
             is_const
         );
 
+        node->statement_id(table->block_id());
         new_variable->block_id(table->block_id());
 
         table->add_variable(new_variable);
@@ -942,6 +943,16 @@ void compiler::ast::give_expression_type_recursive(compiler::node* current_node,
         type = variable_type::ANY;
         return;
     }
+    else if (current_node->type == node_type::INDEX_CAPTURE)
+    {
+        auto array_name = any_cast<string>(current_node->operand1->value);
+        auto block_id = current_node->operand1->statement_id();
+
+        auto array_type = _all_variables.get_variable_by_name(array_name)->type();
+
+        type = variable::type_of_array_type(array_type);
+        return;
+    }
 
 
     give_expression_type_recursive(current_node->operand1, type);
@@ -974,12 +985,12 @@ compiler::variable_type compiler::ast::variable_type_of_node(compiler::node* cur
     else if (current_node->type == node_type::USING_VARIABLE)
     {
         auto variable_name = any_cast<string>(current_node->value);
-        variable* var = _all_variables.get_variable_by_name(variable_name);
+        auto variable = _all_variables.get_variable_by_name(variable_name);
 
-        return var->type();
+        return variable->type();
     }
 
-    return variable_type::VOID;
+    return variable_type::UNDEFINED;
 }
 
 void compiler::ast::check_expression()
@@ -1084,9 +1095,14 @@ void compiler::ast::designate_arrays_recursive(compiler::node* node)
                     size_t temp_array_size;
                     temp_array_size = 0;
 
-                    calculate_array_initialize_list(initializer_node, &temp_array_size);
+                    //calculate_array_initialize_list(initializer_node, &temp_array_size);
 
-                    _arrays.emplace_back(array_name, temp_array_size);
+                    vector<variable_value> array_values;
+                    auto array_value_type = variable::type_of_array_type(array_type);
+                    designate_array_initialize_list_recursive(initializer_node, array_values, array_value_type);
+                    temp_array_size = array_values.size();
+
+                    _arrays.emplace_back(array_name, temp_array_size, array_values);
                 }
                 else if (initializer_node->type == node_type::NEW)
                 {
@@ -1125,4 +1141,61 @@ void compiler::ast::calculate_array_initialize_list(compiler::node* node, size_t
     calculate_array_initialize_list(node->operand1, count);
     calculate_array_initialize_list(node->operand2, count);
     calculate_array_initialize_list(node->operand3, count);
+}
+
+void compiler::ast::designate_array_initialize_list_recursive(node* node, vector<variable_value>& list, variable_type array_type)
+{
+    if (node == nullptr)
+        return;
+
+    if (node->type == node_type::INITIALIZER_LIST)
+    {
+        auto value_node = node->operand2;
+        auto value_type = ast::variable_type_of_node(value_node);
+
+        if (!variable::is_types_reducible(value_type, array_type))
+        {
+            string lvalue_type_str = variable::variable_type_to_string(value_type);
+            string expression_type_str = variable::variable_type_to_string(array_type);
+
+            error("Type '" + lvalue_type_str + "' is not assignable to type '" + expression_type_str + "'!");
+        }
+
+        variable_value value;
+
+        switch (value_type)
+        {
+            case variable_type::NUMBER:
+            {
+                value = any_cast<number>(value_node->value);
+                break;
+            }
+            case variable_type::BOOLEAN:
+            {
+                value = (bool)any_cast<int>(value_node->value);
+                break;
+            }
+            case variable_type::STRING:
+            {
+                value = any_cast<string>(value_node->value);
+                break;
+            }
+            case variable_type::UNDEFINED:
+            case variable_type::VOID:
+            case variable_type::ANY:
+            case variable_type::NUMBER_ARRAY:
+            case variable_type::BOOLEAN_ARRAY:
+            case variable_type::STRING_ARRAY:
+            case variable_type::VOID_ARRAY:
+                error("Error! Some not expected!");
+        }
+
+        list.push_back(value);
+    }
+
+
+
+    designate_array_initialize_list_recursive(node->operand1, list, array_type);
+    designate_array_initialize_list_recursive(node->operand2, list, array_type);
+    designate_array_initialize_list_recursive(node->operand3, list, array_type);
 }

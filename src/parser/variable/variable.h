@@ -10,6 +10,14 @@ namespace compiler
     using std::cout;
     using std::endl;
 
+    template<class... Ts>
+    struct overload : Ts...
+    {
+        using Ts::operator()...;
+    };
+    template<class... Ts>
+    overload(Ts...)->overload<Ts...>;
+
     using number = long double;
 
     using variable_value = std::variant<number, bool, string>;
@@ -19,18 +27,18 @@ namespace compiler
     {
         UNDEFINED       = 0xffffff,
 
-        NUMBER          = 0x001000,
-        BOOLEAN         = 0x002000,
-        STRING          = 0x003000,
-        VOID            = 0x004000,
-        ANY             = 0x005000,
+        NUMBER          = 0x1000,
+        BOOLEAN         = 0x2000,
+        STRING          = 0x3000,
+        VOID            = 0x4000,
+        ANY             = 0x5000,
 
 
         // types for array
-        NUMBER_ARRAY    = 0x010000,
-        BOOLEAN_ARRAY   = 0x020000,
-        STRING_ARRAY    = 0x030000,
-        VOID_ARRAY      = 0x040000,
+        NUMBER_ARRAY    = 0x10000,
+        BOOLEAN_ARRAY   = 0x20000,
+        STRING_ARRAY    = 0x30000,
+        VOID_ARRAY      = 0x40000,
     };
 
     class variable
@@ -58,6 +66,8 @@ namespace compiler
         [[nodiscard]] string name() const;
         [[nodiscard]] variable_type type() const;
 
+        [[nodiscard]] string name_with_postfix() const;
+
         bool is_const();
         bool is_array();
 
@@ -73,7 +83,8 @@ namespace compiler
         static bool is_types_reducible(variable_type type1, variable_type type2);
         static string variable_type_to_string(variable_type type);
 
-
+        static variable_type type_of_array_type(variable_type type);
+        static variable_type type_variable_value(variable_value value);
     };
 
 
