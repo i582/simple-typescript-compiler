@@ -48,7 +48,7 @@ void compiler::parser::parse()
     // checks
     _tree->check_const();
     _tree->check_array();
-    _tree->check_functions_call();
+    //_tree->check_functions_call();
     _tree->check_expression();
     
 

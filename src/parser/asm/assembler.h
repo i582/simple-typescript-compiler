@@ -50,14 +50,22 @@ namespace compiler
     public:
         void init_input_function();
         void init_print_function();
+        void init_println_function();
 
+        void init_sqrt_function();
 
         void init_variable();
+
+
+        void init_string_constants();
+
+
 
         void to_asm();
 
         void call_input_function();
-        void call_print_function();
+        void call_sqrt_function();
+
 
 
 
@@ -67,6 +75,7 @@ namespace compiler
         void init_arguments_on_stack_recursive(node* current_node);
         void init_argument_on_stack(node* current_node);
 
+        void init_string_constants_recursive(node* current_node, size_t& count_constant);
 
         void to_asm_recursive(node* current_node);
 

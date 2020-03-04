@@ -28,11 +28,11 @@ let x: number;
 
 
 println("Enter a");
-a = <number>input();
+a = input();
 println("Enter b");
-b = <number>input();
+b = input();
 println("Enter c");
-c = <number>input();
+c = input();
 
 let D: number = b * b - 4*a * c;
 

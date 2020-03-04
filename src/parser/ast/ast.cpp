@@ -1011,7 +1011,8 @@ void compiler::ast::check_expression_recursive(compiler::node* node)
             auto lvalue = node->operand1->operand1;
             if (lvalue->type != node_type::USING_VARIABLE &&
                 lvalue->type != node_type::VARIABLE_DECLARATION &&
-                lvalue->type != node_type::CONSTANT_DECLARATION)
+                lvalue->type != node_type::CONSTANT_DECLARATION &&
+                lvalue->type != node_type::INDEX_CAPTURE)
             {
                 error("Invalid assignment!");
             }
@@ -1030,6 +1031,13 @@ void compiler::ast::check_expression_recursive(compiler::node* node)
                      lvalue->type == node_type::CONSTANT_DECLARATION)
             {
                 lvalue_type = (variable_type)any_cast<token_type>(lvalue->operand1->value);
+            }
+            else if (lvalue->type == node_type::INDEX_CAPTURE)
+            {
+                auto variable_name = any_cast<string>(lvalue->operand1->value);
+                variable* var = _all_variables.get_variable_by_name(variable_name);
+
+                lvalue_type = variable::type_of_array_type(var->type());
             }
 
 

@@ -1,4 +1,4 @@
-Simple compailer from TypeScript to Assembler
+# (only for number)Simple compailer from TypeScript to Assembler
 
 ![](https://img.shields.io/badge/language-c%2B%2B-brightgreen)
 
@@ -118,7 +118,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 * [x] Arithmetic expressions.
   * [x] `+`
   * [x] `-`
-  * [ ] `/`
+  * [x] `/`
   * [x] `*`
   * [ ] `**`
   * [ ] `++a` 
@@ -132,7 +132,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   * [x] `-=`
   * [ ] `/=`
   * [x] `*=`
-  * [ ] `[]`
+  * [x] `[]`
   * [x] `? : `
   * [x] `new` (only for arrays)
 * [ ] Conditional expressions.
@@ -147,14 +147,18 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 * [x] `if`
 * [x] `else`
 * [x] `else if`
-* [ ] `while`
-* [ ] `for`
+* [x] `while`
+  * [x] `break`
+  * [x] `continue`
+* [x] `for`
+  * [x] `break`
+  * [x] `continue`
 * [ ] `functions`
-* [ ] `std functions`
-  * [x] `std input` (only for number for now)
-  * [x] `std print`(only for number for now)
-  * [ ] `std sqrt`
-  * [ ] `std to_string`
+* [x] `std functions`
+  * [x] `std input` (only for number)
+  * [x] `std print`(only for number)
+  * [x] `std sqrt`
+  * [x] `std println`(only for const string)
 * [x] `arrays`
   * [x] `number`
   * [x] `boolean`
@@ -165,7 +169,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   * [x] `number`
   * [x] `boolean`
   * [ ] `string`
-* [ ] Assigning an array element.
+* [x] Assigning an array element.
 
 ### Optimizations
 
