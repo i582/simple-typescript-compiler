@@ -1,4 +1,4 @@
-# (only for number)Simple compailer from TypeScript to Assembler
+# Simple compailer from TypeScript to Assembler
 
 ![](https://img.shields.io/badge/language-c%2B%2B-brightgreen)
 
@@ -154,6 +154,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   * [x] `break`
   * [x] `continue`
 * [ ] `functions`
+  * [ ] `return`
 * [x] `std functions`
   * [x] `std input` (only for number)
   * [x] `std print`(only for number)

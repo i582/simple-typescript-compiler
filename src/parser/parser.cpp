@@ -48,7 +48,7 @@ void compiler::parser::parse()
     // checks
     _tree->check_const();
     _tree->check_array();
-    //_tree->check_functions_call();
+    _tree->check_functions_call();
     _tree->check_expression();
     
 
@@ -852,7 +852,7 @@ compiler::node* compiler::parser::function_statement()
     _lex->next_token();
 
 
-    auto temp_function_compound_statement = compound_statement();
+    auto temp_function_compound_statement = statement();
 
     auto temp_function_return_type = new node(node_type::FUNCTION_IMPLEMENTATION_RETURN_TYPE, function_type);
 

@@ -76,6 +76,10 @@ void compiler::assembler::generate()
     init_variable();
     init_string_constants();
 
+    function_implementation();
+    string functions_implementations = _main;
+    _main.clear();
+
 
     to_asm();
 
@@ -86,11 +90,7 @@ void compiler::assembler::generate()
 
     write(text_start);
     write(_pre_main);
-
-
-    //variables_to_asm();
-
-
+    write(functions_implementations);
 
     write(start_label);
 
@@ -212,6 +212,94 @@ void compiler::assembler::to_asm()
     to_asm_recursive(_ast->_tree);
 }
 
+void compiler::assembler::function_implementation()
+{
+    function_implementation_recursive(_ast->_tree);
+}
+
+void compiler::assembler::function_implementation_recursive(node* current_node)
+{
+    if (current_node == nullptr)
+        return;
+
+    if (current_node->type == node_type::FUNCTION_IMPLEMENTATION)
+    {
+        if (current_node->operand3->type == node_type::EXPRESSION)
+            return;
+
+        auto function_name = any_cast<string>(current_node->value);
+
+        if (_ast->_global_functions.has_function(function_name))
+            return;
+
+
+        _main += function_name + " PROC \n";
+        _main += "   push ebp\n"
+                 "   mov ebp, esp\n";
+
+        size_t stack_shift = 8;
+        function_implementation_args_recursive(current_node->operand2, stack_shift);
+
+
+        to_asm_recursive(current_node->operand3);
+
+        _main += "   pop ebp\n";
+        _main += "   ret " + std::to_string(stack_shift - 8) + "\n";
+        _main += function_name + " ENDP \n";
+        return;
+    }
+
+    function_implementation_recursive(current_node->operand1);
+    function_implementation_recursive(current_node->operand2);
+    function_implementation_recursive(current_node->operand3);
+    function_implementation_recursive(current_node->operand4);
+}
+
+void compiler::assembler::function_implementation_args_recursive(compiler::node* current_node, size_t& stack_shift)
+{
+    if (current_node == nullptr)
+        return;
+
+    if (current_node->type == node_type::FUNCTION_IMPLEMENTATION_ARG)
+    {
+        auto variable_name = any_cast<string>(current_node->value);
+        auto block_id = current_node->statement_id();
+
+        variable_name += std::to_string(block_id);
+
+        auto variable_type = variable::variable_type_from_token_type(any_cast<token_type>(current_node->operand1->value));
+
+        switch (variable_type)
+        {
+            case variable_type::NUMBER:
+            case variable_type::BOOLEAN:
+            case variable_type::STRING:
+            case variable_type::NUMBER_ARRAY:
+            case variable_type::BOOLEAN_ARRAY:
+            case variable_type::STRING_ARRAY:
+            {
+                _main += "   mov edx, [ebp + " + std::to_string(stack_shift) + "]\n";
+                _main += "   mov " + variable_name + ", edx\n";
+                stack_shift += 4;
+                break;
+            }
+            case variable_type::UNDEFINED:
+            case variable_type::VOID:
+            case variable_type::ANY:
+            case variable_type::VOID_ARRAY:
+                break;
+        }
+
+
+        return;
+    }
+
+    function_implementation_args_recursive(current_node->operand1, stack_shift);
+    function_implementation_args_recursive(current_node->operand2, stack_shift);
+    function_implementation_args_recursive(current_node->operand3, stack_shift);
+    function_implementation_args_recursive(current_node->operand4, stack_shift);
+}
+
 void compiler::assembler::to_asm_recursive(compiler::node* current_node)
 {
     if (current_node == nullptr)
@@ -228,6 +316,7 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
             op1->type == node_type::CONSTANT_DECLARATION)
         {
             auto variable_name = any_cast<string>(op1->value);
+
 
             auto var_type = _ast->_all_variables.get_variable_by_name(variable_name)->type();
             if (variable::is_array_type(var_type))
@@ -711,6 +800,16 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
     {
         expression_recursive(current_node);
     }
+    else if (current_node->type == node_type::FUNCTION_IMPLEMENTATION)
+    {
+        return;
+    }
+    else if (current_node->type == node_type::RETURN)
+    {
+        _main += "   pop ebp\n";
+        _main += "   ret\n";
+        return;
+    }
 
     to_asm_recursive(current_node->operand1);
     to_asm_recursive(current_node->operand2);
@@ -961,7 +1060,7 @@ void compiler::assembler::init_variable()
             }
             case variable_type::STRING:
             {
-                _data += "   " + variable_name + " db \"\",0\n";
+                _data += "   " + variable_name + " db \" \",0\n";
                 break;
             }
             case variable_type::NUMBER_ARRAY:
@@ -1066,4 +1165,6 @@ void compiler::assembler::init_string_constants_recursive(node* current_node, si
     init_string_constants_recursive(current_node->operand3, count_constant);
     init_string_constants_recursive(current_node->operand4, count_constant);
 }
+
+
 

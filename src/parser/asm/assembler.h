@@ -56,9 +56,10 @@ namespace compiler
 
         void init_variable();
 
-
         void init_string_constants();
 
+
+        void function_implementation();
 
 
         void to_asm();
@@ -76,6 +77,9 @@ namespace compiler
         void init_argument_on_stack(node* current_node);
 
         void init_string_constants_recursive(node* current_node, size_t& count_constant);
+
+        void function_implementation_recursive(node* current_node);
+        void function_implementation_args_recursive(node* current_node, size_t& current_index);
 
         void to_asm_recursive(node* current_node);
 

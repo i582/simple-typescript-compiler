@@ -511,13 +511,13 @@ void compiler::ast::designate_variables_recursive(compiler::node* node, compiler
         return;
 
 
-    if (node->type == node_type::STATEMENT ||
-        node->type == node_type::FUNCTION_IMPLEMENTATION)
+    if (node->type == node_type::STATEMENT)
         return;
 
 
 
-    if (node->type == node_type::VARIABLE_DECLARATION || node->type == node_type::CONSTANT_DECLARATION)
+    if (node->type == node_type::VARIABLE_DECLARATION || node->type == node_type::CONSTANT_DECLARATION ||
+        node->type == node_type::FUNCTION_IMPLEMENTATION_ARG)
     {
         auto variable_name = std::any_cast<string>(node->value);
 

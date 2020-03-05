@@ -20,6 +20,7 @@ namespace compiler
         bool has_function(func* function);
 
         func* get_function(const string& name, const vector<argument_type>& arguments_description);
+
     };
 
 }

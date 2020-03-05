@@ -44,6 +44,22 @@ bool compiler::global_functions::has_function(const std::string& name)
     {
         function = new func(name, return_type::NUMBER, {});
     }
+    else if (name == "print")
+    {
+        function = new func(name, return_type::VOID, {return_type::NUMBER});
+    }
+    else if (name == "println")
+    {
+        function = new func(name, return_type::VOID, {return_type::STRING});
+    }
+    else if (name == "sqrt")
+    {
+        function = new func(name, return_type::NUMBER, {return_type::NUMBER});
+    }
+    else
+    {
+        return false;
+    }
 
     return _table->has_function(function);
 }
