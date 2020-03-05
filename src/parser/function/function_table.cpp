@@ -32,9 +32,9 @@ compiler::func* compiler::function_table::get_function(const std::string& name,
 
         auto current_args = current_func_->arguments();
 
-        for (int i = 0; i < current_args.size(); ++i)
+        for (int i = current_args.size() - 1, j = 0; i >= 0; --i, ++j)
         {
-            if (current_args[i] != arguments_description[i])
+            if (current_args[i] != arguments_description[j])
             {
                 return false;
             }
@@ -46,6 +46,22 @@ compiler::func* compiler::function_table::get_function(const std::string& name,
     if (it == _functions.end())
     {
         cout << "Error! A function with name '" + name + "' and this parameter list was not found!" << endl;
+        throw std::logic_error("");
+    }
+
+    return *it;
+}
+
+compiler::func* compiler::function_table::get_function(const std::string& name)
+{
+    auto it = std::find_if(_functions.begin(), _functions.end(), [&](func* current_func_)
+    {
+        return current_func_->name() == name;
+    });
+
+    if (it == _functions.end())
+    {
+        cout << "Error! A function with name '" + name + "' was not found!" << endl;
         throw std::logic_error("");
     }
 

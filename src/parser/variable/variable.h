@@ -85,6 +85,8 @@ namespace compiler
 
         static variable_type type_of_array_type(variable_type type);
         static variable_type type_variable_value(variable_value value);
+
+        static size_t byte_on_type(variable_type type);
     };
 
 

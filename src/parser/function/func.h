@@ -17,7 +17,7 @@ namespace compiler
         string _name;
         return_type _return_type;
         vector<argument_type> _arguments;
-
+        size_t _arguments_size;
 
     public:
         func(const string& name, return_type return_type, const vector<argument_type>& arguments);
@@ -30,6 +30,8 @@ namespace compiler
         string name();
         return_type return_type();
         const vector<argument_type>& arguments();
+
+        size_t arguments_size() const;
     };
 
 

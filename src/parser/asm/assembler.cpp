@@ -806,8 +806,13 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
     }
     else if (current_node->type == node_type::RETURN)
     {
+        expression_recursive(current_node->operand1);
+        pop(eax);
+
+        auto arguments_size = std::to_string(any_cast<size_t>(current_node->value));
+
         _main += "   pop ebp\n";
-        _main += "   ret\n";
+        _main += "   ret " + arguments_size + "\n";
         return;
     }
 
@@ -966,6 +971,10 @@ void compiler::assembler::expression_recursive(node* current_node)
 
         auto function_name = any_cast<string>(current_node->value);
 
+        auto function = _ast->_functions.get_function(function_name);
+
+        auto function_return_void = function->return_type() == variable_type::VOID;
+
         if (function_name == "input")
         {
             call_input_function();
@@ -977,6 +986,12 @@ void compiler::assembler::expression_recursive(node* current_node)
         else
         {
             call(function_name);
+
+            if (!function_return_void)
+            {
+                _main += "   push eax\n";
+            }
+
         }
 
         return;

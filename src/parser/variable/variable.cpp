@@ -162,3 +162,30 @@ compiler::variable_type compiler::variable::type_variable_value(variable_value v
 
     return type;
 }
+
+size_t compiler::variable::byte_on_type(variable_type type)
+{
+    switch (type)
+    {
+        case variable_type::UNDEFINED:
+            return 0;
+        case variable_type::NUMBER:
+            return 4;
+        case variable_type::BOOLEAN:
+            return 4;
+        case variable_type::STRING:
+            return 4;
+        case variable_type::VOID:
+            return 0;
+        case variable_type::ANY:
+            return 0;
+        case variable_type::NUMBER_ARRAY:
+            return 4;
+        case variable_type::BOOLEAN_ARRAY:
+            return 4;
+        case variable_type::STRING_ARRAY:
+            return 4;
+        case variable_type::VOID_ARRAY:
+            return 0;
+    }
+}

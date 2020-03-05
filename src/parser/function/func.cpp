@@ -6,6 +6,12 @@ compiler::func::func(const std::string& name, compiler::return_type return_type,
     this->_name = name;
     this->_return_type = return_type;
     this->_arguments = arguments;
+    this->_arguments_size = 0;
+
+    for (const auto& argument : arguments)
+    {
+        this->_arguments_size += variable::byte_on_type(argument);
+    }
 }
 
 std::string compiler::func::name()
@@ -42,4 +48,9 @@ bool compiler::func::operator==(const compiler::func& rhs) const
     }
 
     return true;
+}
+
+size_t compiler::func::arguments_size() const
+{
+    return _arguments_size;
 }

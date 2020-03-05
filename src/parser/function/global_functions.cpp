@@ -17,8 +17,19 @@ void compiler::global_functions::init()
     _table = new function_table();
 
     auto array_new_function = new func("Array", return_type::ANY, {variable_type::NUMBER});
-
     _table->add_function(array_new_function);
+
+    auto function = new func("input", return_type::NUMBER, {});
+    _table->add_function(function);
+
+    function = new func("print", return_type::VOID, {return_type::NUMBER});
+    _table->add_function(function);
+
+    function = new func("println", return_type::VOID, {return_type::STRING});
+    _table->add_function(function);
+
+    function = new func("sqrt", return_type::NUMBER, {return_type::NUMBER});
+    _table->add_function(function);
 }
 
 compiler::func* compiler::global_functions::get_function(const std::string& name,

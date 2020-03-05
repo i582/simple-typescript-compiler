@@ -154,6 +154,10 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   * [x] `break`
   * [x] `continue`
 * [ ] `functions`
+  * [ ] `arguments`
+    * [x] `number`
+    * [x] `boolean`
+    * [ ] `arrays`
   * [ ] `return`
 * [x] `std functions`
   * [x] `std input` (only for number)

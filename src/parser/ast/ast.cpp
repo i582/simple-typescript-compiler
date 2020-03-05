@@ -456,12 +456,13 @@ void compiler::ast::mark_return_operator()
         if (stmt->operand1 != nullptr &&
             stmt->operand1->type == node_type::FUNCTION_IMPLEMENTATION)
         {
-            mark_return_operator_recursive(stmt->operand1->operand3, stmt->statement_id());
+            auto function_name = any_cast<string>(stmt->operand1->value);
+            mark_return_operator_recursive(stmt->operand1->operand3, stmt->statement_id(), function_name);
         }
     }
 }
 
-void compiler::ast::mark_return_operator_recursive(compiler::node* current_node, size_t current_block)
+void compiler::ast::mark_return_operator_recursive(compiler::node* current_node, size_t current_block, const string& function_name)
 {
     if (current_node == nullptr)
         return;
@@ -473,13 +474,17 @@ void compiler::ast::mark_return_operator_recursive(compiler::node* current_node,
     if (current_node->type == node_type::RETURN)
     {
         current_node->statement_id(current_block);
+
+        size_t size_of_arguments = _functions.get_function(function_name)->arguments_size();
+
+        current_node->value = size_of_arguments;
     }
 
 
-    mark_return_operator_recursive(current_node->operand1, current_block);
-    mark_return_operator_recursive(current_node->operand2, current_block);
-    mark_return_operator_recursive(current_node->operand3, current_block);
-    mark_return_operator_recursive(current_node->operand4, current_block);
+    mark_return_operator_recursive(current_node->operand1, current_block, function_name);
+    mark_return_operator_recursive(current_node->operand2, current_block, function_name);
+    mark_return_operator_recursive(current_node->operand3, current_block, function_name);
+    mark_return_operator_recursive(current_node->operand4, current_block, function_name);
 }
 
 void compiler::ast::designate_variables()
@@ -773,7 +778,7 @@ void compiler::ast::check_functions_call_recursive(compiler::node* node)
 
         designate_function_call_arguments_recursive(node, &types);
 
-        if (!_global_functions.has_function(new func(function_name, variable_type::ANY, types)))
+        if (!_global_functions.has_function(function_name))
         {
             _functions.get_function(function_name, types);
         }

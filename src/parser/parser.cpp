@@ -36,6 +36,7 @@ void compiler::parser::parse()
     _tree->_tree = new node(node_type::PROGRAM, "", new_node);
 
     _tree->designate_blocks();
+    _tree->designate_functions();
     _tree->mark_block();
     _tree->mark_break_continue_operators();
     _tree->mark_return_operator();
@@ -43,7 +44,7 @@ void compiler::parser::parse()
 
     _tree->designate_variables();
     _tree->designate_arrays();
-    _tree->designate_functions();
+
 
     // checks
     _tree->check_const();

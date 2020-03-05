@@ -65,7 +65,7 @@ namespace compiler
     private:
         void mark_block_recursive(node* current_node);
         void mark_break_continue_operators_recursive(node* current_node, size_t current_block);
-        void mark_return_operator_recursive(node* current_node, size_t current_block);
+        void mark_return_operator_recursive(node* current_node, size_t current_block, const string& function_name);
 
 
 
