@@ -859,6 +859,8 @@ void compiler::ast::give_expression_type_recursive(compiler::node* current_node,
 
             string action = node::node_type_to_string(current_node->type);
 
+            cout << any_cast<string>(current_node->operand1->operand1->value) << endl;
+
             error("Operator " + action + " cannot be applied to types '" + op1_type_str + "' and '" + op2_type_str + "'.");
         }
 
@@ -1163,8 +1165,20 @@ void compiler::ast::designate_array_initialize_list_recursive(node* node, vector
 
     if (node->type == node_type::INITIALIZER_LIST)
     {
+        variable_type value_type = variable_type::UNDEFINED;
+        give_expression_type_recursive(node->operand2, value_type);
+
+
         auto value_node = node->operand2;
-        auto value_type = ast::variable_type_of_node(value_node);
+
+        auto raw_value_node = value_node;
+        if (value_node->type == node_type::UNARY_MINUS ||
+            value_node->type == node_type::UNARY_PLUS ||
+            value_node->type == node_type::UNARY_EXCLAMATION)
+        {
+            value_node = value_node->operand1;
+        }
+
 
         if (!variable::is_types_reducible(value_type, array_type))
         {
@@ -1180,12 +1194,28 @@ void compiler::ast::designate_array_initialize_list_recursive(node* node, vector
         {
             case variable_type::NUMBER:
             {
-                value = any_cast<number>(value_node->value);
+                auto temp_value = any_cast<number>(value_node->value);
+
+                if (raw_value_node->type == node_type::UNARY_MINUS)
+                {
+                    temp_value *= -1;
+                }
+
+                value = temp_value;
                 break;
             }
             case variable_type::BOOLEAN:
             {
                 value = (bool)any_cast<int>(value_node->value);
+
+                auto temp_value = (bool)any_cast<int>(value_node->value);
+
+                if (raw_value_node->type == node_type::UNARY_EXCLAMATION)
+                {
+                    temp_value = !temp_value;
+                }
+
+                value = temp_value;
                 break;
             }
             case variable_type::STRING:

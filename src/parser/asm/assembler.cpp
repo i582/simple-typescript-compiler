@@ -162,7 +162,7 @@ void compiler::assembler::init_input_function()
 
 void compiler::assembler::init_print_function()
 {
-    _data += "   print_format db \"%d\", 0\n";
+    _data += "   print_format db \"%d \", 0\n";
 
     _pre_main += "print PROC\n";
     _pre_main += "   push ebp\n";
@@ -290,6 +290,24 @@ void compiler::assembler::function_implementation_args_recursive(compiler::node*
                 break;
         }
 
+        switch (variable_type)
+        {
+            case variable_type::NUMBER_ARRAY:
+            case variable_type::BOOLEAN_ARRAY:
+            case variable_type::STRING_ARRAY:
+            {
+                _data += "   " + variable_name + " dd 0\n";
+                break;
+            }
+            case variable_type::NUMBER:
+            case variable_type::BOOLEAN:
+            case variable_type::STRING:
+            case variable_type::UNDEFINED:
+            case variable_type::VOID:
+            case variable_type::ANY:
+            case variable_type::VOID_ARRAY:
+                break;
+        }
 
         return;
     }
@@ -384,8 +402,10 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
             pop(eax);
             imul(eax, array_item_shift);
 
-            mov(array_name_with_index, ebx);
-
+            _main += "   mov edx, offset " + array_name + "\n";
+            //mov(edx, array_name);
+            add(edx, array_item_shift);
+            _main += "   mov [edx], ebx\n";
         }
         return;
     }
@@ -956,14 +976,26 @@ void compiler::assembler::expression_recursive(node* current_node)
     }
     else if (current_node->type == node_type::USING_VARIABLE || current_node->type == node_type::USING_CONSTANT)
     {
-
         auto variable_name = any_cast<string>(current_node->value);
+
+        auto is_array = variable::is_array_type(_ast->_all_variables.get_variable_by_name(variable_name)->type());
+
+
         auto block_id = current_node->statement_id();
 
         variable_name += std::to_string(block_id);
 
-        // push const
-        push(variable_name);
+        if (is_array)
+        {
+            // push const
+            _main += "   push offset " + variable_name + "\n";
+        }
+        else
+        {
+            // push const
+            push(variable_name);
+        }
+
     }
     else if (current_node->type == node_type::FUNCTION_CALL)
     {
@@ -1041,8 +1073,12 @@ void compiler::assembler::expression_recursive(node* current_node)
 
         expression_recursive(op2->operand1);
         pop(eax);
+
         imul(eax, array_item_shift);
-        mov(eax, array_name_with_index);
+
+        _main += "   mov edx, offset " + array_name + "\n";
+
+        _main += "   mov eax, [edx[eax]]\n";
         push(eax);
     }
     else if (current_node->type == node_type::EXPRESSION)

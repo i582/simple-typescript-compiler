@@ -41,7 +41,7 @@ std::string compiler::array::values_to_string() const
         {
             case variable_type::NUMBER:
             {
-                result += std::to_string((size_t)std::get<number>(value));
+                result += std::to_string((int)std::get<number>(value));
                 break;
             }
             case variable_type::BOOLEAN:
