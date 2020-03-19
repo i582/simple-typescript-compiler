@@ -1,6 +1,7 @@
 #pragma once
 
-#include "asm/assembler.h"
+#include "asm/asm.h"
+//#include "asm/assembler.h"
 
 namespace compiler
 {
@@ -10,6 +11,9 @@ namespace compiler
     private:
         lexer* _lex;
         ast* _tree;
+
+
+        generic_asm* _assembler2;
         assembler* _assembler;
 
     public:

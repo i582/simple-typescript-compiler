@@ -9,6 +9,7 @@
 namespace compiler
 {
 
+    class generic_asm;
     class assembler;
 
     using std::any_cast;
@@ -36,6 +37,7 @@ namespace compiler
         ast();
 
     public:
+        friend generic_asm;
         friend assembler;
 
     public:
@@ -46,6 +48,9 @@ namespace compiler
         void mark_break_continue_operators();
         void mark_return_operator();
 
+        void mark_variable_tables();
+
+        void mark_everything_block_where_it_using();
 
         // designate functions
         void designate_blocks();
@@ -67,7 +72,7 @@ namespace compiler
         void mark_break_continue_operators_recursive(node* current_node, size_t current_block);
         void mark_return_operator_recursive(node* current_node, size_t current_block, const string& function_name);
 
-
+        void mark_everything_block_where_it_using_recursive(node* current_node, size_t& current_stmt_id);
 
         // designate functions
         void designate_blocks_recursive(node* current_node, node* current_stmt);
@@ -93,6 +98,7 @@ namespace compiler
 
         variable_type variable_type_of_node(node* current_node);
 
+        node* get_stmt_by_id(size_t stmt_id);
 
     private:
         void error(const string& message);

@@ -20,6 +20,9 @@ namespace compiler
         vector<variable*> _vars;
         variable_table* _parent;
 
+        bool _for_function;
+
+
     public:
         variable_table(size_t block_id);
 
@@ -38,6 +41,8 @@ namespace compiler
         bool has_variable(const string& name_);
         bool has_variable_or_has_in_parent(const string& name_);
 
+        bool has_variable_in_current_function(const string& name);
+
         variable* get_variable_by_name(const string& name_);
         tuple<size_t, variable*> get_variable(const string& name);
 
@@ -46,6 +51,9 @@ namespace compiler
         vector<variable*>& vars();
 
         string generate_variable_with_prefix(const string& variable_name);
+
+        bool for_function() const;
+        void for_function(bool for_function);
 
     public:
         void print();

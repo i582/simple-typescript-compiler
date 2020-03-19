@@ -4,7 +4,9 @@ compiler::parser::parser(const std::string& file_path_)
 {
     _lex = new lexer(file_path_);
     _tree = new ast();
-    _assembler = new assembler("test.asm", _tree);
+
+    _assembler2 = new generic_asm("test.asm", _tree);
+    //_assembler = new assembler("test.asm", _tree);
 
     _lex->parse();
     _lex->print_tokens();
@@ -14,6 +16,9 @@ compiler::parser::~parser()
 {
     delete _lex;
     delete _tree;
+
+    delete _assembler2;
+    //delete _assembler;
 }
 
 void compiler::parser::error(const std::string& message)
@@ -40,10 +45,12 @@ void compiler::parser::parse()
     _tree->mark_block();
     _tree->mark_break_continue_operators();
     _tree->mark_return_operator();
-
+    _tree->mark_everything_block_where_it_using();
 
     _tree->designate_variables();
     _tree->designate_arrays();
+
+    _tree->mark_variable_tables();
 
 
     // checks
@@ -951,7 +958,7 @@ compiler::node* compiler::parser::operator_statement()
 
 void compiler::parser::generate()
 {
-    _assembler->generate();
+    _assembler2->generate();
 }
 
    

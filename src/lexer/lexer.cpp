@@ -136,7 +136,7 @@ void compiler::lexer::split()
 
             if (_state == lexer_state::IN_NUMBER)
             {
-                if (symbol == '.' || symbol == 'e' || symbol == '+')
+                if (symbol == '.' || symbol == 'e')
                 {
                     temp_token += symbol;
                     continue;

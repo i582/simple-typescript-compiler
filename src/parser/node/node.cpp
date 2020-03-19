@@ -12,6 +12,8 @@ compiler::node::node(compiler::node_type type_, const any& value_, compiler::nod
     this->operand4 = operand4_;
     this->_statement_id = -1;
     this->vars = vars_;
+
+    this->_in_function_id = -1;
 }
 
 void compiler::node::statement_id(size_t statement_id)
@@ -249,4 +251,27 @@ std::string compiler::node::node_type_to_string(compiler::node_type type)
             return "exponentiation (**)";
         }
     }
+}
+
+size_t compiler::node::in_function_id() const
+{
+    return _in_function_id;
+}
+
+void compiler::node::in_function_id(size_t in_function_id)
+{
+    _in_function_id = in_function_id;
+}
+
+bool compiler::node::is_comparison_operator(node_type type)
+{
+    return type == node_type::LESS ||
+           type == node_type::GREATER ||
+           type == node_type::LESS_EQUAL ||
+           type == node_type::GREATER_EQUAL ||
+           type == node_type::EQUAL ||
+           type == node_type::NOT_EQUAL ||
+           type == node_type::LOGICAL_AND ||
+           type == node_type::LOGICAL_OR ||
+           type == node_type::UNARY_EXCLAMATION;
 }

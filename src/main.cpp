@@ -1,5 +1,6 @@
 #include "parser/parser.h"
 
+
 int main()
 {
     compiler::parser parse("test.ts");

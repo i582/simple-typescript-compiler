@@ -1,4 +1,4 @@
-# Simple compailer from TypeScript to Assembler
+# 	Simple compailer from TypeScript to Assembler
 
 ![](https://img.shields.io/badge/language-c%2B%2B-brightgreen)
 
@@ -121,13 +121,12 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   * [x] `/`
   * [x] `*`
   * [ ] `**`
-  * [ ] `++a` 
-  * [ ] `--a`
+  * [x] `++a` 
+  * [x] `--a`
   * [ ] `a++` 
   * [ ] `a--`
-  * [ ] `+a` 
-  * [ ] `-a`
-  * [ ] `!a`
+  * [x] `-a`
+  * [x] `!a`
   * [x] `+=`
   * [x] `-=`
   * [ ] `/=`
@@ -136,14 +135,15 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   * [x] `? : `
   * [x] `new` (only for arrays)
 * [ ] Conditional expressions.
-  * [ ] `&&` 
-  * [ ] `||`
+  * [x] `&&` 
+  * [x] `||`
   * [x] `<` 
   * [x] `>`
   * [x] `>=` 
   * [x] `<=`
   * [x] `==` 
   * [x] `!=`
+  * [ ] `!`
 * [x] `if`
 * [x] `else`
 * [x] `else if`
@@ -154,12 +154,12 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   * [x] `break`
   * [x] `continue`
 * [ ] `functions`
-  * [ ] `arguments`
+  * [x] `arguments`
     * [x] `number`
     * [x] `boolean`
     * [x] `string`
-    * [ ] `arrays`
-  * [x] `return`
+    * [x] `arrays`
+  * [ ] `return`
     * [x] `number`
     * [x] `boolean`
     * [ ] `string`
@@ -184,3 +184,175 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 ### Optimizations
 
 * [ ] Replacing an arithmetic action with constants with a constant with the result of this action.
+
+
+
+
+
+## Testing
+
+* [x] Assigment 
+  * [x] to variable
+  * [x] to array element
+    * [x] number
+    * [x] boolean
+* [x] Arithmetic 
+  * [x] `+`
+  * [x] `-`
+  * [x] `/`
+  * [x] `*`
+  * [x] `++a` 
+  * [x] `--a`
+  * [x] `-a`
+  * [x] `+=`
+  * [x] `-=`
+  * [x] `/=`
+  * [x] `*=`
+  * [ ] `? : `
+* [x] Conditional
+  * [x] ==
+  * [x] !=
+  * [x] <
+  * [x] \>
+  * [x] <=
+  * [x] \>=
+  * [x] !
+* [x] if
+* [x] else
+* [x] while
+  * [x] break
+  * [x] continue
+* [x] for
+  * [x] break
+  * [x] continue
+* [x] functions
+  * [x] arguments
+    * [x] number
+    * [x] boolean
+    * [ ] string
+    * [x] number[]
+    * [x] boolean[]
+  * [x] return
+    * [x] number
+    * [x] boolean
+    * [ ] number[]
+    * [ ] boolean[]
+* [x] arrays
+  * [x] number
+  * [x] boolean
+  * [x] init with initializer list
+  * [x] init with new Array() construction
+  * [x] access by index
+    * [x] number
+    * [x] boolean
+* [x] std functions
+  * [x] print — only for number
+  * [x] println — only for constant string
+  * [x] input — only for number
+  * [x] sqrt
+
+
+
+## Testing blocks
+
+* [ ] ```typescript
+  for (let i: number; i < 10; ++i)
+  {
+  	print(i);
+  }
+  
+// 0 1 2 3 4 5 6 7 8 9
+  ```
+  
+* [ ] ```typescript
+  let i: number = 100;
+  while (i > 0)
+  {
+  	i -= 10;
+      print(i);
+  }
+  
+  // 90 80 70 60 50 40 30 20 10 0
+  ```
+
+* [ ] ```typescript
+  let a: number = 50;
+  let b: boolean = a < 10;
+  if (b && a > 10)
+  {
+      println("Yes");
+  }
+  else
+  {
+     println("No");
+  }
+  
+  // No
+  ```
+
+* [ ] ```typescript
+  let arr: number[] = [100, 200, 300];
+  
+  print(arr[0]);
+  
+  arr[0] += arr[1] + arr[2];
+  print(arr[0]);
+  
+  // 100 600
+  ```
+
+* [ ] ```typescript
+  function foo(array: number[], size: number): void
+  {
+      for (let i: number; i < size; ++i)
+  	{
+  		print(array[i]);
+  	}
+  }
+  
+  let a: number[] = [100, 200, 300];
+  
+  foo(a, 3);
+  
+  // 100, 200, 300
+  ```
+
+* [ ] ```typescript
+  function foo(a: number, b: number): number
+  {
+      return a + b;
+  }
+  
+  print(foo(100, 200));
+  
+  // 300
+  ```
+
+* [x] ```typescript
+  let a: number = input();
+  
+  print(sqrt(a));
+  
+  // 25
+  // 5
+  ```
+
+* [ ] ```typescript
+  let b: number[] = [100, 200];
+  
+  
+  let a: number = b[0];
+  
+  print(++a);
+  
+  ++a;
+  
+  b[0] = a;
+  
+  // this is error 
+  ```
+
+* [ ] 
+
+
+

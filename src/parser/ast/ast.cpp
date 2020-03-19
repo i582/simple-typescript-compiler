@@ -312,6 +312,12 @@ void compiler::ast::print(compiler::node* sub, size_t level)
         {
             cout << "\t\tstmt-id " << sub->statement_id();
         }
+
+
+        if (sub->in_function_id() != 4294967295)
+        {
+            cout << "\t\tin function: " << sub->in_function_id();
+        }
         cout << endl;
 
         print(sub->operand1, level + 1);
@@ -487,6 +493,25 @@ void compiler::ast::mark_return_operator_recursive(compiler::node* current_node,
     mark_return_operator_recursive(current_node->operand4, current_block, function_name);
 }
 
+void compiler::ast::mark_everything_block_where_it_using_recursive(node* current_node, size_t& current_stmt_id)
+{
+    if (current_node == nullptr)
+        return;
+
+    if (current_node->type == node_type::FUNCTION_IMPLEMENTATION)
+    {
+        current_stmt_id = current_node->operand3->statement_id();
+    }
+
+
+    current_node->in_function_id(current_stmt_id);
+
+    mark_everything_block_where_it_using_recursive(current_node->operand1, current_stmt_id);
+    mark_everything_block_where_it_using_recursive(current_node->operand2, current_stmt_id);
+    mark_everything_block_where_it_using_recursive(current_node->operand3, current_stmt_id);
+    mark_everything_block_where_it_using_recursive(current_node->operand4, current_stmt_id);
+}
+
 void compiler::ast::designate_variables()
 {
     _variables_tables.reserve(_stmts.size());
@@ -508,6 +533,26 @@ void compiler::ast::designate_variables()
 
         designate_variables_recursive(stmt->operand1, new_variable_table);
     }
+}
+
+void compiler::ast::mark_variable_tables()
+{
+    for (auto& [parent_stmt, stmt] : _stmts)
+    {
+        if (stmt->operand1 != nullptr && stmt->operand1->type == node_type::FUNCTION_IMPLEMENTATION)
+        {
+            if (stmt->operand1->operand3 != nullptr && stmt->operand1->operand3->vars != nullptr)
+            {
+                stmt->operand1->operand3->vars->for_function(true);
+            }
+        }
+    }
+}
+
+void compiler::ast::mark_everything_block_where_it_using()
+{
+    size_t block_id = 0;
+    mark_everything_block_where_it_using_recursive(_tree, block_id);
 }
 
 void compiler::ast::designate_variables_recursive(compiler::node* node, compiler::variable_table* table)
@@ -866,15 +911,6 @@ void compiler::ast::give_expression_type_recursive(compiler::node* current_node,
 
         type = op1_type;
     }
-    else if (current_node->type == node_type::UNARY_EXCLAMATION)
-    {
-        auto op1 = current_node->operand1;
-
-        variable_type op1_type = variable_type::UNDEFINED;
-        give_expression_type_recursive(op1, op1_type);
-
-        type = variable_type::BOOLEAN;
-    }
     else if (current_node->type == node_type::UNARY_MINUS ||
              current_node->type == node_type::UNARY_PLUS)
     {
@@ -958,6 +994,11 @@ void compiler::ast::give_expression_type_recursive(compiler::node* current_node,
         auto array_type = _all_variables.get_variable_by_name(array_name)->type();
 
         type = variable::type_of_array_type(array_type);
+        return;
+    }
+    else if (node::is_comparison_operator(current_node->type))
+    {
+        type = variable_type::BOOLEAN;
         return;
     }
 
@@ -1135,6 +1176,19 @@ void compiler::ast::designate_arrays_recursive(compiler::node* node)
         }
 
     }
+    else if (node->type == node_type::FUNCTION_IMPLEMENTATION_ARG)
+    {
+        auto var_node = node;
+        auto var_type_node = var_node->operand1;
+        auto var_type = (variable_type) any_cast<token_type>(var_type_node->value);
+
+        auto var_name = any_cast<string>(var_node->value);
+
+        if (variable::is_array_type(var_type))
+        {
+            _arrays.emplace_back(var_name, 0);
+        }
+    }
 
 
     designate_arrays_recursive(node->operand1);
@@ -1241,4 +1295,17 @@ void compiler::ast::designate_array_initialize_list_recursive(node* node, vector
     designate_array_initialize_list_recursive(node->operand1, list, array_type);
     designate_array_initialize_list_recursive(node->operand2, list, array_type);
     designate_array_initialize_list_recursive(node->operand3, list, array_type);
+}
+
+compiler::node* compiler::ast::get_stmt_by_id(size_t stmt_id)
+{
+    for (const auto& stmt : _stmts)
+    {
+        if (stmt.second->statement_id() == stmt_id)
+        {
+            return stmt.second;
+        }
+    }
+
+    return nullptr;
 }

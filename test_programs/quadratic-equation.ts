@@ -1,22 +1,7 @@
-function sqrt(value: number): number
-{
-    return 0;
-}
-
-function println(message: string)
-{
-
-}
-function input(): number
-{
-
-    return 0;
-}
-function to_string(value: number): string
-{
-
-    return "";
-}
+function input(): number;
+function print(n: number): void;
+function println(n: string): void;
+function sqrt(n: number): number;
 
 
 
@@ -38,11 +23,14 @@ let D: number = b * b - 4*a * c;
 
 if (D >= 0)
 {
-    x = (-1 * b + sqrt(b * b - 4*a * c)) / (2 * a);
-    println("X1"); println(to_string(x));
+    x = (-1 * b + sqrt(D)) / (2 * a);
+    println("x1:");
+    print(x);
+    println(" ");
 
-    x = (-1 * b - sqrt(b * b - 4*a * c)) / (2 * a);
-    println("X2"); println(to_string(x));
+    x = (-1 * b - sqrt(D)) / (2 * a);
+    println("x2:");
+    print(x);
 }
 else
 {

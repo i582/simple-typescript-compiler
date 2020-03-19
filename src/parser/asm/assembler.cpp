@@ -72,13 +72,14 @@ void compiler::assembler::generate()
     _data += "   div_operand_1 dd 0\n"
              "   div_operand_2 dd 0\n";
 
-    init_global_functions();
-    init_variable();
-    init_string_constants();
 
+    init_string_constants();
     function_implementation();
     string functions_implementations = _main;
     _main.clear();
+
+    init_global_functions();
+    init_variable();
 
 
     to_asm();
@@ -209,7 +210,7 @@ void compiler::assembler::init_sqrt_function()
 
 void compiler::assembler::to_asm()
 {
-    to_asm_recursive(_ast->_tree);
+    to_asm_recursive(_ast->_tree, false);
 }
 
 void compiler::assembler::function_implementation()
@@ -241,7 +242,7 @@ void compiler::assembler::function_implementation_recursive(node* current_node)
         function_implementation_args_recursive(current_node->operand2, stack_shift);
 
 
-        to_asm_recursive(current_node->operand3);
+        to_asm_recursive(current_node->operand3, true);
 
         _main += "   pop ebp\n";
         _main += "   ret " + std::to_string(stack_shift - 8) + "\n";
@@ -318,11 +319,10 @@ void compiler::assembler::function_implementation_args_recursive(compiler::node*
     function_implementation_args_recursive(current_node->operand4, stack_shift);
 }
 
-void compiler::assembler::to_asm_recursive(compiler::node* current_node)
+void compiler::assembler::to_asm_recursive(compiler::node* current_node, bool in_function)
 {
     if (current_node == nullptr)
         return;
-
 
     if (current_node->type == node_type::SET)
     {
@@ -344,7 +344,7 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
 
             variable_name += std::to_string(block_id);
 
-            expression_recursive(op2);
+            expression_recursive(op2, in_function);
 
             // pop eax
             pop(eax);
@@ -390,26 +390,59 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
                     break;
             }
 
+            auto parent_stmt = _ast->get_stmt_by_id(block_id);
+            auto stmt_vars = parent_stmt->vars;
+
+            auto defined_in_this_function = stmt_vars->has_variable_in_current_function(array_name);
+
+
             array_name += std::to_string(block_id);
 
             auto array_name_with_index = array_name + "[" + eax + "]";
 
 
-            expression_recursive(op2);
+            expression_recursive(op2, in_function);
             pop(ebx);
 
-            expression_recursive(index_node->operand1);
+            expression_recursive(index_node->operand1, in_function);
             pop(eax);
             imul(eax, array_item_shift);
 
-            _main += "   mov edx, offset " + array_name + "\n";
+
+            if (defined_in_this_function)
+            {
+                _main += "   mov edx, offset " + array_name + "\n";
+            }
+            else
+            {
+                _main += "   mov edx, " + array_name + "\n";
+            }
+
+
             //mov(edx, array_name);
             add(edx, array_item_shift);
             _main += "   mov [edx], ebx\n";
         }
         return;
     }
-    else if (current_node->type == node_type::IF || current_node->type == node_type::IF_ELSE)
+
+    else if (current_node->type == node_type::LESS ||
+            current_node->type == node_type::GREATER ||
+            current_node->type == node_type::LESS_EQUAL ||
+            current_node->type == node_type::GREATER_EQUAL ||
+            current_node->type == node_type::EQUAL ||
+            current_node->type == node_type::NOT_EQUAL ||
+            current_node->type == node_type::LOGICAL_AND ||
+            current_node->type == node_type::LOGICAL_OR ||
+            current_node->type == node_type::UNARY_EXCLAMATION)
+    {
+        relation_expression_recursive(current_node, in_function);
+        return;
+    }
+
+
+    else if (current_node->type == node_type::IF
+            || current_node->type == node_type::IF_ELSE)
     {
         node* condition         = current_node->operand1->operand1;
         node* statement         = current_node->operand2;
@@ -420,185 +453,48 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
         string else_label_      = "_if_else_" + std::to_string(statement->statement_id());
 
 
-        if (condition->type == node_type::NUMBER_CONST)
-        {
-            auto value = any_cast<number>(condition->value);
+        to_asm_recursive(condition, in_function);
 
-            if ((size_t)value != 0)
-            {
-                label(start_label_);
-                to_asm_recursive(statement);
-            }
-            else
-            {
-                if (current_node->type == node_type::IF_ELSE)
-                {
-                    label(else_label_);
-                    to_asm_recursive(else_statement);
-                }
-            }
+        pop(eax);
+        cmp(eax, null);
+
+
+        string end_or_else_label = end_label_;
+        if (current_node->type == node_type::IF_ELSE)
+        {
+            end_or_else_label = else_label_;
         }
-        else if (condition->type == node_type::BOOLEAN_CONST)
-        {
-            auto value = any_cast<int>(condition->value);
 
-            if (value)
-            {
-                label(start_label_);
-                to_asm_recursive(statement);
-            }
-            else
-            {
-                if (current_node->type == node_type::IF_ELSE)
-                {
-                    label(else_label_);
-                    to_asm_recursive(else_statement);
-                }
-            }
+
+        je(end_or_else_label);
+
+
+
+        if (current_node->type == node_type::IF_ELSE)
+        {
+            // label:
+            label(start_label_);
+            to_asm_recursive(statement, in_function);
+
+            // jmp label
+            jmp(end_label_);
+
+            // label:
+            label(else_label_);
+            to_asm_recursive(else_statement, in_function);
+
+            // label:
+            label(end_label_);
+
         }
-        else if (condition->type == node_type::STRING_CONST)
+        else if (current_node->type == node_type::IF)
         {
-            auto value = any_cast<string>(condition->value);
+            // label:
+            label(start_label_);
+            to_asm_recursive(statement, in_function);
 
-            if (!value.empty())
-            {
-                label(start_label_);
-                to_asm_recursive(statement);
-            }
-            else
-            {
-                if (current_node->type == node_type::IF_ELSE)
-                {
-                    label(else_label_);
-                    to_asm_recursive(else_statement);
-                }
-            }
-        }
-        else if (condition->type == node_type::USING_VARIABLE)
-        {
-            auto variable_name = any_cast<string>(condition->value);
-            auto block_id = condition->statement_id();
-
-            variable_name += std::to_string(block_id);
-
-            cmp(variable_name, null);
-
-            if (current_node->type == node_type::IF_ELSE)
-            {
-                // je (==) label
-                je(else_label_);
-
-                // label:
-                label(start_label_);
-                to_asm_recursive(statement);
-
-                // jmp label
-                jmp(end_label_);
-
-                // label:
-                label(else_label_);
-                to_asm_recursive(else_statement);
-
-                // label:
-                label(end_label_);
-            }
-            else if (current_node->type == node_type::IF)
-            {
-                // je (==) label
-                je(end_label_);
-
-                // label:
-                label(start_label_);
-                to_asm_recursive(statement);
-
-                // label:
-                label(end_label_);
-            }
-        }
-        else
-        {
-            expression_recursive(condition->operand1);
-            // pop eax
-            pop(eax);
-            // mov ecx, eax
-            mov(ecx, eax);
-
-            expression_recursive(condition->operand2);
-            // pop eax
-            pop(eax);
-            // mov edx, eax
-            mov(edx, eax);
-
-            // cmp ecx, edx
-            cmp(ecx, edx);
-
-            string end_or_else_label = end_label_;
-            if (current_node->type == node_type::IF_ELSE)
-            {
-                end_or_else_label = else_label_;
-            }
-
-
-
-            if (condition->type == node_type::LESS)
-            {
-                // jge (>=) label
-                jge(end_or_else_label);
-            }
-            else if (condition->type == node_type::LESS_EQUAL)
-            {
-                // jg (>) label
-                jg(end_or_else_label);
-            }
-            else if (condition->type == node_type::GREATER)
-            {
-                // jle (<=) label
-                jle(end_or_else_label);
-            }
-            else if (condition->type == node_type::GREATER_EQUAL)
-            {
-                // jl (<) label
-                jl(end_or_else_label);
-            }
-            else if (condition->type == node_type::EQUAL)
-            {
-                // jne (!=) label
-                jne(end_or_else_label);
-            }
-            else if (condition->type == node_type::NOT_EQUAL)
-            {
-                // je (==) label
-                je(end_or_else_label);
-            }
-
-
-            if (current_node->type == node_type::IF_ELSE)
-            {
-                // label:
-                label(start_label_);
-                to_asm_recursive(statement);
-
-                // jmp label
-                jmp(end_label_);
-
-                // label:
-                label(else_label_);
-                to_asm_recursive(else_statement);
-
-                // label:
-                label(end_label_);
-
-            }
-            else if (current_node->type == node_type::IF)
-            {
-                // label:
-                label(start_label_);
-                to_asm_recursive(statement);
-
-                // label:
-                label(end_label_);
-            }
-
+            // label:
+            label(end_label_);
         }
 
         return;
@@ -614,84 +510,19 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
 
         label(start_label_);
 
+        to_asm_recursive(condition, in_function);
 
-        if (condition->type == node_type::USING_VARIABLE)
-        {
-            auto variable_name = any_cast<string>(condition->value);
-            auto block_id = condition->statement_id();
+        pop(eax);
+        cmp(eax, null);
 
-            variable_name += std::to_string(block_id);
+        je(end_label_);
 
-            cmp(variable_name, null);
+        // label:
+        to_asm_recursive(statement, in_function);
+        jmp(start_label_);
 
-            // je (==) label
-            je(end_label_);
-
-            // label:
-            to_asm_recursive(statement);
-            jmp(start_label_);
-
-            // label:
-            label(end_label_);
-        }
-        else
-        {
-            expression_recursive(condition->operand1);
-            // pop eax
-            pop(eax);
-            // mov ecx, eax
-            mov(ecx, eax);
-
-            expression_recursive(condition->operand2);
-            // pop eax
-            pop(eax);
-            // mov edx, eax
-            mov(edx, eax);
-
-            // cmp ecx, edx
-            cmp(ecx, edx);
-
-
-
-            if (condition->type == node_type::LESS)
-            {
-                // jge (>=) label
-                jge(end_label_);
-            }
-            else if (condition->type == node_type::LESS_EQUAL)
-            {
-                // jg (>) label
-                jg(end_label_);
-            }
-            else if (condition->type == node_type::GREATER)
-            {
-                // jle (<=) label
-                jle(end_label_);
-            }
-            else if (condition->type == node_type::GREATER_EQUAL)
-            {
-                // jl (<) label
-                jl(end_label_);
-            }
-            else if (condition->type == node_type::EQUAL)
-            {
-                // jne (!=) label
-                jne(end_label_);
-            }
-            else if (condition->type == node_type::NOT_EQUAL)
-            {
-                // je (==) label
-                je(end_label_);
-            }
-
-
-            // label:
-            to_asm_recursive(statement);
-            jmp(start_label_);
-
-            // label:
-            label(end_label_);
-        }
+        // label:
+        label(end_label_);
 
         return;
     }
@@ -706,97 +537,25 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
         string end_label_       = "_loop_end_" + std::to_string(statement->statement_id());
 
 
-        to_asm_recursive(prevention);
+        to_asm_recursive(prevention, in_function);
         label(start_label_);
 
+        to_asm_recursive(condition, in_function);
 
-        if (condition == nullptr)
-        {
-            to_asm_recursive(statement);
-            to_asm_recursive(aftereffects);
-            jmp(start_label_);
-        }
-        else
-        {
-            if (condition->type == node_type::USING_VARIABLE)
-            {
-                auto variable_name = any_cast<string>(condition->value);
-                auto block_id = condition->statement_id();
+        pop(eax);
+        cmp(eax, null);
 
-                variable_name += std::to_string(block_id);
-
-                cmp(variable_name, null);
-
-                // je (==) label
-                je(end_label_);
-
-                // label:
-                to_asm_recursive(statement);
-                to_asm_recursive(aftereffects);
-                jmp(start_label_);
-
-                // label:
-                label(end_label_);
-            }
-            else
-            {
-                expression_recursive(condition->operand1);
-                // pop eax
-                pop(eax);
-                // mov ecx, eax
-                mov(ecx, eax);
-
-                expression_recursive(condition->operand2);
-                // pop eax
-                pop(eax);
-                // mov edx, eax
-                mov(edx, eax);
-
-                // cmp ecx, edx
-                cmp(ecx, edx);
+        je(end_label_);
 
 
-                if (condition->type == node_type::LESS)
-                {
-                    // jge (>=) label
-                    jge(end_label_);
-                }
-                else if (condition->type == node_type::LESS_EQUAL)
-                {
-                    // jg (>) label
-                    jg(end_label_);
-                }
-                else if (condition->type == node_type::GREATER)
-                {
-                    // jle (<=) label
-                    jle(end_label_);
-                }
-                else if (condition->type == node_type::GREATER_EQUAL)
-                {
-                    // jl (<) label
-                    jl(end_label_);
-                }
-                else if (condition->type == node_type::EQUAL)
-                {
-                    // jne (!=) label
-                    jne(end_label_);
-                }
-                else if (condition->type == node_type::NOT_EQUAL)
-                {
-                    // je (==) label
-                    je(end_label_);
-                }
+        // label:
+        to_asm_recursive(statement, in_function);
+        to_asm_recursive(aftereffects, in_function);
+        jmp(start_label_);
 
+        // label:
+        label(end_label_);
 
-                // label:
-                to_asm_recursive(statement);
-                to_asm_recursive(aftereffects);
-                jmp(start_label_);
-
-                // label:
-                label(end_label_);
-            }
-        }
 
         return;
     }
@@ -818,7 +577,7 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
     }
     else if (current_node->type == node_type::FUNCTION_CALL)
     {
-        expression_recursive(current_node);
+        expression_recursive(current_node, in_function);
     }
     else if (current_node->type == node_type::FUNCTION_IMPLEMENTATION)
     {
@@ -826,7 +585,7 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
     }
     else if (current_node->type == node_type::RETURN)
     {
-        expression_recursive(current_node->operand1);
+        expression_recursive(current_node->operand1, in_function);
         pop(eax);
 
         auto arguments_size = std::to_string(any_cast<size_t>(current_node->value));
@@ -836,31 +595,31 @@ void compiler::assembler::to_asm_recursive(compiler::node* current_node)
         return;
     }
 
-    to_asm_recursive(current_node->operand1);
-    to_asm_recursive(current_node->operand2);
-    to_asm_recursive(current_node->operand3);
-    to_asm_recursive(current_node->operand4);
+    to_asm_recursive(current_node->operand1, in_function);
+    to_asm_recursive(current_node->operand2, in_function);
+    to_asm_recursive(current_node->operand3, in_function);
+    to_asm_recursive(current_node->operand4, in_function);
 }
 
-void compiler::assembler::init_arguments_on_stack_recursive(compiler::node* current_node)
+void compiler::assembler::init_arguments_on_stack_recursive(compiler::node* current_node, bool in_function)
 {
     if (current_node == nullptr)
         return;
 
     if (current_node->type == node_type::FUNCTION_ARGS)
     {
-        init_argument_on_stack(current_node->operand1);
+        init_argument_on_stack(current_node->operand1, in_function);
     }
 
-    init_arguments_on_stack_recursive(current_node->operand1);
-    init_arguments_on_stack_recursive(current_node->operand2);
-    init_arguments_on_stack_recursive(current_node->operand3);
-    init_arguments_on_stack_recursive(current_node->operand4);
+    init_arguments_on_stack_recursive(current_node->operand1, in_function);
+    init_arguments_on_stack_recursive(current_node->operand2, in_function);
+    init_arguments_on_stack_recursive(current_node->operand3, in_function);
+    init_arguments_on_stack_recursive(current_node->operand4, in_function);
 }
 
-void compiler::assembler::init_argument_on_stack(compiler::node* current_node)
+void compiler::assembler::init_argument_on_stack(compiler::node* current_node, bool in_function)
 {
-    expression_recursive(current_node);
+    expression_recursive(current_node, in_function);
 }
 
 void compiler::assembler::call_input_function()
@@ -875,15 +634,15 @@ void compiler::assembler::call_sqrt_function()
     _main += "   push eax\n";
 }
 
-void compiler::assembler::expression_recursive(node* current_node)
+void compiler::assembler::expression_recursive(node* current_node, bool in_function)
 {
     if (current_node == nullptr)
         return;
 
     if (current_node->type == node_type::ADD)
     {
-        expression_recursive(current_node->operand1);
-        expression_recursive(current_node->operand2);
+        expression_recursive(current_node->operand1, in_function);
+        expression_recursive(current_node->operand2, in_function);
 
         // pop eax
         pop(eax);
@@ -897,8 +656,8 @@ void compiler::assembler::expression_recursive(node* current_node)
     }
     else if (current_node->type == node_type::SUB)
     {
-        expression_recursive(current_node->operand1);
-        expression_recursive(current_node->operand2);
+        expression_recursive(current_node->operand1, in_function);
+        expression_recursive(current_node->operand2, in_function);
 
         // pop ebx
         pop(ebx);
@@ -911,8 +670,8 @@ void compiler::assembler::expression_recursive(node* current_node)
     }
     else if (current_node->type == node_type::MUL)
     {
-        expression_recursive(current_node->operand1);
-        expression_recursive(current_node->operand2);
+        expression_recursive(current_node->operand1, in_function);
+        expression_recursive(current_node->operand2, in_function);
 
         // pop eax
         pop(eax);
@@ -925,8 +684,8 @@ void compiler::assembler::expression_recursive(node* current_node)
     }
     else if (current_node->type == node_type::DIV)
     {
-        expression_recursive(current_node->operand1);
-        expression_recursive(current_node->operand2);
+        expression_recursive(current_node->operand1, in_function);
+        expression_recursive(current_node->operand2, in_function);
 
         // pop ebx
         pop(ebx);
@@ -946,7 +705,7 @@ void compiler::assembler::expression_recursive(node* current_node)
     }
     else if (current_node->type == node_type::UNARY_MINUS)
     {
-        expression_recursive(current_node->operand1);
+        expression_recursive(current_node->operand1, in_function);
         // pop eax
         pop(eax);
         // imul div, ebx
@@ -974,21 +733,33 @@ void compiler::assembler::expression_recursive(node* current_node)
         auto string_access = "offset string_const_" + std::to_string(value_id);
         push(string_access);
     }
-    else if (current_node->type == node_type::USING_VARIABLE || current_node->type == node_type::USING_CONSTANT)
+    else if (current_node->type == node_type::USING_VARIABLE ||
+             current_node->type == node_type::USING_CONSTANT)
     {
         auto variable_name = any_cast<string>(current_node->value);
 
         auto is_array = variable::is_array_type(_ast->_all_variables.get_variable_by_name(variable_name)->type());
 
-
         auto block_id = current_node->statement_id();
+
+        auto parent_stmt = _ast->get_stmt_by_id(block_id);
+        auto stmt_vars = parent_stmt->vars;
+
+        auto defined_in_this_function = stmt_vars->has_variable_in_current_function(variable_name);
 
         variable_name += std::to_string(block_id);
 
         if (is_array)
         {
             // push const
-            _main += "   push offset " + variable_name + "\n";
+            if (in_function && !defined_in_this_function)
+            {
+                _main += "   push " + variable_name + "\n";
+            }
+            else
+            {
+                _main += "   push offset " + variable_name + "\n";
+            }
         }
         else
         {
@@ -999,7 +770,7 @@ void compiler::assembler::expression_recursive(node* current_node)
     }
     else if (current_node->type == node_type::FUNCTION_CALL)
     {
-        init_arguments_on_stack_recursive(current_node->operand1);
+        init_arguments_on_stack_recursive(current_node->operand1, in_function);
 
         auto function_name = any_cast<string>(current_node->value);
 
@@ -1034,6 +805,7 @@ void compiler::assembler::expression_recursive(node* current_node)
         auto op2 = current_node->operand2;
 
         auto array_name = any_cast<string>(op1->value);
+        auto function_id = op1->in_function_id();
         auto block_id = op1->statement_id();
 
         auto array_type = _ast->_all_variables.get_variable_by_name(array_name)->type();
@@ -1067,24 +839,236 @@ void compiler::assembler::expression_recursive(node* current_node)
                 break;
         }
 
+        auto parent_stmt = _ast->get_stmt_by_id(function_id);
+        auto stmt_vars = parent_stmt->vars;
+
+        auto defined_in_this_function = stmt_vars->has_variable_in_current_function(array_name);
+
+
         array_name += std::to_string(block_id);
 
         auto array_name_with_index = array_name + "[" + eax + "]";
 
-        expression_recursive(op2->operand1);
+        expression_recursive(op2->operand1, in_function);
         pop(eax);
 
         imul(eax, array_item_shift);
 
-        _main += "   mov edx, offset " + array_name + "\n";
+        //_main += "   mov edx, offset " + array_name + "\n";
+
+        if (in_function && !defined_in_this_function)
+        {
+            _main += "   mov edx, " + array_name + "\n";
+        }
+        else
+        {
+            _main += "   mov edx, offset " + array_name + "\n";
+        }
 
         _main += "   mov eax, [edx[eax]]\n";
         push(eax);
     }
     else if (current_node->type == node_type::EXPRESSION)
     {
-        expression_recursive(current_node->operand1);
+        expression_recursive(current_node->operand1, in_function);
     }
+}
+
+void compiler::assembler::relation_expression_recursive(node* current_node, bool in_function)
+{
+    if (current_node == nullptr)
+        return;
+
+
+    if (current_node->type == node_type::NUMBER_CONST)
+    {
+        auto value = any_cast<number>(current_node->value);
+        auto value_str = std::to_string(value);
+
+        if (value == 0)
+        {
+            push(null);
+        }
+        else
+        {
+            push(one);
+        }
+    }
+    else if (current_node->type == node_type::BOOLEAN_CONST)
+    {
+        auto value = any_cast<int>(current_node->value);
+        auto value_str = std::to_string(value);
+
+        if (value == 0)
+        {
+            push(null);
+        }
+        else
+        {
+            push(one);
+        }
+    }
+    else if (current_node->type == node_type::USING_VARIABLE)
+    {
+        auto current_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+
+        string label_if_equal = "_compare_equal" + std::to_string(current_time.count());
+        string label_if_not_equal = "_compare_not_equal" + std::to_string(current_time.count());
+        string label_end = "_compare_end" + std::to_string(current_time.count());
+
+
+        auto variable_name = any_cast<string>(current_node->value);
+        auto block_id = current_node->statement_id();
+
+        variable_name += std::to_string(block_id);
+
+        cmp(variable_name, null);
+
+
+        // jne (!=) label
+        jne(label_if_not_equal);
+        push(one);
+        jmp(label_end);
+
+        label(label_if_not_equal);
+        push(null);
+
+        label(label_end);
+
+    }
+    else if (current_node->type == node_type::LOGICAL_AND)
+    {
+        node* op1 = current_node->operand1;
+        node* op2 = current_node->operand2;
+
+        relation_expression_recursive(op1, in_function);
+        pop(eax);
+        relation_expression_recursive(op2, in_function);
+        pop(ebx);
+
+        _main += "   and eax, ebx\n";
+        push(eax);
+    }
+    else if (current_node->type == node_type::LOGICAL_OR)
+    {
+        node* op1 = current_node->operand1;
+        node* op2 = current_node->operand2;
+
+        relation_expression_recursive(op1, in_function);
+        pop(eax);
+        relation_expression_recursive(op2, in_function);
+        pop(ebx);
+
+        _main += "   or eax, ebx\n";
+        push(eax);
+    }
+    else if (current_node->type == node_type::UNARY_EXCLAMATION)
+    {
+        relation_expression_recursive(current_node->operand1->operand1, in_function);
+
+        pop(eax);
+        _main += "   not eax\n";
+        push(eax);
+    }
+    else
+    {
+        auto current_time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+
+        node* op1 = current_node->operand1;
+        node* op2 = current_node->operand2;
+
+        expression_recursive(op1, in_function);
+        pop(ecx);
+        expression_recursive(op2, in_function);
+        pop(edx);
+
+        // cmp ecx, edx
+        cmp(ecx, edx);
+
+        string label_if_equal = "_compare_equal" + std::to_string(current_time.count());
+        string label_if_not_equal = "_compare_not_equal" + std::to_string(current_time.count());
+        string label_end = "_compare_end" + std::to_string(current_time.count());
+
+
+
+        if (current_node->type == node_type::LESS)
+        {
+            // jge (>=) label
+            jge(label_if_not_equal);
+            push(one);
+            jmp(label_end);
+
+            label(label_if_not_equal);
+            push(null);
+
+            label(label_end);
+        }
+        else if (current_node->type == node_type::LESS_EQUAL)
+        {
+            // jg (>) label
+            jg(label_if_not_equal);
+            push(one);
+            jmp(label_end);
+
+            label(label_if_not_equal);
+            push(null);
+
+            label(label_end);
+        }
+        else if (current_node->type == node_type::GREATER)
+        {
+            // jle (<=) label
+            jle(label_if_not_equal);
+            push(one);
+            jmp(label_end);
+
+            label(label_if_not_equal);
+            push(null);
+
+            label(label_end);
+        }
+        else if (current_node->type == node_type::GREATER_EQUAL)
+        {
+            // jl (<) label
+            jl(label_if_not_equal);
+            push(one);
+            jmp(label_end);
+
+            label(label_if_not_equal);
+            push(null);
+
+            label(label_end);
+        }
+        else if (current_node->type == node_type::EQUAL)
+        {
+            // jne (!=) label
+            jne(label_if_not_equal);
+            push(one);
+            jmp(label_end);
+
+            label(label_if_not_equal);
+            push(null);
+
+            label(label_end);
+        }
+        else if (current_node->type == node_type::NOT_EQUAL)
+        {
+            // je (==) label
+            je(label_if_not_equal);
+            push(one);
+            jmp(label_end);
+
+            label(label_if_not_equal);
+            push(null);
+
+            label(label_end);
+        }
+
+        return;
+    }
+
+
+
 }
 
 void compiler::assembler::init_variable()
@@ -1112,6 +1096,7 @@ void compiler::assembler::init_variable()
             case variable_type::STRING:
             {
                 _data += "   " + variable_name + " db \" \",0\n";
+
                 break;
             }
             case variable_type::NUMBER_ARRAY:
@@ -1216,6 +1201,7 @@ void compiler::assembler::init_string_constants_recursive(node* current_node, si
     init_string_constants_recursive(current_node->operand3, count_constant);
     init_string_constants_recursive(current_node->operand4, count_constant);
 }
+
 
 
 

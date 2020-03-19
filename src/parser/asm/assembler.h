@@ -13,7 +13,9 @@ namespace compiler
     constexpr const char* ebx = "ebx";
     constexpr const char* ecx = "ecx";
     constexpr const char* edx = "edx";
+    constexpr const char* zf = "zf";
     constexpr const char* null = "0";
+    constexpr const char* one = "1";
 
 
     class assembler
@@ -73,19 +75,19 @@ namespace compiler
     private: // recursive functions
         void init_global_functions_recursive(node* current_node);
 
-        void init_arguments_on_stack_recursive(node* current_node);
-        void init_argument_on_stack(node* current_node);
+        void init_arguments_on_stack_recursive(node* current_node, bool in_function = false);
+        void init_argument_on_stack(node* current_node, bool in_function = false);
 
         void init_string_constants_recursive(node* current_node, size_t& count_constant);
 
         void function_implementation_recursive(node* current_node);
         void function_implementation_args_recursive(node* current_node, size_t& current_index);
 
-        void to_asm_recursive(node* current_node);
+        void to_asm_recursive(node* current_node, bool in_function);
 
-        void expression_recursive(node* current_node);
+        void expression_recursive(node* current_node, bool in_function);
 
-
+        void relation_expression_recursive(node* current_node, bool in_function);
 
 
         void init_variable_on_stack(const string& name_, size_t pos_on_stack_);

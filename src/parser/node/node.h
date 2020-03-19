@@ -117,8 +117,11 @@ namespace compiler
 
         variable_table* vars;
 
+
     private:
         size_t _statement_id;
+        size_t _in_function_id;
+
 
     public:
         explicit node(node_type type_, const any& value_ = "", node* operand1_ = nullptr, node* operand2_ = nullptr,
@@ -128,8 +131,12 @@ namespace compiler
         void statement_id(size_t statement_id);
         [[nodiscard]] size_t statement_id() const;
 
+        [[nodiscard]] size_t in_function_id() const;
+        void in_function_id(size_t in_function_id);
 
         static string node_type_to_string(node_type type);
+
+        static bool is_comparison_operator(node_type type);
     };
 
 

@@ -128,3 +128,39 @@ size_t compiler::variable_table::block_id() const
 {
     return _block_id;
 }
+
+bool compiler::variable_table::has_variable_in_current_function(const std::string& name)
+{
+    if (!has_variable(name))
+    {
+        if (_parent == nullptr || for_function())
+        {
+            return false;
+        }
+        else
+        {
+            if (!_parent->for_function())
+            {
+                return _parent->has_variable_or_has_in_parent(name);
+            }
+            else
+            {
+                return _parent->has_variable(name);
+            }
+        }
+    }
+    else
+    {
+        return true;
+    }
+}
+
+bool compiler::variable_table::for_function() const
+{
+    return _for_function;
+}
+
+void compiler::variable_table::for_function(bool for_function)
+{
+    _for_function = for_function;
+}
