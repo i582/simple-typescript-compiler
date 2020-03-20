@@ -5,8 +5,8 @@ compiler::parser::parser(const std::string& file_path_)
     _lex = new lexer(file_path_);
     _tree = new ast();
 
-    _assembler2 = new generic_asm("test.asm", _tree);
-    //_assembler = new assembler("test.asm", _tree);
+    _assembler = new generic_asm("test.asm", _tree);
+
 
     _lex->parse();
     _lex->print_tokens();
@@ -17,8 +17,7 @@ compiler::parser::~parser()
     delete _lex;
     delete _tree;
 
-    delete _assembler2;
-    //delete _assembler;
+    delete _assembler;
 }
 
 void compiler::parser::error(const std::string& message)
@@ -41,16 +40,23 @@ void compiler::parser::parse()
     _tree->_tree = new node(node_type::PROGRAM, "", new_node);
 
     _tree->designate_blocks();
-    _tree->designate_functions();
+
     _tree->mark_block();
-    _tree->mark_break_continue_operators();
-    _tree->mark_return_operator();
     _tree->mark_everything_block_where_it_using();
 
     _tree->designate_variables();
+    _tree->designate_global_variables();
     _tree->designate_arrays();
 
-    _tree->mark_variable_tables();
+
+    _tree->designate_functions();
+    _tree->mark_break_continue_operators();
+    _tree->mark_return_operator();
+
+
+
+
+
 
 
     // checks
@@ -62,6 +68,8 @@ void compiler::parser::parse()
 
     _tree->print(_tree->_tree, 0);
 
+
+    _tree->print_functions_table();
     _tree->print_variable_table();
 }
 
@@ -958,7 +966,7 @@ compiler::node* compiler::parser::operator_statement()
 
 void compiler::parser::generate()
 {
-    _assembler2->generate();
+    _assembler->generate();
 }
 
    

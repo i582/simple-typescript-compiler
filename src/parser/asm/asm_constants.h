@@ -21,10 +21,9 @@ namespace compiler
     const string label_start =  "__start:\n";
     const string label_end =    "end __start\n";
 
-    const string proc_prolog =     "   push ebp\n"
-                                        "   mov ebp, esp\n";
+    const string proc_prolog =     "   enter ";
 
-    const string proc_epilogue =   "   pop ebp\n";
+    const string proc_epilogue =   "   leave\n";
 
     const string function_return =                  "   ret\n";
 

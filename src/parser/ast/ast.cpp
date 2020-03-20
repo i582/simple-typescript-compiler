@@ -18,6 +18,9 @@ void compiler::ast::print(compiler::node* sub, size_t level)
             {
                 cout << "new var ";
                 cout << "" << std::any_cast<string>(sub->value);
+
+                auto variable_block_id = sub->statement_id();
+                cout << " (current block id: "  << variable_block_id << ")";
                 break;
             }
             case node_type::USING_VARIABLE:
@@ -27,7 +30,7 @@ void compiler::ast::print(compiler::node* sub, size_t level)
                 auto variable_name = any_cast<string>(sub->value);
 
                 cout << "" << variable_name;
-                cout << " (block_id: "  << variable_block_id << ")";
+                cout << " (defined in block with id: "  << variable_block_id << ")";
                 break;
             }
             case node_type::VARIABLE_TYPE:
@@ -310,14 +313,10 @@ void compiler::ast::print(compiler::node* sub, size_t level)
 
         if (sub->statement_id() != 4294967295)
         {
-            cout << "\t\tstmt-id " << sub->statement_id();
+            cout << " (stmt-id: " << sub->statement_id() << ")";
         }
 
 
-        if (sub->in_function_id() != 4294967295)
-        {
-            cout << "\t\tin function: " << sub->in_function_id();
-        }
         cout << endl;
 
         print(sub->operand1, level + 1);
@@ -368,16 +367,8 @@ void compiler::ast::mark_block_recursive(node* current_node)
 
     if (current_node->type == node_type::STATEMENT)
     {
-//        if (current_node->operand1->type == node_type::IF ||
-//            current_node->operand1->type == node_type::IF_ELSE ||
-//            current_node->operand1->type == node_type::WHILE ||
-//            current_node->operand1->type == node_type::DO_WHILE ||
-//            current_node->operand1->type == node_type::FOR ||
-//            current_node->operand1->type == node_type::FUNCTION_IMPLEMENTATION)
-//        {
-            current_node->statement_id(_count_blocks);
-            ++_count_blocks;
-//        }
+        current_node->statement_id(_count_blocks);
+        ++_count_blocks;
     }
     else if (current_node->type == node_type::IF ||
              current_node->type == node_type::IF_ELSE ||
@@ -512,15 +503,23 @@ void compiler::ast::mark_everything_block_where_it_using_recursive(node* current
     mark_everything_block_where_it_using_recursive(current_node->operand4, current_stmt_id);
 }
 
+void compiler::ast::mark_everything_block_where_it_using()
+{
+    size_t block_id = 0;
+    mark_everything_block_where_it_using_recursive(_tree, block_id);
+}
+
 void compiler::ast::designate_variables()
 {
-    _variables_tables.reserve(_stmts.size());
+    _variable_tables.reserve(_stmts.size());
 
     for (auto& [parent_stmt, stmt] : _stmts)
     {
-        size_t stmt_id = stmt->statement_id();
+        auto stmt_id = stmt->statement_id();
         auto new_variable_table = new variable_table(stmt_id);
-        _variables_tables.push_back(new_variable_table);
+
+
+        _variable_tables.push_back(new_variable_table);
 
 
         if (parent_stmt != nullptr)
@@ -535,24 +534,9 @@ void compiler::ast::designate_variables()
     }
 }
 
-void compiler::ast::mark_variable_tables()
+void compiler::ast::designate_global_variables()
 {
-    for (auto& [parent_stmt, stmt] : _stmts)
-    {
-        if (stmt->operand1 != nullptr && stmt->operand1->type == node_type::FUNCTION_IMPLEMENTATION)
-        {
-            if (stmt->operand1->operand3 != nullptr && stmt->operand1->operand3->vars != nullptr)
-            {
-                stmt->operand1->operand3->vars->for_function(true);
-            }
-        }
-    }
-}
-
-void compiler::ast::mark_everything_block_where_it_using()
-{
-    size_t block_id = 0;
-    mark_everything_block_where_it_using_recursive(_tree, block_id);
+    designate_global_variables_recursive(_tree, _global_variables);
 }
 
 void compiler::ast::designate_variables_recursive(compiler::node* node, compiler::variable_table* table)
@@ -575,31 +559,39 @@ void compiler::ast::designate_variables_recursive(compiler::node* node, compiler
         if (table->has_variable(variable_name))
         {
             cout << "ERROR: The variable '" << variable_name << "' has already been declared!" << endl;
-
             throw std::logic_error("");
         }
 
-        bool is_const = false;
 
-        if (node->type == node_type::CONSTANT_DECLARATION)
-        {
-            is_const = true;
-        }
+        auto is_const = node->type == node_type::CONSTANT_DECLARATION;
 
-        auto variable_type = std::any_cast<token_type>(node->operand1->value);
 
-        auto variable_value = variable::default_value(variable::variable_type_from_token_type(variable_type));
+        auto variable_type = variable::variable_type_from_token_type(
+                std::any_cast<token_type>(node->operand1->value)
+        );
+
+        auto block_id = table->block_id();
 
         auto new_variable = new variable
         (
             variable_name,
-            variable::variable_type_from_token_type(variable_type),
-            variable_value,
+            variable_type,
+            block_id,
             is_const
         );
 
-        node->statement_id(table->block_id());
-        new_variable->block_id(table->block_id());
+        /*
+         * Устанавливаем узлу, описывающему переменную, идентификатор блока, в которой она объявлена
+         * для дальнейшего анализа
+         */
+        node->statement_id(block_id);
+
+
+        /*if (new_variable->is_array())
+        {
+            new_variable->is_global_variable(true);
+        }*/
+
 
         table->add_variable(new_variable);
         _all_variables.add_variable(new_variable);
@@ -611,17 +603,21 @@ void compiler::ast::designate_variables_recursive(compiler::node* node, compiler
         auto variable_name = std::any_cast<string>(node->value);
 
 
-        if (!table->has_variable_or_has_in_parent(variable_name))
+        if (!table->has_variable_globally(variable_name))
         {
-            cout << "ERROR: The name '" << variable_name << "' is not declared in the current scope!" << endl;
+            cout << "ERROR: The name '" << variable_name << "' is not declared!" << endl;
             throw std::logic_error("");
         }
 
 
-        auto [block_id, variable] = table->get_variable(variable_name);
+        auto [block_id, variable] = table->get_variable_and_block_id_where_it_defined(variable_name);
 
+        /*
+         * Устанавливаем текущему узлу, который описывает использование переменной, идентификатор блока равный
+         * идентификатору блока в котором переменная была впервые объявлена, таким образом, для каждого использования
+         * переменных будет описан идентифкатор блока, в которой она впервые объявлена
+         */
         node->statement_id(block_id);
-        variable->block_id(block_id);
     }
 
 
@@ -629,6 +625,33 @@ void compiler::ast::designate_variables_recursive(compiler::node* node, compiler
     designate_variables_recursive(node->operand2, table);
     designate_variables_recursive(node->operand3, table);
     designate_variables_recursive(node->operand4, table);
+}
+
+void compiler::ast::designate_global_variables_recursive(compiler::node* current_node, vector<variable*>& variables)
+{
+    if (current_node == nullptr)
+        return;
+
+    if (current_node->type == node_type::FUNCTION_IMPLEMENTATION)
+        return;
+
+    if (current_node->type == node_type::VARIABLE_DECLARATION ||
+        current_node->type == node_type::CONSTANT_DECLARATION)
+    {
+        auto variable_name = any_cast<string>(current_node->value);
+        auto block_id = current_node->statement_id();
+        auto variable = _all_variables.get_variable(variable_name, block_id);
+
+        variable->is_global_variable(true);
+
+        variables.push_back(variable);
+        return;
+    }
+
+    designate_global_variables_recursive(current_node->operand1, variables);
+    designate_global_variables_recursive(current_node->operand2, variables);
+    designate_global_variables_recursive(current_node->operand3, variables);
+    designate_global_variables_recursive(current_node->operand4, variables);
 }
 
 void compiler::ast::check_const()
@@ -764,32 +787,38 @@ void compiler::ast::designate_functions()
     designate_functions_recursive(_stmts[0].second->operand1);
 }
 
-void compiler::ast::designate_functions_recursive(compiler::node* node_)
+void compiler::ast::designate_functions_recursive(compiler::node* current_node)
 {
-    if (node_ == nullptr)
+    if (current_node == nullptr)
         return;
 
 
-    if (node_->type == node_type::FUNCTION_IMPLEMENTATION)
+    if (current_node->type == node_type::FUNCTION_IMPLEMENTATION)
     {
-        auto function_name = any_cast<string>(node_->value);
-        auto type = (int)any_cast<token_type>(node_->operand1->value);
+        auto function_name = any_cast<string>(current_node->value);
+        auto type = variable::variable_type_from_token_type(any_cast<token_type>(current_node->operand1->value));
 
 
-        vector<variable_type> arguments;
+        vector<variable_type> argument_types;
+        vector<variable*> arguments;
+        designate_function_arguments_recursive(current_node->operand2, argument_types, arguments);
 
-        designate_function_arguments_recursive(node_->operand2, &arguments);
 
-        auto temp_func = new func(function_name, static_cast<return_type>(type), arguments);
+        size_t local_variable_size = 0;
+        vector<variable*> variables;
+        designate_function_local_variables_recursive(current_node->operand3, local_variable_size, variables);
 
-        _functions.add_function(temp_func);
+        auto new_function = new function(function_name, type, argument_types, local_variable_size, variables, arguments);
+
+        _functions.add_function(new_function);
     }
 
-    designate_functions_recursive(node_->operand1);
-    designate_functions_recursive(node_->operand2);
+    designate_functions_recursive(current_node->operand1);
+    designate_functions_recursive(current_node->operand2);
 }
 
-void compiler::ast::designate_function_arguments_recursive(compiler::node* node, vector<variable_type>* arguments)
+void compiler::ast::designate_function_arguments_recursive(compiler::node* node, vector<variable_type>& argument_types,
+                                                                            vector<variable*>& arguments)
 {
     if (node == nullptr)
         return;
@@ -797,13 +826,61 @@ void compiler::ast::designate_function_arguments_recursive(compiler::node* node,
 
     if (node->type == node_type::FUNCTION_IMPLEMENTATION_ARG)
     {
-        auto type = (argument_type)any_cast<token_type>(node->operand1->value);
-        arguments->push_back(type);
+        auto argument_name = any_cast<string>(node->value);
+        auto block_id = node->statement_id();
+        auto variable = _all_variables.get_variable(argument_name, block_id);
+
+
+        auto type = variable->type();
+        argument_types.push_back(type);
+
+
+
+        variable->is_argument_variable(true);
+
+        arguments.push_back(variable);
     }
 
-    designate_function_arguments_recursive(node->operand1, arguments);
-    designate_function_arguments_recursive(node->operand2, arguments);
+    designate_function_arguments_recursive(node->operand1, argument_types, arguments);
+    designate_function_arguments_recursive(node->operand2, argument_types, arguments);
 }
+
+void compiler::ast::designate_function_local_variables_recursive(compiler::node* current_node, size_t& size,
+                                                                                    vector<variable*>& variables)
+{
+    if (current_node == nullptr)
+        return;
+
+    if (current_node->type == node_type::VARIABLE_DECLARATION ||
+            current_node->type == node_type::CONSTANT_DECLARATION)
+    {
+        auto variable_name = any_cast<string>(current_node->value);
+        auto block_id = current_node->statement_id();
+        auto variable = _all_variables.get_variable(variable_name, block_id);
+
+        auto type = variable::variable_type_from_token_type(any_cast<token_type>(current_node->operand1->value));
+        auto variable_size = variable::byte_on_type(type);
+
+        if (!variable::is_array_type(type))
+        {
+            size += variable_size;
+        }
+
+
+
+        variables.push_back(variable);
+
+        return;
+    }
+
+
+    designate_function_local_variables_recursive(current_node->operand1, size, variables);
+    designate_function_local_variables_recursive(current_node->operand2, size, variables);
+    designate_function_local_variables_recursive(current_node->operand3, size, variables);
+    designate_function_local_variables_recursive(current_node->operand4, size, variables);
+}
+
+
 
 void compiler::ast::check_functions_call()
 {
@@ -861,11 +938,6 @@ void compiler::ast::designate_function_call_arguments_recursive(compiler::node* 
         else
         {
             give_expression_type_recursive(node->operand1, type);
-
-//            auto variable_name = any_cast<string>(node->operand1->value);
-//            variable* var = _all_variables.get_variable_by_name(variable_name);
-//
-//            type = var->type();
         }
 
 
@@ -904,7 +976,7 @@ void compiler::ast::give_expression_type_recursive(compiler::node* current_node,
 
             string action = node::node_type_to_string(current_node->type);
 
-            cout << any_cast<string>(current_node->operand1->operand1->value) << endl;
+
 
             error("Operator " + action + " cannot be applied to types '" + op1_type_str + "' and '" + op2_type_str + "'.");
         }
@@ -944,18 +1016,18 @@ void compiler::ast::give_expression_type_recursive(compiler::node* current_node,
 
         designate_function_call_arguments_recursive(current_node, &types);
 
-        func* function = nullptr;
+        function* func = nullptr;
 
-        if (!_global_functions.has_function(new func(function_name, variable_type::UNDEFINED, types)))
+        if (!_global_functions.has_function(new function(function_name, variable_type::UNDEFINED, types)))
         {
-            function = _functions.get_function(function_name, types);
+            func = _functions.get_function(function_name, types);
         }
         else
         {
-            function = _global_functions.get_function(function_name, types);
+            func = _global_functions.get_function(function_name, types);
         }
 
-        type = function->return_type();
+        type = func->return_type();
         return;
     }
     else if (current_node->type == node_type::NEW)
@@ -967,18 +1039,18 @@ void compiler::ast::give_expression_type_recursive(compiler::node* current_node,
 
         designate_function_call_arguments_recursive(current_node, &types);
 
-        func* function = nullptr;
+        function* func = nullptr;
 
-        if (!_global_functions.has_function(new func(function_name, variable_type::ANY, types)))
+        if (!_global_functions.has_function(new function(function_name, variable_type::ANY, types)))
         {
-            function = _functions.get_function(function_name, types);
+            func = _functions.get_function(function_name, types);
         }
         else
         {
-            function = _global_functions.get_function(function_name, types);
+            func = _global_functions.get_function(function_name, types);
         }
 
-        type = function->return_type();
+        type = func->return_type();
         return;
     }
     else if (current_node->type == node_type::INITIALIZER)
@@ -1033,9 +1105,25 @@ compiler::variable_type compiler::ast::variable_type_of_node(compiler::node* cur
     else if (current_node->type == node_type::USING_VARIABLE)
     {
         auto variable_name = any_cast<string>(current_node->value);
-        auto variable = _all_variables.get_variable_by_name(variable_name);
+        auto variable_block_id = current_node->statement_id();
+
+        auto variable = _all_variables.get_variable(variable_name, variable_block_id);
 
         return variable->type();
+    }
+    else if (current_node->type == node_type::INDEX_CAPTURE)
+    {
+        auto variable_name = any_cast<string>(current_node->operand1->value);
+        auto variable_block_id = current_node->operand1->statement_id();
+
+        auto variable = _all_variables.get_variable(variable_name, variable_block_id);
+
+        return variable::type_of_array_type(variable->type());
+    }
+    else if (current_node->type == node_type::VARIABLE_DECLARATION ||
+             current_node->type == node_type::CONSTANT_DECLARATION)
+    {
+        return variable::variable_type_from_token_type(any_cast<token_type>(current_node->operand1->value));
     }
 
     return variable_type::UNDEFINED;
@@ -1065,28 +1153,9 @@ void compiler::ast::check_expression_recursive(compiler::node* node)
                 error("Invalid assignment!");
             }
 
-            variable_type lvalue_type = variable_type::UNDEFINED;
 
-            if (lvalue->type == node_type::USING_VARIABLE ||
-                lvalue->type == node_type::USING_CONSTANT)
-            {
-                auto variable_name = any_cast<string>(lvalue->value);
-                variable* var = _all_variables.get_variable_by_name(variable_name);
+            variable_type lvalue_type = variable_type_of_node(lvalue);
 
-                lvalue_type = var->type();
-            }
-            else if (lvalue->type == node_type::VARIABLE_DECLARATION ||
-                     lvalue->type == node_type::CONSTANT_DECLARATION)
-            {
-                lvalue_type = (variable_type)any_cast<token_type>(lvalue->operand1->value);
-            }
-            else if (lvalue->type == node_type::INDEX_CAPTURE)
-            {
-                auto variable_name = any_cast<string>(lvalue->operand1->value);
-                variable* var = _all_variables.get_variable_by_name(variable_name);
-
-                lvalue_type = variable::type_of_array_type(var->type());
-            }
 
 
             auto start_node = node->operand1->operand2;
@@ -1120,6 +1189,14 @@ void compiler::ast::print_variable_table()
     cout << "\n";
 }
 
+void compiler::ast::print_functions_table()
+{
+    cout << "\n";
+    cout << "Functions table\n";
+    _functions.print();
+    cout << "\n";
+}
+
 void compiler::ast::designate_arrays()
 {
     designate_arrays_recursive(_tree);
@@ -1139,7 +1216,11 @@ void compiler::ast::designate_arrays_recursive(compiler::node* node)
         {
             auto array_node = node->operand1;
             auto array_type_node = array_node->operand1;
-            auto array_type = (variable_type) any_cast<token_type>(array_type_node->value);
+            auto array_type = variable::variable_type_from_token_type(any_cast<token_type>(array_type_node->value));
+            auto block_id = array_node->statement_id();
+
+            auto array_name = any_cast<string>(array_node->value);
+            auto variable = _all_variables.get_variable(array_name, block_id);
 
             auto initializer_node = node->operand2;
 
@@ -1147,29 +1228,29 @@ void compiler::ast::designate_arrays_recursive(compiler::node* node)
             {
                 if (initializer_node->type == node_type::INITIALIZER)
                 {
-                    auto array_name = any_cast<string>(array_node->value);
-                    size_t temp_array_size;
-                    temp_array_size = 0;
-
-                    //calculate_array_initialize_list(initializer_node, &temp_array_size);
 
                     vector<variable_value> array_values;
                     auto array_value_type = variable::type_of_array_type(array_type);
                     designate_array_initialize_list_recursive(initializer_node, array_values, array_value_type);
-                    temp_array_size = array_values.size();
 
-                    _arrays.emplace_back(array_name, temp_array_size, array_values);
+
+                    _arrays.emplace_back(array_name, array_values.size(), array_values, variable);
                 }
                 else if (initializer_node->type == node_type::NEW)
                 {
                     auto calling_function_node = initializer_node->operand1;
                     auto calling_function_name = any_cast<string>(calling_function_node->value);
+
+
                     if (calling_function_name == "Array")
                     {
-                        auto array_name = any_cast<string>(array_node->value);
                         auto temp_array_size = (size_t)any_cast<number>(calling_function_node->operand1->operand1->value);
 
-                        _arrays.emplace_back(array_name, temp_array_size);
+                        _arrays.push_back(array(array_name, temp_array_size, {}, variable));
+                    }
+                    else
+                    {
+                        error("To initialize an array using the new operator, you must use the Array function!");
                     }
                 }
             }
@@ -1178,6 +1259,12 @@ void compiler::ast::designate_arrays_recursive(compiler::node* node)
     }
     else if (node->type == node_type::FUNCTION_IMPLEMENTATION_ARG)
     {
+        auto block_id = node->statement_id();
+        auto array_name = any_cast<string>(node->value);
+        auto variable = _all_variables.get_variable(array_name, block_id);
+
+
+
         auto var_node = node;
         auto var_type_node = var_node->operand1;
         auto var_type = (variable_type) any_cast<token_type>(var_type_node->value);
@@ -1186,7 +1273,7 @@ void compiler::ast::designate_arrays_recursive(compiler::node* node)
 
         if (variable::is_array_type(var_type))
         {
-            _arrays.emplace_back(var_name, 0);
+            _arrays.push_back(array(var_name, 0, {}, variable));
         }
     }
 
@@ -1309,3 +1396,5 @@ compiler::node* compiler::ast::get_stmt_by_id(size_t stmt_id)
 
     return nullptr;
 }
+
+

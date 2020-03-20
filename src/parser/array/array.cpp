@@ -1,10 +1,11 @@
 #include "array.h"
 
-compiler::array::array(const string& name, size_t size, const vector<variable_value>& values)
+compiler::array::array(const string& name, size_t size, const vector<variable_value>& values, class variable* var)
 {
     this->_name = name;
     this->_size = size;
     this->_values = values;
+    this->_variable = var;
 }
 
 std::string compiler::array::name() const
@@ -15,6 +16,11 @@ std::string compiler::array::name() const
 size_t compiler::array::size() const
 {
     return _size;
+}
+
+compiler::variable* compiler::array::variable() const
+{
+    return _variable;
 }
 
 void compiler::array::values(const std::vector<compiler::variable_value>& values)

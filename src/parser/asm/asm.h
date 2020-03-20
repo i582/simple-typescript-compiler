@@ -50,7 +50,11 @@ namespace compiler
         void blocks_to_asm();
 
 
-        void init_variables();
+        void init_local_variables();
+        void init_global_variables();
+
+        void init_function_arguments();
+
         void init_global_functions();
         void init_string_constants();
 
@@ -84,15 +88,21 @@ namespace compiler
         void set_place_for_writing(asm_place_for_writing place);
 
         // generic functions
-        string offset(const string& value);
+        static string offset(const string& value);
         string stack_var(const string& value);
-        string local_var(const string& value);
+        static string local_var(const string& value);
+        static string global_var(const string& value);
+        static string argument_var(const string& value);
 
         void raw(const string& value);
 
-        void stack_variable(const string& name);
-        void local_variable(const variable* var);
-        void local_array(const array& arr);
+
+
+        void stack_variable(const variable* var);
+        void stack_argument(const variable* var);
+
+        void global_variable(const variable* var);
+        void global_array(const array& arr);
 
         // stack
         void push(const string& value);
@@ -136,7 +146,7 @@ namespace compiler
         void proc(const string& value);
         void endp(const string& value);
 
-        void procedure_prolog();
+        void procedure_prolog(size_t level, size_t size_local_variable);
         void procedure_epilogue();
 
 
@@ -147,6 +157,9 @@ namespace compiler
         void fist(const string& value);
         void fsqrt();
 
+
+
+        void comment(const string& value);
     };
 
 }

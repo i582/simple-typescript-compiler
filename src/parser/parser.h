@@ -1,7 +1,7 @@
 #pragma once
 
 #include "asm/asm.h"
-//#include "asm/assembler.h"
+
 
 namespace compiler
 {
@@ -13,8 +13,8 @@ namespace compiler
         ast* _tree;
 
 
-        generic_asm* _assembler2;
-        assembler* _assembler;
+        generic_asm* _assembler;
+
 
     public:
         explicit parser(const string& file_path_);

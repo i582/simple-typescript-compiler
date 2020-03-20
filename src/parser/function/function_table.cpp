@@ -5,12 +5,12 @@ compiler::function_table::~function_table()
     _functions.clear();
 }
 
-void compiler::function_table::add_function(compiler::func* new_function)
+void compiler::function_table::add_function(compiler::function* new_function)
 {
     _functions.push_back(new_function);
 }
 
-bool compiler::function_table::has_function(compiler::func* function)
+bool compiler::function_table::has_function(compiler::function* function)
 {
     for (const auto& item : _functions)
     {
@@ -21,10 +21,10 @@ bool compiler::function_table::has_function(compiler::func* function)
     return false;
 }
 
-compiler::func* compiler::function_table::get_function(const std::string& name,
-                                                       const std::vector<compiler::argument_type>& arguments_description)
+compiler::function* compiler::function_table::get_function(const std::string& name,
+                                                           const std::vector<compiler::argument_type>& arguments_description)
 {
-    auto it = std::find_if(_functions.begin(), _functions.end(), [&](func* current_func_)
+    auto it = std::find_if(_functions.begin(), _functions.end(), [&](function* current_func_)
     {
         auto eq = current_func_->name() == name && current_func_->arguments().size() == arguments_description.size();
 
@@ -52,9 +52,9 @@ compiler::func* compiler::function_table::get_function(const std::string& name,
     return *it;
 }
 
-compiler::func* compiler::function_table::get_function(const std::string& name)
+compiler::function* compiler::function_table::get_function(const std::string& name)
 {
-    auto it = std::find_if(_functions.begin(), _functions.end(), [&](func* current_func_)
+    auto it = std::find_if(_functions.begin(), _functions.end(), [&](function* current_func_)
     {
         return current_func_->name() == name;
     });
@@ -66,4 +66,21 @@ compiler::func* compiler::function_table::get_function(const std::string& name)
     }
 
     return *it;
+}
+
+void compiler::function_table::print() const
+{
+    for (const auto& function : _functions)
+    {
+        cout << "name: " << function->name() <<
+                ", return type: " << variable::variable_type_to_string(function->return_type()) <<
+                ", arguments: " << function->arguments_string() <<
+                " with size: " << function->arguments_size() <<
+                ", local variable size: " << function->local_variable_size() << endl ;
+    }
+}
+
+const std::vector<compiler::function*>& compiler::function_table::functions() const
+{
+    return _functions;
 }

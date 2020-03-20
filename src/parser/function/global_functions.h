@@ -15,8 +15,8 @@ namespace compiler
 
 
     public:
-        func* get_function(const string& name, const vector<argument_type>& arguments_description);
-        bool has_function(func* function);
+        function* get_function(const string& name, const vector<argument_type>& arguments_description);
+        bool has_function(function* function);
         bool has_function(const string& name);
 
     private:

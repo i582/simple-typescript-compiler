@@ -18,7 +18,9 @@ void compiler::generic_asm::generate()
 {
     init_string_constants();
     init_operands_for_division();
-    init_variables();
+    init_local_variables();
+    init_global_variables();
+    init_function_arguments();
     init_global_functions();
     blocks_to_asm();
 
@@ -35,7 +37,9 @@ void compiler::generic_asm::generate()
 
 
     write(label_start);
-    write(proc_prolog);
+    write(proc_prolog + "0, 0");
+
+
     write(_main);
     write(proc_epilogue);
     write(function_return);
@@ -44,16 +48,51 @@ void compiler::generic_asm::generate()
     write(label_end);
 }
 
-void compiler::generic_asm::init_variables()
+void compiler::generic_asm::init_local_variables()
 {
-    for (const auto& variable : _ast->_all_variables.vars())
+    for (const auto& function : _ast->_functions.functions())
     {
-        local_variable(variable);
+        for (const auto& local_variable : function->local_variables())
+        {
+            if (variable::is_array_type(local_variable->type()))
+                continue;
+
+            stack_variable(local_variable);
+        }
+
+        _byte_on_stack = 4;
+    }
+
+}
+
+void compiler::generic_asm::init_global_variables()
+{
+
+    set_place_for_writing(asm_place_for_writing::DATA);
+    raw("\n; Global variable START\n");
+    for (const auto& variable : _ast->_global_variables)
+    {
+        global_variable(variable);
     }
 
     for (const auto& array : _ast->_arrays)
     {
-        local_array(array);
+        global_array(array);
+    }
+    raw("; Global variable END\n\n");
+    set_place_for_writing(asm_place_for_writing::MAIN);
+}
+
+void compiler::generic_asm::init_function_arguments()
+{
+    for (const auto& function : _ast->_functions.functions())
+    {
+        _byte_on_stack = 8;
+
+        for (const auto& argument_variable : function->argument_variables())
+        {
+            stack_argument(argument_variable);
+        }
     }
 }
 
@@ -78,7 +117,8 @@ void compiler::generic_asm::blocks_recursive(compiler::node* current_node)
         {
             auto variable_name = any_cast<string>(op1->value);
             auto block_id = op1->statement_id();
-            auto is_array = _ast->_all_variables.get_variable_by_name(variable_name)->is_array();
+            auto variable = _ast->_all_variables.get_variable(variable_name, block_id);
+            auto is_array = variable->is_array();
 
             variable_name += std::to_string(block_id);
 
@@ -90,8 +130,22 @@ void compiler::generic_asm::blocks_recursive(compiler::node* current_node)
 
             // pop eax
             pop(eax);
-            // mov variable, eax
-            mov(local_var(variable_name), eax);
+
+            if (variable->is_global_variable())
+            {
+                // mov variable, eax
+                mov(global_var(variable_name), eax);
+            }
+            else if (variable->is_argument_variable())
+            {
+                // mov arg_variable, eax
+                mov(argument_var(variable_name), eax);
+            }
+            else
+            {
+                // mov variable[ebp], eax
+                mov(local_var(variable_name), eax);
+            }
         }
         else if (op1->type == node_type::INDEX_CAPTURE)
         {
@@ -101,7 +155,10 @@ void compiler::generic_asm::blocks_recursive(compiler::node* current_node)
             auto array_name = any_cast<string>(variable_node->value);
             auto block_id = variable_node->statement_id();
 
-            auto array_type = _ast->_all_variables.get_variable_by_name(array_name)->type();
+            auto variable = _ast->_all_variables.get_variable(array_name, block_id);
+
+
+            auto array_type = _ast->_all_variables.get_variable(array_name, block_id)->type();
             string array_item_shift;
 
             array_name += to_string(block_id);
@@ -141,7 +198,18 @@ void compiler::generic_asm::blocks_recursive(compiler::node* current_node)
             pop(ecx);
             imul(ecx, array_item_shift);
 
-            mov(esi, array_name);
+
+            if (variable->is_argument_variable())
+            {
+                mov(esi, argument_var(array_name));
+            }
+            else
+            {
+                mov(esi, global_var(array_name));
+            }
+
+
+
             add(esi, ecx);
 
             mov("[esi]", edx);
@@ -240,6 +308,37 @@ void compiler::generic_asm::blocks_recursive(compiler::node* current_node)
 
         return;
     }
+    else if (current_node->type == node_type::DO_WHILE)
+    {
+        node* condition = current_node->operand1->operand1;
+        node* statement = current_node->operand2;
+
+        string start_label_     = "_loop_start_" + std::to_string(statement->statement_id());
+        string end_label_       = "_loop_end_" + std::to_string(statement->statement_id());
+        string aftereffects_label_       = "_loop_aftereffects_" + std::to_string(statement->statement_id());
+
+
+        label(start_label_);
+        label(aftereffects_label_);
+
+
+        // label:
+        blocks_recursive(statement);
+
+        blocks_recursive(condition);
+
+        pop(eax);
+        cmp(eax, null);
+
+        je(end_label_);
+
+        jmp(start_label_);
+
+        // label:
+        label(end_label_);
+
+        return;
+    }
     else if (current_node->type == node_type::FOR)
     {
         node* prevention = current_node->operand1->operand1;
@@ -302,8 +401,11 @@ void compiler::generic_asm::blocks_recursive(compiler::node* current_node)
     }
     else if (current_node->type == node_type::RETURN)
     {
-        expression_recursive(current_node->operand1);
-        pop(eax);
+        if (current_node->operand1->operand1 != nullptr)
+        {
+            expression_recursive(current_node->operand1);
+            pop(eax);
+        }
 
         auto arguments_size = any_cast<size_t>(current_node->value);
 
@@ -421,7 +523,7 @@ void compiler::generic_asm::expression_recursive(compiler::node* current_node)
         // pop eax
         pop(eax);
         // imul div, -1
-        imul(eax, to_string(-1));
+        imul(eax, minus_one);
         // push eax
         push(eax);
     }
@@ -452,6 +554,8 @@ void compiler::generic_asm::expression_recursive(compiler::node* current_node)
         {
             variable_name = any_cast<string>(value_node->value);
             block_id = value_node->statement_id();
+            auto variable = _ast->_all_variables.get_variable(variable_name, block_id);
+
 
             variable_name += to_string(block_id);
 
@@ -461,8 +565,27 @@ void compiler::generic_asm::expression_recursive(compiler::node* current_node)
             pop(eax);
             add(eax, one);
 
-            mov(variable_name, eax);
-            push(variable_name);
+
+
+            if (variable->is_argument_variable())
+            {
+                // mov arg_variable, eax
+                mov(argument_var(variable_name), eax);
+                push(argument_var(variable_name));
+            }
+            else if (variable->is_global_variable() || variable::is_array_type(variable->type()))
+            {
+                // mov variable, eax
+                mov(global_var(variable_name), eax);
+                push(variable_name);
+            }
+            else
+            {
+                // mov variable[ebp], eax
+                mov(local_var(variable_name), eax);
+                push(local_var(variable_name));
+            }
+
         }
         else if (value_node->type == node_type::INDEX_CAPTURE)
         {
@@ -492,6 +615,7 @@ void compiler::generic_asm::expression_recursive(compiler::node* current_node)
         {
             variable_name = any_cast<string>(value_node->value);
             block_id = value_node->statement_id();
+            auto variable = _ast->_all_variables.get_variable(variable_name, block_id);
 
             variable_name += to_string(block_id);
 
@@ -501,8 +625,26 @@ void compiler::generic_asm::expression_recursive(compiler::node* current_node)
             pop(eax);
             sub(eax, one);
 
-            mov(variable_name, eax);
-            push(variable_name);
+
+            if (variable->is_argument_variable())
+            {
+                // mov arg_variable, eax
+                mov(argument_var(variable_name), eax);
+                push(argument_var(variable_name));
+            }
+            else if (variable->is_global_variable() || variable::is_array_type(variable->type()))
+            {
+                // mov variable, eax
+                mov(global_var(variable_name), eax);
+                push(variable_name);
+            }
+            else
+            {
+                // mov variable[ebp], eax
+                mov(local_var(variable_name), eax);
+                push(local_var(variable_name));
+            }
+
         }
         else if (value_node->type == node_type::INDEX_CAPTURE)
         {
@@ -544,10 +686,26 @@ void compiler::generic_asm::expression_recursive(compiler::node* current_node)
     {
         auto variable_name = any_cast<string>(current_node->value);
         auto block_id = current_node->statement_id();
+        auto variable = _ast->_all_variables.get_variable(variable_name, block_id);
 
         variable_name += to_string(block_id);
 
-        push(local_var(variable_name));
+
+
+
+        if (variable->is_argument_variable())
+        {
+            push(argument_var(variable_name));
+        }
+        else if (variable->is_global_variable() || variable::is_array_type(variable->type()))
+        {
+            push(variable_name);
+        }
+        else
+        {
+            push(local_var(variable_name));
+        }
+
     }
     else if (node::is_comparison_operator(current_node->type))
     {
@@ -555,13 +713,21 @@ void compiler::generic_asm::expression_recursive(compiler::node* current_node)
     }
     else if (current_node->type == node_type::FUNCTION_CALL)
     {
+        auto function_name = any_cast<string>(current_node->value);
+
+        raw("\n");
+        comment("init stack for " + function_name);
+
         init_arguments_on_stack_recursive(current_node->operand1);
 
-        auto function_name = any_cast<string>(current_node->value);
+
         auto function = _ast->_functions.get_function(function_name);
         auto function_return_void = function->return_type() == variable_type::VOID;
 
+
+        comment("call " + function_name);
         call(function_name);
+        raw("\n");
 
         if (!function_return_void)
         {
@@ -579,8 +745,11 @@ void compiler::generic_asm::expression_recursive(compiler::node* current_node)
         auto function_id = op1->in_function_id();
         auto block_id = op1->statement_id();
 
-        auto array_type = _ast->_all_variables.get_variable_by_name(array_name)->type();
+        auto array_type = _ast->_all_variables.get_variable(array_name, block_id)->type();
         string array_item_shift;
+
+        auto variable = _ast->_all_variables.get_variable(array_name, block_id);
+
 
         array_name += to_string(block_id);
 
@@ -616,7 +785,21 @@ void compiler::generic_asm::expression_recursive(compiler::node* current_node)
         pop(edx);
         imul(edx, array_item_shift);
 
-        mov(esi, array_name);
+
+
+        if (variable->is_argument_variable())
+        {
+            mov(esi, argument_var(array_name));
+        }
+        else if (variable->is_global_variable() || variable::is_array_type(variable->type()))
+        {
+            mov(esi, global_var(array_name));
+        }
+        else
+        {
+            mov(esi, local_var(array_name));
+        }
+
         push("[esi[edx]]");
     }
     else if (current_node->type == node_type::EXPRESSION)
@@ -667,9 +850,26 @@ void compiler::generic_asm::relation_expression_recursive(node* current_node)
 
         auto variable_name = any_cast<string>(current_node->value);
         auto block_id = current_node->statement_id();
+        auto variable = _ast->_all_variables.get_variable(variable_name, block_id);
+
         variable_name += to_string(block_id);
 
-        cmp(variable_name, null);
+
+
+
+        if (variable->is_argument_variable())
+        {
+            cmp(argument_var(variable_name), null);
+        }
+        else if (variable->is_global_variable() || variable::is_array_type(variable->type()))
+        {
+            cmp(global_var(variable_name), null);
+        }
+        else
+        {
+            cmp(local_var(variable_name), null);
+        }
+
 
         // jne (!=) label
         jne(label_if_not_equal);
@@ -680,6 +880,7 @@ void compiler::generic_asm::relation_expression_recursive(node* current_node)
         push(one);
 
         label(label_compare_end);
+
     }
     else if (current_node->type == node_type::LOGICAL_AND)
     {
@@ -836,11 +1037,14 @@ void compiler::generic_asm::function_implementation_recursive(compiler::node* cu
     if (_ast->_global_functions.has_function(function_name))
         return;
 
-    proc(function_name);
-    procedure_prolog();
-
-
     auto function = _ast->_functions.get_function(function_name);
+    auto local_variable_size = function->local_variable_size();
+
+    proc(function_name);
+    procedure_prolog(0, local_variable_size);
+
+
+
     auto stack_size = function->arguments_size();
 
     size_t stack_shift = 8;
@@ -879,10 +1083,10 @@ void compiler::generic_asm::function_implementation_args_recursive(compiler::nod
             {
 
 
-                mov(edx, "[ebp + " + to_string(stack_shift) + "]");
-                mov(local_var(variable_name), edx);
-
-                stack_shift += 4;
+//                mov(edx, "[ebp + " + to_string(stack_shift) + "]");
+//                mov(local_var(variable_name), edx);
+//
+//                stack_shift += 4;
                 break;
             }
             case variable_type::UNDEFINED:
@@ -987,7 +1191,7 @@ void compiler::generic_asm::init_input_function()
     set_place_for_writing(asm_place_for_writing::FUNCTION_IMLEMENTATIONS);
 
     proc("input");
-    procedure_prolog();
+    procedure_prolog(0, 0);
 
     raw(tab + "invoke crt_scanf, offset input_format, offset input_result\n");
     mov(eax, "input_result");
@@ -1006,7 +1210,7 @@ void compiler::generic_asm::init_print_function()
     set_place_for_writing(asm_place_for_writing::FUNCTION_IMLEMENTATIONS);
 
     proc("print");
-    procedure_prolog();
+    procedure_prolog(0, 0);
 
     mov(eax, "[ebp + 8]");
     raw(tab + "invoke crt_printf, offset print_format, eax\n");
@@ -1025,7 +1229,7 @@ void compiler::generic_asm::init_println_function()
     set_place_for_writing(asm_place_for_writing::FUNCTION_IMLEMENTATIONS);
 
     proc("println");
-    procedure_prolog();
+    procedure_prolog(0, 0);
 
     mov(eax, "[ebp + 8]");
     raw(tab + "invoke crt_printf, offset println_format, eax\n");
@@ -1044,7 +1248,7 @@ void compiler::generic_asm::init_sqrt_function()
     set_place_for_writing(asm_place_for_writing::FUNCTION_IMLEMENTATIONS);
 
     proc("sqrt");
-    procedure_prolog();
+    procedure_prolog(0, 0);
 
     mov(eax, "[ebp + 8]");
     mov("sqrt_result", eax);
@@ -1138,7 +1342,17 @@ std::string compiler::generic_asm::stack_var(const std::string& value)
 
 std::string compiler::generic_asm::local_var(const std::string& value)
 {
+    return value + "[ebp]";
+}
+
+std::string compiler::generic_asm::global_var(const std::string& value)
+{
     return value;
+}
+
+std::string compiler::generic_asm::argument_var(const std::string& value)
+{
+    return "arg_" + value + "[ebp]";
 }
 
 void compiler::generic_asm::raw(const string& value)
@@ -1146,12 +1360,36 @@ void compiler::generic_asm::raw(const string& value)
     _current_place_for_writing->append(value);
 }
 
-void compiler::generic_asm::stack_variable(const string& name)
+void compiler::generic_asm::stack_variable(const variable* var)
 {
-    _current_place_for_writing->append(name + " = " + "-" + to_string(_byte_on_stack) + "\n");
+    auto variable_name = var->name_with_postfix();
+    auto variable_size = variable::byte_on_type(var->type());
+
+
+
+    _before_main.append(variable_name + " = " + "-" + to_string(_byte_on_stack) + " ; size = " + to_string(variable_size) + "\n");
+
+    _byte_on_stack += variable_size;
 }
 
-void compiler::generic_asm::local_variable(const variable* var)
+void compiler::generic_asm::stack_argument(const compiler::variable* var)
+{
+    auto variable_name = var->name_with_postfix();
+    auto variable_size = variable::byte_on_type(var->type());
+
+    string prefix;
+
+    if (var->is_argument_variable())
+    {
+        prefix = "arg_";
+    }
+
+    _before_main.append(prefix + variable_name + " = " + to_string(_byte_on_stack) + " ; size = " + to_string(variable_size) + "\n");
+
+    _byte_on_stack += variable_size;
+}
+
+void compiler::generic_asm::global_variable(const compiler::variable* var)
 {
     string variable_type;
     string variable_value;
@@ -1188,19 +1426,17 @@ void compiler::generic_asm::local_variable(const variable* var)
     }
 
     _data.append(tab + var->name_with_postfix() + " " +
-                                    variable_type + " " + variable_value + "\n");
+                 variable_type + " " + variable_value + "\n");
 }
 
-void compiler::generic_asm::local_array(const compiler::array& arr)
+void compiler::generic_asm::global_array(const compiler::array& arr)
 {
-    auto array_name = arr.name();
-    auto variable = _ast->_all_variables.get_variable_by_name(array_name);
+    auto variable = arr.variable();
     auto array_type = variable->type();
     auto array_size = arr.size();
-    auto block_id = variable->block_id();
     const auto& array_values = arr.values();
 
-    array_name = variable->name_with_postfix();
+    auto array_name = variable->name_with_postfix();
 
     string array_type_str;
     string array_values_str;
@@ -1346,9 +1582,9 @@ void compiler::generic_asm::endp(const std::string& value)
     _current_place_for_writing->append(value + " ENDP\n");
 }
 
-void compiler::generic_asm::procedure_prolog()
+void compiler::generic_asm::procedure_prolog(size_t level, size_t size_local_variable)
 {
-    _current_place_for_writing->append(proc_prolog);
+    _current_place_for_writing->append(proc_prolog + to_string(level) + ", " + to_string(size_local_variable) + "\n");
 }
 
 void compiler::generic_asm::procedure_epilogue()
@@ -1411,5 +1647,10 @@ void compiler::generic_asm::init_string_constants_recursive(compiler::node* curr
     init_string_constants_recursive(current_node->operand2, count_constant);
     init_string_constants_recursive(current_node->operand3, count_constant);
     init_string_constants_recursive(current_node->operand4, count_constant);
+}
+
+void compiler::generic_asm::comment(const std::string& value)
+{
+    _current_place_for_writing->append(tab + "; " + value + "\n");
 }
 

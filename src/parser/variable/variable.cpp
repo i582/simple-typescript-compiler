@@ -1,49 +1,17 @@
 #include <token/token.h>
 #include "variable.h"
 
-compiler::variable::variable(const std::string& variable_name_, compiler::variable_type variable_type_,
-                             const compiler::variable_value& variable_value_, bool is_const_)
+compiler::variable::variable(const std::string& variable_name, compiler::variable_type variable_type, size_t block_id,
+                                                                                                    bool is_const)
 {
-    this->_variable_name = variable_name_;
-    this->_variable_type = variable_type_;
-    this->_variable_value = variable_value_;
+    this->_variable_name = variable_name;
+    this->_variable_type = variable_type;
 
-    this->_is_const = is_const_;
-}
 
-compiler::variable_value compiler::variable::default_value(compiler::variable_type variable_type_)
-{
-    switch (variable_type_)
-    {
-        case variable_type::NUMBER:
-        {
-            return (long double)0.0;
-        }
-        case variable_type::BOOLEAN:
-        {
-            return false;
-        }
-        case variable_type::STRING:
-        {
-            return "";
-        }
-        case variable_type::NUMBER_ARRAY:
-        {
-            return (long double)0.0;
-        }
-        case variable_type::BOOLEAN_ARRAY:
-        {
-            return false;
-        }
-        case variable_type::STRING_ARRAY:
-        {
-            return "";
-        }
-        case variable_type::VOID:
-        case variable_type::VOID_ARRAY:
-        default:
-            return (long double)0;
-    }
+    this->_block_id = block_id;
+    this->_is_const = is_const;
+    this->_is_global_variable = false;
+    this->_is_argument_variable = false;
 }
 
 void compiler::variable::print() const
@@ -57,7 +25,7 @@ std::string compiler::variable::name() const
     return _variable_name;
 }
 
-bool compiler::variable::is_const()
+bool compiler::variable::is_const() const
 {
     return _is_const;
 }
@@ -73,14 +41,14 @@ compiler::variable_type compiler::variable::type() const
     return _variable_type;
 }
 
-bool compiler::variable::is_array()
+bool compiler::variable::is_array() const
 {
     return (size_t)_variable_type >= (size_t)variable_type::NUMBER_ARRAY;
 }
 
 compiler::variable_type compiler::variable::variable_type_from_token_type(compiler::token_type token_type_)
 {
-    int value = (int)token_type_;
+    auto value = (int)token_type_;
     return variable_type(value);
 }
 
@@ -187,5 +155,27 @@ size_t compiler::variable::byte_on_type(variable_type type)
             return 4;
         case variable_type::VOID_ARRAY:
             return 0;
+        default:
+            return 0;
     }
+}
+
+void compiler::variable::is_global_variable(bool is_global_variable)
+{
+    _is_global_variable = is_global_variable;
+}
+
+bool compiler::variable::is_global_variable() const
+{
+    return _is_global_variable;
+}
+
+bool compiler::variable::is_argument_variable() const
+{
+    return _is_argument_variable;
+}
+
+void compiler::variable::is_argument_variable(bool is_argument_variable)
+{
+    _is_argument_variable = is_argument_variable;
 }

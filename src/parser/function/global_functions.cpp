@@ -16,61 +16,61 @@ void compiler::global_functions::init()
 {
     _table = new function_table();
 
-    auto array_new_function = new func("Array", return_type::ANY, {variable_type::NUMBER});
+    auto array_new_function = new function("Array", return_type::ANY, {variable_type::NUMBER});
     _table->add_function(array_new_function);
 
-    auto function = new func("input", return_type::NUMBER, {});
-    _table->add_function(function);
+    auto new_function = new function("input", return_type::NUMBER, {});
+    _table->add_function(new_function);
 
-    function = new func("print", return_type::VOID, {return_type::NUMBER});
-    _table->add_function(function);
+    new_function = new function("print", return_type::VOID, {return_type::NUMBER});
+    _table->add_function(new_function);
 
-    function = new func("println", return_type::VOID, {return_type::STRING});
-    _table->add_function(function);
+    new_function = new function("println", return_type::VOID, {return_type::STRING});
+    _table->add_function(new_function);
 
-    function = new func("sqrt", return_type::NUMBER, {return_type::NUMBER});
-    _table->add_function(function);
+    new_function = new function("sqrt", return_type::NUMBER, {return_type::NUMBER});
+    _table->add_function(new_function);
 }
 
-compiler::func* compiler::global_functions::get_function(const std::string& name,
-                                                         const std::vector<compiler::argument_type>& arguments_description)
+compiler::function* compiler::global_functions::get_function(const std::string& name,
+                                                             const std::vector<compiler::argument_type>& arguments_description)
 {
     return _table->get_function(name, arguments_description);
 }
 
-bool compiler::global_functions::has_function(compiler::func* function)
+bool compiler::global_functions::has_function(compiler::function* function)
 {
     return _table->has_function(function);
 }
 
 bool compiler::global_functions::has_function(const std::string& name)
 {
-    func* function = nullptr;
+    function* new_function = nullptr;
 
     if (name == "Array")
     {
-        function = new func(name, return_type::ANY, { argument_type::NUMBER });
+        new_function = new function(name, return_type::ANY, {argument_type::NUMBER });
     }
     else if (name == "input")
     {
-        function = new func(name, return_type::NUMBER, {});
+        new_function = new function(name, return_type::NUMBER, {});
     }
     else if (name == "print")
     {
-        function = new func(name, return_type::VOID, {return_type::NUMBER});
+        new_function = new function(name, return_type::VOID, {return_type::NUMBER});
     }
     else if (name == "println")
     {
-        function = new func(name, return_type::VOID, {return_type::STRING});
+        new_function = new function(name, return_type::VOID, {return_type::STRING});
     }
     else if (name == "sqrt")
     {
-        function = new func(name, return_type::NUMBER, {return_type::NUMBER});
+        new_function = new function(name, return_type::NUMBER, {return_type::NUMBER});
     }
     else
     {
         return false;
     }
 
-    return _table->has_function(function);
+    return _table->has_function(new_function);
 }

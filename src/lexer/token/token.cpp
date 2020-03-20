@@ -59,6 +59,9 @@ compiler::token_type compiler::token::what_type_of_lexeme(const std::string& lex
         return token_type::FOR;
     if (lexeme == "while")
         return token_type::WHILE;
+    if (lexeme == "do")
+        return token_type::DO_WHILE;
+
 
     // cycles addition
     if (lexeme == "break")

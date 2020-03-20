@@ -264,7 +264,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
 // 0 1 2 3 4 5 6 7 8 9
   ```
   
-* [ ] ```typescript
+* [x] ```typescript
   let i: number = 100;
   while (i > 0)
   {
@@ -275,7 +275,7 @@ Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeSc
   // 90 80 70 60 50 40 30 20 10 0
   ```
 
-* [ ] ```typescript
+* [x] ```typescript
   let a: number = 50;
   let b: boolean = a < 10;
   if (b && a > 10)

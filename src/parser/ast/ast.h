@@ -10,7 +10,6 @@ namespace compiler
 {
 
     class generic_asm;
-    class assembler;
 
     using std::any_cast;
 
@@ -22,13 +21,15 @@ namespace compiler
     private: // count blocks
         size_t _count_blocks;
         variable_table _all_variables;
-        vector<variable_table*> _variables_tables;
+        vector<variable_table*> _variable_tables;
 
         function_table _functions;
 
         global_functions _global_functions;
 
         vector<array> _arrays;
+
+        vector<variable*> _global_variables;
 
     public:
         node* _tree;
@@ -38,25 +39,46 @@ namespace compiler
 
     public:
         friend generic_asm;
-        friend assembler;
 
     public:
         void print_variable_table();
+        void print_functions_table();
 
     public:
+
+        /**
+         * @brief Функция задающая каждому блоку (statement) порядковый номер
+         */
         void mark_block();
+
+        /**
+         * @brief Функция задающая операторам break и continue идентификатор родительского цикла (блока)
+         */
         void mark_break_continue_operators();
+
+
+   
+        /**
+         * @brief Функция задающая оператору return идентификатор родительской функции (блока),
+         * а так же устанавливающая значение равное количеству байт, которое занимают аргументы функции
+         */
         void mark_return_operator();
 
-        void mark_variable_tables();
+
+
 
         void mark_everything_block_where_it_using();
+
+
+
 
         // designate functions
         void designate_blocks();
         void designate_variables();
+        void designate_global_variables();
         void designate_functions();
         void designate_arrays();
+
 
         // check functions
         void check_const();
@@ -77,8 +99,12 @@ namespace compiler
         // designate functions
         void designate_blocks_recursive(node* current_node, node* current_stmt);
         void designate_variables_recursive(node* node, variable_table* table);
-        void designate_functions_recursive(node* node);
-        static void designate_function_arguments_recursive(node* node, vector<variable_type>* arguments);
+        void designate_global_variables_recursive(node* current_node, vector<variable*>& variables);
+        void designate_functions_recursive(node* current_node);
+        void designate_function_arguments_recursive(node* node, vector<variable_type>& argument_types, vector<variable*>& arguments);
+        void designate_function_local_variables_recursive(node* current_node, size_t& size, vector<variable*>& variables);
+
+
         void check_functions_call_recursive(node* node);
         void designate_function_call_arguments_recursive(node* node, vector<variable_type>* arguments);
 

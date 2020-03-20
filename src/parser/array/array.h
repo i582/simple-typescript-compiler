@@ -17,18 +17,21 @@ namespace compiler
 
         vector<variable_value> _values;
 
+        variable* _variable;
 
     public:
-        array(const string& name, size_t size, const vector<variable_value>& values = {});
+        array(const string& name, size_t size, const vector<variable_value>& values = {}, variable* var = nullptr);
 
     public:
         [[nodiscard]] string name() const;
         [[nodiscard]] size_t size() const;
 
+        [[nodiscard]] variable* variable() const;
+
         void values(const vector<variable_value>& values);
         [[nodiscard]] const vector<variable_value>& values() const;
 
-        string values_to_string() const;
+        [[nodiscard]] string values_to_string() const;
 
     };
 
