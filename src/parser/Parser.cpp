@@ -40,29 +40,34 @@ void stc::Parser::parse()
 
 void stc::Parser::check()
 {
-    m_tree->designate_blocks();
+    m_tree->identifyScopes();
 
-    m_tree->mark_block();
+    m_tree->markAllScopes();
 
-    m_tree->designate_variables();
-    m_tree->designate_global_variables();
-    m_tree->designate_arrays();
+    m_tree->identifyVariables();
+    m_tree->identifyGlobalVariables();
 
-    m_tree->designate_functions();
-    m_tree->mark_break_continue_operators();
-    m_tree->mark_return_operator();
+    m_tree->identifyFunctions();
 
-    m_tree->check_const();
-    m_tree->check_array();
-    m_tree->check_functions_call();
-    m_tree->check_expression();
+    m_tree->identifyClasses();
+    m_tree->identifyInterfaces();
+
+//    m_tree->markBreakContinueOperators();
+//    m_tree->markReturnOperators();
+//
+//    m_tree->check_const();
+//    m_tree->check_array();
+//    m_tree->check_functions_call();
+//    m_tree->check_expression();
 }
 
 void stc::Parser::printTree()
 {
     m_tree->print();
-    m_tree->print_variable_table();
-    m_tree->print_functions_table();
+    m_tree->printAllVariables();
+    m_tree->printAllFunctions();
+    m_tree->printAllClasses();
+    m_tree->printAllInterfaces();
 }
 
 stc::Ast* stc::Parser::ast()
@@ -728,7 +733,7 @@ stc::Node* stc::Parser::declaration_statement()
     m_lexer->nextToken();
 
 
-    auto temp_variable_type = declaration_type();
+    auto temp_variable_type = declarationType();
 
 
     if (!is_const)
@@ -743,45 +748,29 @@ stc::Node* stc::Parser::declaration_statement()
     return temp_node;
 }
 
-stc::Node* stc::Parser::declaration_type()
+stc::Node* stc::Parser::declarationType()
 {
-    Node* temp_node = nullptr;
+    Node* tempNode = nullptr;
 
-    if (m_lexer->currentTokenType() != TokenType::COLON)
+
+
+    eat(TokenType::COLON);
+
+
+
+    auto variableType = eat(TokenType::IDENTIFIER);
+
+
+    tempNode = new Node(NodeType::VARIABLE_TYPE, variableType);
+
+
+    if (tryEat(TokenType::LSQR))
     {
-        error("Type of variable expected!");
-    }
-    m_lexer->nextToken();
-
-
-    if (!Token::is_this_type_is_type_of_variable(m_lexer->currentTokenType()))
-    {
-        error("Type of variable expected!");
-    }
-
-    auto variable_type = Token::what_type_of_lexeme(m_lexer->current_token().lexeme());
-    m_lexer->nextToken();
-
-
-    temp_node = new Node(NodeType::VARIABLE_TYPE, variable_type);
-
-
-    if (m_lexer->currentTokenType() == TokenType::LSQR)
-    {
-        auto current_type = (int)variable_type;
-        auto new_array_type = TokenType(current_type << 4);
-
-        temp_node->value = new_array_type;
-        m_lexer->nextToken();
-
-        if (m_lexer->currentTokenType() != TokenType::RSQR)
-        {
-            error("']' expected!");
-        }
-        m_lexer->nextToken();
+        eat(TokenType::RSQR);
     }
 
-    return temp_node;
+
+    return tempNode;
 }
 
 stc::Node* stc::Parser::initializer()
@@ -904,7 +893,7 @@ stc::Node* stc::Parser::function_argument()
     m_lexer->nextToken();
 
 
-    auto temp_variable_type = declaration_type();
+    auto temp_variable_type = declarationType();
 
 
     temp_node = new Node(NodeType::FUNCTION_IMPLEMENTATION_ARG, variable_name, temp_variable_type);

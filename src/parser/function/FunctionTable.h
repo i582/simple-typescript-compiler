@@ -6,27 +6,27 @@
 namespace stc
 {
 
-    class FunctionTable
-    {
-    private:
-        vector<Function*> m_functions;
+class FunctionTable
+{
+private:
+    vector<Function> m_functions;
 
-    public:
-        FunctionTable() = default;
-        ~FunctionTable();
+public:
+    FunctionTable() = default;
 
-    public:
-        void add_function(Function* new_function);
-        bool has_function(Function* function);
+public:
+    void add(const Function& function) noexcept;
+    _NODISCARD bool contains(const Function& function) const noexcept;
 
-        Function* get_function(const string& name, const vector<ArgumentType>& arguments_description);
-        Function* get_function(const string& name);
+public:
+    _NODISCARD Function& get(const string& function, const vector<ArgumentType>& arguments);
 
-        [[nodiscard]] const vector<Function*>& functions() const;
+public:
+    _NODISCARD const vector<Function>& raw() const noexcept;
 
-    public:
-        void print() const;
+public:
+    void print() const noexcept;
 
-    };
+};
 
 }

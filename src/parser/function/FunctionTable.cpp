@@ -1,40 +1,35 @@
 #include "FunctionTable.h"
 
-stc::FunctionTable::~FunctionTable()
+void stc::FunctionTable::add(const stc::Function& function) noexcept
 {
-    m_functions.clear();
+    m_functions.push_back(function);
 }
 
-void stc::FunctionTable::add_function(stc::Function* new_function)
+bool stc::FunctionTable::contains(const stc::Function& function) const noexcept
 {
-    m_functions.push_back(new_function);
-}
-
-bool stc::FunctionTable::has_function(stc::Function* function)
-{
-    for (const auto& item : m_functions)
+    for (const auto& m_function : m_functions)
     {
-        if (*item == *function)
+        if (m_function == function)
             return true;
     }
 
     return false;
 }
 
-stc::Function* stc::FunctionTable::get_function(const std::string& name,
-                                                const std::vector<stc::ArgumentType>& arguments_description)
+stc::Function& stc::FunctionTable::get(const std::string& name,
+                                       const std::vector<stc::ArgumentType>& arguments)
 {
-    auto it = std::find_if(m_functions.begin(), m_functions.end(), [&](Function* current_func_)
+    auto it = std::find_if(m_functions.begin(), m_functions.end(), [&](const Function& function)
     {
-        auto eq = current_func_->name() == name && current_func_->arguments().size() == arguments_description.size();
+        auto eq = function.name() == name && function.arguments().size() == arguments.size();
 
         if (!eq) return false;
 
-        auto current_args = current_func_->arguments();
+        auto current_args = function.arguments();
 
         for (int i = current_args.size() - 1, j = 0; i >= 0; --i, ++j)
         {
-            if (current_args[i] != arguments_description[j])
+            if (!(current_args[i] == arguments[j]))
             {
                 return false;
             }
@@ -45,42 +40,22 @@ stc::Function* stc::FunctionTable::get_function(const std::string& name,
 
     if (it == m_functions.end())
     {
-        cout << "Error! A function with name '" + name + "' and this parameter list was not found!" << endl;
+        cout << "Error! A function with name '" + name + "' and " << Function::argumentsToString(arguments) << " parameter list was not found!" << endl;
         throw std::logic_error("");
     }
 
     return *it;
 }
 
-stc::Function* stc::FunctionTable::get_function(const std::string& name)
-{
-    auto it = std::find_if(m_functions.begin(), m_functions.end(), [&](Function* current_func_)
-    {
-        return current_func_->name() == name;
-    });
-
-    if (it == m_functions.end())
-    {
-        cout << "Error! A function with name '" + name + "' was not found!" << endl;
-        throw std::logic_error("");
-    }
-
-    return *it;
-}
-
-void stc::FunctionTable::print() const
+void stc::FunctionTable::print() const noexcept
 {
     for (const auto& function : m_functions)
     {
-        cout << "name: " << function->name() <<
-             ", return type: " << Variable::variable_type_to_string(function->return_type()) <<
-             ", arguments: " << function->arguments_string() <<
-                " with size: " << function->arguments_size() <<
-                ", local variable size: " << function->local_variable_size() << endl ;
+        function.print();
     }
 }
 
-const std::vector<stc::Function*>& stc::FunctionTable::functions() const
+const std::vector<stc::Function>& stc::FunctionTable::raw() const noexcept
 {
     return m_functions;
 }

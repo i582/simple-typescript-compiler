@@ -1,3 +1,4 @@
+/*
 #pragma once
 #include <iostream>
 #include <string>
@@ -103,7 +104,7 @@ namespace stc
         void stack_argument(const Variable* var);
 
         void global_variable(const Variable* var);
-        void global_array(const Array& arr);
+
 
         // stack
         void push(const string& value);
@@ -163,4 +164,4 @@ namespace stc
         void comment(const string& value);
     };
 
-}
+}*/

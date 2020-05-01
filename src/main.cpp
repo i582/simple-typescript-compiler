@@ -35,7 +35,7 @@ int main(int argc, char** argv)
 
     stc::Parser parser(&lexer);
     parser.parse();
-    //parser.check();
+    parser.check();
     parser.printTree();
 //
 //    stc::Asm an_asm("test.asm", parser.ast());

@@ -19,8 +19,8 @@ public:
         parser.check();
         parser.printTree();
 
-        stc::Asm an_asm(outputFile, parser.ast());
-        an_asm.generate();
+//        stc::Asm an_asm(outputFile, parser.ast());
+//        an_asm.generate();
     }
 };
 

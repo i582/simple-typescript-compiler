@@ -1,51 +1,42 @@
 #include "VariableTable.h"
 
-stc::VariableTable::VariableTable(size_t block_id) : m_block_id(block_id)
+stc::VariableTable::VariableTable(size_t scopeId)
 {
     this->m_parent = nullptr;
+    this->m_scopeId = scopeId;
 }
 
-stc::VariableTable::VariableTable()
+void stc::VariableTable::add(const stc::Variable& variable)
 {
-    this->m_parent = nullptr;
+    m_variables.push_back(variable);
 }
 
-stc::VariableTable::~VariableTable()
+void stc::VariableTable::print() const noexcept
 {
-    m_variables.clear();
-}
-
-void stc::VariableTable::add_variable(stc::Variable* var)
-{
-    m_variables.push_back(var);
-}
-
-void stc::VariableTable::print()
-{
-    for (const auto& var : m_variables)
+    for (const auto& variable : m_variables)
     {
-        var->print();
+        variable.print();
     }
 }
 
-void stc::VariableTable::set_parent(VariableTable* parent)
+void stc::VariableTable::setParentTable(VariableTable* parent) noexcept
 {
     m_parent = parent;
 }
 
-bool stc::VariableTable::has_variable(const std::string& name_) const
+bool stc::VariableTable::contains(const std::string& name) const
 {
-    auto it = std::find_if(m_variables.begin(), m_variables.end(), [&name_](Variable* var_)
+    auto it = std::find_if(m_variables.begin(), m_variables.end(), [&name](const Variable& variable)
     {
-        return var_->name() == name_;
+        return variable.name() == name;
     });
 
     return it != m_variables.end();
 }
 
-bool stc::VariableTable::has_variable_globally(const std::string& name_) const
+bool stc::VariableTable::containsGlobally(const std::string& name) const
 {
-    if (!has_variable(name_))
+    if (!contains(name))
     {
         if (m_parent == nullptr)
         {
@@ -53,7 +44,7 @@ bool stc::VariableTable::has_variable_globally(const std::string& name_) const
         }
         else
         {
-            return m_parent->has_variable_globally(name_);
+            return m_parent->containsGlobally(name);
         }
     }
     else
@@ -62,34 +53,34 @@ bool stc::VariableTable::has_variable_globally(const std::string& name_) const
     }
 }
 
-stc::Variable* stc::VariableTable::get_variable_by_name(const string& name_) const
+stc::Variable& stc::VariableTable::getByName(const string& name)
 {
-    auto it = std::find_if(m_variables.begin(), m_variables.end(), [&name_](Variable* var_)
+    auto it = std::find_if(m_variables.begin(), m_variables.end(), [&name](const Variable& variable)
     {
-        return var_->name() == name_;
+        return variable.name() == name;
     });
 
     if (it == m_variables.end())
     {
         if (m_parent == nullptr)
         {
-            cout << "Variable '" << name_ << "' not found!" << endl;
+            cout << "Variable '" << name << "' not found!" << endl;
             throw std::logic_error("Variable not found!");
         }
         else
         {
-            return m_parent->get_variable_by_name(name_);
+            return m_parent->getByName(name);
         }
     }
 
     return *it;
 }
 
-std::tuple<size_t, stc::Variable*> stc::VariableTable::get_variable_and_block_id_where_it_defined(const string& name) const
+std::tuple<size_t, stc::Variable*> stc::VariableTable::getVariableAndScopeIdWhereItDeclared(const string& name)
 {
-    auto it = std::find_if(m_variables.begin(), m_variables.end(), [&name](Variable* var)
+    auto it = std::find_if(m_variables.begin(), m_variables.end(), [&name](const Variable& var)
     {
-        return var->name() == name;
+        return var.name() == name;
     });
 
 
@@ -102,67 +93,34 @@ std::tuple<size_t, stc::Variable*> stc::VariableTable::get_variable_and_block_id
         }
         else
         {
-            return m_parent->get_variable_and_block_id_where_it_defined(name);
+            return m_parent->getVariableAndScopeIdWhereItDeclared(name);
         }
     }
 
-    return std::make_tuple(m_block_id, *it);
+    return std::make_tuple(m_scopeId, &(*it));
 }
 
-const std::vector<stc::Variable*>& stc::VariableTable::vars() const
+const std::vector<stc::Variable>& stc::VariableTable::raw() const
 {
     return m_variables;
 }
 
-std::string stc::VariableTable::generate_prefix() const
+size_t stc::VariableTable::scopeId() const noexcept
 {
-    return "__" + std::to_string(m_block_id);
+    return m_scopeId;
 }
 
-std::string stc::VariableTable::generate_variable_with_prefix(const string& variable_name) const
+stc::Variable& stc::VariableTable::getByNameAndScopeId(const std::string& name, size_t block_id)
 {
-    return generate_prefix() + variable_name;
-}
-
-size_t stc::VariableTable::block_id() const
-{
-    return m_block_id;
-}
-
-stc::Variable* stc::VariableTable::get_variable(const std::string& name, size_t block_id) const
-{
-    auto it = std::find_if(m_variables.begin(), m_variables.end(), [&name, &block_id](Variable* var)
+    auto it = std::find_if(m_variables.begin(), m_variables.end(), [&name, &block_id](const Variable& var)
     {
-        return var->name() == name && var->block_id() == block_id;
+        return var.name() == name && var.scopeIdWhereVariableDeclared() == block_id;
     });
 
     if (it == m_variables.end())
     {
         cout << "Variable '" << name << "' from block " << block_id << " not found!" << endl;
         throw std::logic_error( "Variable '" + name + "' from block " + std::to_string(block_id) + " not found!");
-    }
-
-    return *it;
-}
-
-stc::Variable* stc::VariableTable::get_variable_globally(const std::string& name, size_t block_id) const
-{
-    auto it = std::find_if(m_variables.begin(), m_variables.end(), [&name, &block_id](Variable* var)
-    {
-        return var->name() == name && var->block_id() == block_id;
-    });
-
-    if (it == m_variables.end())
-    {
-        if (m_parent == nullptr)
-        {
-            cout << "Variable '" << name << "' from block " << block_id << " not found!" << endl;
-            throw std::logic_error( "Variable '" + name + "' from block " + std::to_string(block_id) + " not found!");
-        }
-        else
-        {
-            return m_parent->get_variable_globally(name, block_id);
-        }
     }
 
     return *it;

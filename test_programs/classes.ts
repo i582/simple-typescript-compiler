@@ -1,8 +1,8 @@
 interface Number2
 {
-    toString(): string;
+    toString(): number;
 
-    toFixed(fractionDigits: number): string;
+    toFixed(fractionDigits: number): number;
 }
 
 class Test
@@ -31,7 +31,6 @@ class Test
     }
 }
 
+let object: Test;
 
-
-
-test.setId(100);
+object.getName();

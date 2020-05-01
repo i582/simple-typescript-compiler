@@ -2,12 +2,14 @@
 #define NO_DEBUG_INFO
 
 #include <functional>
-#include "asm/asm.h"
-#include "class/class.h"
+#include "../../lexer/Lexer.h"
+#include "ast/Ast.h"
+#include "class/Class.h"
 
 
 namespace stc
 {
+    using std::to_string;
     using std::function;
 
     class Parser
@@ -68,7 +70,7 @@ namespace stc
         Node* selection_statement();
         Node* iteration_statement();
 
-        Node* declaration_type();
+        Node* declarationType();
         Node* declaration_statement();
 
         Node* initializer();
@@ -200,6 +202,8 @@ namespace stc
 
             Node* tempNode = statement_list();
 
+            tempNode = new Node(NodeType::STATEMENT, 0, tempNode);
+
             return tempNode;
         }
 
@@ -225,7 +229,7 @@ namespace stc
 
             auto functionBody = compoundStatement();
 
-            auto functionNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_NEW, functionName, functionArgumentsNode, returnTypeNode, functionBody);
+            auto functionNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_NEW, functionName, returnTypeNode, functionArgumentsNode, functionBody);
 
             return new Node(NodeType::STATEMENT, 0, functionNode);
         }
@@ -271,7 +275,7 @@ namespace stc
 
             auto bodyNode = classCompoundStatement();
 
-            return new Node(NodeType::CLASS, className, bodyNode);
+            return new Node(NodeType::CLASS_IMPLEMENTATION, className, bodyNode);
         }
 
         Node* classCompoundStatement()
@@ -287,6 +291,7 @@ namespace stc
             }
             m_lexer->nextToken();
 
+            tempNode = new Node(NodeType::STATEMENT, 0, tempNode);
 
             return tempNode;
         }
@@ -297,7 +302,7 @@ namespace stc
             {
                 auto constructorStatementNode = functionDeclarationStatement();
 
-                return new Node(NodeType::CLASS_FUNCTION, 0, constructorStatementNode);
+                return new Node(NodeType::CLASS_IMPLEMENTATION_FUNCTION, 0, constructorStatementNode);
             }
             else
             {
@@ -357,7 +362,7 @@ namespace stc
 
             eat(TokenType::SEMICOLON);
 
-            return new Node(NodeType::CLASS_FIELD, fieldName, visibilityModifierNode, declarationTypeNode);
+            return new Node(NodeType::CLASS_IMPLEMENTATION_FIELD, fieldName, declarationTypeNode, visibilityModifierNode);
         }
 
         Node* classBodyFunctionDeclarationStatement()
@@ -366,7 +371,7 @@ namespace stc
 
             auto functionDeclarationNode = functionDeclarationStatement();
 
-            return new Node(NodeType::CLASS_FUNCTION, 0, visibilityModifierNode, functionDeclarationNode);
+            return new Node(NodeType::CLASS_IMPLEMENTATION_FUNCTION, 0, functionDeclarationNode, visibilityModifierNode);
         }
 
 
@@ -395,6 +400,7 @@ namespace stc
             }
             m_lexer->nextToken();
 
+            tempNode = new Node(NodeType::STATEMENT, 0, tempNode);
 
             return tempNode;
         }
@@ -420,7 +426,7 @@ namespace stc
 
             eat(TokenType::SEMICOLON);
 
-            return new Node(NodeType::INTERFACE_FUNCTION_DEFINITION, functionName, functionArgumentsNode, returnTypeNode);
+            return new Node(NodeType::INTERFACE_FUNCTION_DEFINITION, functionName, returnTypeNode, functionArgumentsNode);
         }
 
     };

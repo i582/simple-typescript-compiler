@@ -10,19 +10,19 @@ stc::Node::Node(stc::NodeType type_, const any& value_, stc::Node* operand1_,
     this->operand2 = operand2_;
     this->operand3 = operand3_;
     this->operand4 = operand4_;
-    this->_statement_id = -1;
+    this->m_scopeId = -1;
     this->variables = vars_;
 
 }
 
-void stc::Node::statement_id(size_t statement_id)
+void stc::Node::setScopeId(size_t scopeId)
 {
-    _statement_id = statement_id;
+    m_scopeId = scopeId;
 }
 
-size_t stc::Node::statement_id() const
+size_t stc::Node::scopeId() const
 {
-    return _statement_id;
+    return m_scopeId;
 }
 
 std::string stc::Node::node_type_to_string(stc::NodeType type)
@@ -245,10 +245,9 @@ std::string stc::Node::node_type_to_string(stc::NodeType type)
         {
             return "string const";
         }
-        case NodeType::EXPONENTIATION:
-        {
-            return "exponentiation (**)";
-        }
+
+        default:
+            return "";
     }
 }
 

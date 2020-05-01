@@ -31,7 +31,6 @@ namespace stc
         MUL,
         DIV,
 
-        EXPONENTIATION,
 
         BEFORE_INC,
         BEFORE_DEC,
@@ -110,9 +109,9 @@ namespace stc
         FUNCTION_IMPLEMENTATION_NEW_ARGS,
         FUNCTION_IMPLEMENTATION_NEW_ARG,
 
-        CLASS,
-        CLASS_FIELD,
-        CLASS_FUNCTION,
+        CLASS_IMPLEMENTATION,
+        CLASS_IMPLEMENTATION_FIELD,
+        CLASS_IMPLEMENTATION_FUNCTION,
 
         CLASS_THIS,
 
@@ -140,7 +139,7 @@ namespace stc
 
 
     private:
-        size_t _statement_id;
+        size_t m_scopeId;
 
 
     public:
@@ -148,8 +147,8 @@ namespace stc
                       Node* operand3_ = nullptr, Node* operand4_ = nullptr, VariableTable* vars_ = nullptr);
 
     public:
-        void statement_id(size_t statement_id);
-        [[nodiscard]] size_t statement_id() const;
+        void setScopeId(size_t scopeId);
+        _NODISCARD size_t scopeId() const;
 
         static string node_type_to_string(NodeType type);
 

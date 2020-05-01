@@ -1,20 +1,20 @@
 #pragma once
+
 #include <string>
 #include <stdexcept>
 
 
 namespace stc
 {
-    using std::string;
+using std::string;
 
 
 enum class FundamentalType
 {
     NUMBER,
     BOOLEAN,
-    STRING,
+    SYMBOL,
     VOID,
-    ANY,
 };
 
 class Type
@@ -24,6 +24,8 @@ private:
     bool m_isArray;
 
 public:
+    Type() = default;
+
     explicit Type(const string& value, bool isArray = false)
     {
         this->m_fundamentalType = typeFromString(value);
@@ -37,9 +39,48 @@ public:
     }
 
 public:
-    void print()
+    bool operator==(const Type& rhs) const noexcept
+    {
+        return m_fundamentalType == rhs.m_fundamentalType &&
+               m_isArray == rhs.m_isArray;
+    }
+
+
+public:
+    void print() const noexcept
     {
         cout << typeToString(m_fundamentalType) << (m_isArray ? ": Array" : "");
+    }
+
+    string toString() const noexcept
+    {
+        return typeToString(m_fundamentalType) + (m_isArray ? ": Array" : "");
+    }
+
+    _NODISCARD FundamentalType fundamentalType() const noexcept
+    {
+        return m_fundamentalType;
+    }
+    _NODISCARD bool isArray() const noexcept
+    {
+        return m_isArray;
+    }
+
+    _NODISCARD size_t countByte() const noexcept
+    {
+        switch (m_fundamentalType)
+        {
+            case FundamentalType::NUMBER:
+                return 4;
+            case FundamentalType::BOOLEAN:
+                return 1;
+            case FundamentalType::SYMBOL:
+                return 1;
+            case FundamentalType::VOID:
+                return 0;
+            default:
+                return 0;
+        }
     }
 
 public:
@@ -49,16 +90,13 @@ public:
             return FundamentalType::NUMBER;
         if (value == "boolean")
             return FundamentalType::BOOLEAN;
-        if (value == "string")
-            return FundamentalType::STRING;
+        if (value == "symbol")
+            return FundamentalType::SYMBOL;
         if (value == "void")
             return FundamentalType::VOID;
-        if (value == "any")
-            return FundamentalType::ANY;
 
         throw std::logic_error("Unrecognized type!");
     }
-
     static string typeToString(FundamentalType type)
     {
         switch (type)
@@ -67,13 +105,10 @@ public:
                 return "number";
             case FundamentalType::BOOLEAN:
                 return "boolean";
-            case FundamentalType::STRING:
-                return "string";
+            case FundamentalType::SYMBOL:
+                return "symbol";
             case FundamentalType::VOID:
                 return "void";
-            case FundamentalType::ANY:
-                return "any";
-
             default:
                 return "";
         }
