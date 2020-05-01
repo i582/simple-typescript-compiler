@@ -1,0 +1,1 @@
+powershell.exe -command  .\scripts\build.ps1 -md .\report.md -template .\templates\template.docx -docx .\report.docx -pdf .\report.pdf -embedfonts -counters

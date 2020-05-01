@@ -1,16 +1,16 @@
 #pragma once
 #include <string>
 
-namespace compiler
+namespace stc
 {
     using std::string;
 
     const string asm_header = ".586\n"
                         ".model flat, stdcall\n\n"
-                        "include c:\\masm32\\include\\msvcrt.inc\n"
-                        "include c:\\masm32\\include\\kernel32.inc\n"
-                        "includelib c:\\masm32\\lib\\msvcrt.lib\n"
-                        "includelib c:\\masm32\\lib\\kernel32.lib\n";
+                        "include <\\masm32\\include\\msvcrt.inc>\n"
+                        "include <\\masm32\\include\\kernel32.inc>\n"
+                        "includelib <\\masm32\\lib\\msvcrt.lib>\n"
+                        "includelib <\\masm32\\lib\\kernel32.lib>\n";
 
     const string start_data =   "data segment\n";
     const string end_data =     "data ends\n";
@@ -25,7 +25,7 @@ namespace compiler
 
     const string proc_epilogue =   "   leave\n";
 
-    const string function_return =                  "   ret\n";
+    const string function_return =       "   ret\n";
 
     const string tab = "   ";
 

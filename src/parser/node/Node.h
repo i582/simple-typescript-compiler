@@ -1,17 +1,17 @@
 #pragma once
 
 #include <any>
-#include "../lexer/lexer.h"
-#include "../variable/variable_table.h"
+#include "../lexer/Lexer.h"
+#include "../variable/VariableTable.h"
 
-namespace compiler
+namespace stc
 {
     using std::any;
     using std::any_cast;
 
-    enum class node_type
+    enum class NodeType
     {
-        NON_TERMINAL_NAME,
+        IDENTIFIER,
 
         // variables
         VARIABLE_DECLARATION,
@@ -101,42 +101,59 @@ namespace compiler
         // operator new
         NEW,
 
-        PROGRAM
+        PROGRAM,
+
+
+        DECLARATION_TYPE,
+
+        FUNCTION_IMPLEMENTATION_NEW,
+        FUNCTION_IMPLEMENTATION_NEW_ARGS,
+        FUNCTION_IMPLEMENTATION_NEW_ARG,
+
+        CLASS,
+        CLASS_FIELD,
+        CLASS_FUNCTION,
+
+        CLASS_THIS,
+
+        CLASS_FIELD_VISIBILITY,
+
+        CLASS_ACCESS_TO_FIELD,
+
+
+        INTERFACE_IMPLEMENTATION,
+        INTERFACE_FUNCTION_DEFINITION,
     };
 
-    class node
+    class Node
     {
     public:
         any value;
-        node_type type;
+        NodeType type;
 
-        node* operand1;
-        node* operand2;
-        node* operand3;
-        node* operand4;
+        Node* operand1;
+        Node* operand2;
+        Node* operand3;
+        Node* operand4;
 
-        variable_table* vars;
+        VariableTable* variables;
 
 
     private:
         size_t _statement_id;
-        size_t _in_function_id;
 
 
     public:
-        explicit node(node_type type_, const any& value_ = "", node* operand1_ = nullptr, node* operand2_ = nullptr,
-                      node* operand3_ = nullptr, node* operand4_ = nullptr, variable_table* vars_ = nullptr);
+        explicit Node(NodeType type_, const any& value_ = 0, Node* operand1_ = nullptr, Node* operand2_ = nullptr,
+                      Node* operand3_ = nullptr, Node* operand4_ = nullptr, VariableTable* vars_ = nullptr);
 
     public:
         void statement_id(size_t statement_id);
         [[nodiscard]] size_t statement_id() const;
 
-        [[nodiscard]] size_t in_function_id() const;
-        void in_function_id(size_t in_function_id);
+        static string node_type_to_string(NodeType type);
 
-        static string node_type_to_string(node_type type);
-
-        static bool is_comparison_operator(node_type type);
+        static bool is_comparison_operator(NodeType type);
     };
 
 

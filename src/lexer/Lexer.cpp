@@ -1,41 +1,36 @@
-#include "lexer.h"
+#include "Lexer.h"
 
-compiler::lexer::lexer(const std::string& file_path)
+stc::Lexer::Lexer(const std::string& file_path)
 {
-    this->_current_token_index = 0;
-    this->_state = lexer_state::DEFAULT;
+    this->m_current_token_index = 0;
+    this->m_state = LexerState::DEFAULT;
 
-    open(file_path);
+    this->open(file_path);
 }
 
-compiler::lexer::~lexer()
+stc::Lexer::~Lexer()
 {
-    _tokens.clear();
+    m_tokens.clear();
 }
 
-void compiler::lexer::parse()
+void stc::Lexer::print_tokens()
 {
-    split();
-}
-
-void compiler::lexer::print_tokens()
-{
-    for (const auto& token : _tokens)
+    for (const auto& token : m_tokens)
     {
         cout <<
-        token->lexeme() << "" <<
-        "\t\twith type:" << (int)token->type() <<
-        "\tline:" << token->line() <<
-        "\tposition:" << token->pos() <<
+        token.lexeme() << "" <<
+        "\t\twith type:" << (int)token.type() <<
+        "\tline:" << token.line() <<
+        "\tposition:" << token.pos() <<
         "\n";
     }
 }
 
-bool compiler::lexer::next_token()
+bool stc::Lexer::nextToken()
 {
-    if (_current_token_index < _tokens.size() - 1)
+    if (m_current_token_index < m_tokens.size() - 1)
     {
-        ++_current_token_index;
+        ++m_current_token_index;
         return false;
     }
     else
@@ -44,11 +39,11 @@ bool compiler::lexer::next_token()
     }
 }
 
-bool compiler::lexer::prev_token()
+bool stc::Lexer::prev_token()
 {
-    if (_current_token_index > 0)
+    if (m_current_token_index > 0)
     {
-        --_current_token_index;
+        --m_current_token_index;
         return false;
     }
     else
@@ -57,25 +52,25 @@ bool compiler::lexer::prev_token()
     }
 }
 
-compiler::token_type compiler::lexer::next_token_type()
+stc::TokenType stc::Lexer::next_token_type()
 {
-    next_token();
-    auto token_type = current_token_type();
+    nextToken();
+    auto token_type = currentTokenType();
     prev_token();
     return token_type;
 }
 
-compiler::token& compiler::lexer::current_token()
+stc::Token& stc::Lexer::current_token()
 {
-    return *_tokens[_current_token_index];
+    return m_tokens[m_current_token_index];
 }
 
-compiler::token_type compiler::lexer::current_token_type()
+stc::TokenType stc::Lexer::currentTokenType()
 {
     return current_token().type();
 }
 
-void compiler::lexer::open(const std::string& file_path)
+void stc::Lexer::open(const std::string& file_path)
 {
     std::ifstream in(file_path, std::ios::binary);
 
@@ -87,13 +82,15 @@ void compiler::lexer::open(const std::string& file_path)
     int size = in.seekg( 0, std::ios::end).tellg();
     in.seekg(0);
 
-    _code.resize(size);
-    in.read(&_code[0], size);
+    m_code.resize(size);
+    in.read(&m_code[0], size);
 
-    _code = "{" + _code + "}";
+    in.close();
+
+    m_code = "{" + m_code + "}";
 }
 
-void compiler::lexer::split()
+void stc::Lexer::split()
 {
     string temp_token;
 
@@ -101,29 +98,29 @@ void compiler::lexer::split()
     size_t current_pos = 0;
 
 
-    for (int i = 0; i < _code.size(); ++i)
+    for (int i = 0; i < m_code.size(); ++i)
     {
         skip_excess_symbols(i, current_line, current_pos);
 
-        const auto& symbol = _code[i];
+        const auto& symbol = m_code[i];
 
         if (symbol == '"')
         {
-            if (_state == lexer_state::IN_STRING)
+            if (m_state == LexerState::IN_STRING)
             {
-                _state = lexer_state::DEFAULT;
+                m_state = LexerState::DEFAULT;
                 temp_token += symbol;
                 continue;
             }
             else
             {
-                _state = lexer_state::IN_STRING;
+                m_state = LexerState::IN_STRING;
                 temp_token += symbol;
                 continue;
             }
         }
 
-        if (_state == lexer_state::IN_STRING)
+        if (m_state == LexerState::IN_STRING)
         {
             temp_token += symbol;
             continue;
@@ -134,7 +131,7 @@ void compiler::lexer::split()
             ++current_pos;
 
 
-            if (_state == lexer_state::IN_NUMBER)
+            if (m_state == LexerState::IN_NUMBER)
             {
                 if (symbol == '.' || symbol == 'e')
                 {
@@ -145,26 +142,26 @@ void compiler::lexer::split()
 
             if (!temp_token.empty())
             {
-                _tokens.push_back(new token(temp_token, current_line, current_pos));
+                m_tokens.push_back(Token(temp_token, current_line, current_pos));
                 temp_token.clear();
             }
 
 
             if (is_token_symbol(symbol))
             {
-                if (i + 1 < _code.size() && next_symbol_is_part_of_token(symbol, _code[i + 1]))
+                if (i + 1 < m_code.size() && next_symbol_is_part_of_token(symbol, m_code[i + 1]))
                 {
-                    auto next_symbol = _code[i + 1];
+                    auto next_symbol = m_code[i + 1];
 
                     string symbol_token(1, symbol);
                     symbol_token += next_symbol;
-                    _tokens.push_back(new token(symbol_token, current_line, current_pos));
+                    m_tokens.push_back(Token(symbol_token, current_line, current_pos));
                     ++i;
                 }
                 else
                 {
                     const string symbol_token(1, symbol);
-                    _tokens.push_back(new token(symbol_token, current_line, current_pos));
+                    m_tokens.push_back(Token(symbol_token, current_line, current_pos));
                 }
 
 
@@ -174,24 +171,24 @@ void compiler::lexer::split()
         {
             ++current_pos;
 
-            if (_state != lexer_state::IN_STRING)
+            if (m_state != LexerState::IN_STRING)
             {
-                if (_state == lexer_state::IN_NUMBER)
+                if (m_state == LexerState::IN_NUMBER)
                 {
                     if (symbol != '.' && symbol != 'e' && symbol != '-' && symbol != '+')
                     {
-                        _state = lexer_state::DEFAULT;
+                        m_state = LexerState::DEFAULT;
                     }
                 }
                 else
                 {
                     if (symbol >= '0' && symbol <= '9')
                     {
-                        _state = lexer_state::IN_NUMBER;
+                        m_state = LexerState::IN_NUMBER;
                     }
                     else
                     {
-                        _state = lexer_state::DEFAULT;
+                        m_state = LexerState::DEFAULT;
                     }
                 }
             }
@@ -203,14 +200,14 @@ void compiler::lexer::split()
 
     if (!temp_token.empty())
     {
-        _tokens.push_back(new token(temp_token, current_line, current_pos));
+        m_tokens.push_back(Token(temp_token, current_line, current_pos));
         temp_token.clear();
     }
 }
 
-void compiler::lexer::skip_excess_symbols(int& index, size_t& current_line, size_t& current_pos)
+void stc::Lexer::skip_excess_symbols(int& index, size_t& current_line, size_t& current_pos)
 {
-    char& current_symbol = _code[index];
+    char& current_symbol = m_code[index];
 
     if (current_symbol == '\n' || current_symbol == '\r')
     {
@@ -230,7 +227,7 @@ void compiler::lexer::skip_excess_symbols(int& index, size_t& current_line, size
 
     if (current_symbol == ' ')
     {
-        if (index + 1 < _code.size() && _code[index + 1] == ' ')
+        if (index + 1 < m_code.size() && m_code[index + 1] == ' ')
         {
             ++index;
             ++current_pos;
@@ -238,7 +235,7 @@ void compiler::lexer::skip_excess_symbols(int& index, size_t& current_line, size
     }
 }
 
-bool compiler::lexer::is_split_symbol(const char& symbol)
+bool stc::Lexer::is_split_symbol(const char& symbol)
 {
     return  symbol == ':' || symbol == ';' ||
             symbol == ',' || symbol == '.' ||
@@ -256,12 +253,12 @@ bool compiler::lexer::is_split_symbol(const char& symbol)
             symbol == ' ';
 }
 
-bool compiler::lexer::is_token_symbol(const char& symbol_)
+bool stc::Lexer::is_token_symbol(const char& symbol_)
 {
     return symbol_ != ' ' && symbol_ != '\0';
 }
 
-bool compiler::lexer::next_symbol_is_part_of_token(const char& token, const char& symbol)
+bool stc::Lexer::next_symbol_is_part_of_token(const char& token, const char& symbol)
 {
     switch (token)
     {
@@ -309,21 +306,21 @@ bool compiler::lexer::next_symbol_is_part_of_token(const char& token, const char
     }
 }
 
-void compiler::lexer::print_current_token_line()
+void stc::Lexer::print_current_token_line()
 {
-    int i = _current_token_index;
-    int j = _current_token_index;
+    int i = m_current_token_index;
+    int j = m_current_token_index;
     auto current_line = current_token().line();
 
-    while (i > 0 && _tokens[i]->line() == current_line)
+    while (i > 0 && m_tokens[i].line() == current_line)
     {
         --i;
     }
     ++i;
 
-    int count_symbol_before = _current_token_index - i;
+    int count_symbol_before = m_current_token_index - i;
 
-    while (j < _tokens.size() && _tokens[j]->line() == current_line)
+    while (j < m_tokens.size() && m_tokens[j].line() == current_line)
     {
         ++j;
     }
@@ -335,16 +332,16 @@ void compiler::lexer::print_current_token_line()
     {
         if (k - i == count_symbol_before)
         {
-            cout << "" << _tokens[k]->lexeme() << "" << " ";
-            size_current_token = _tokens[k]->lexeme().size();
+            cout << "" << m_tokens[k].lexeme() << "" << " ";
+            size_current_token = m_tokens[k].lexeme().size();
             continue;
         }
 
-        cout << _tokens[k]->lexeme() << " ";
+        cout << m_tokens[k].lexeme() << " ";
 
         if (k - i <= count_symbol_before)
         {
-            count_symbol_before_current += _tokens[k]->lexeme().size() + 1;
+            count_symbol_before_current += m_tokens[k].lexeme().size() + 1;
         }
     }
 
@@ -362,7 +359,7 @@ void compiler::lexer::print_current_token_line()
     cout << underline;
 }
 
-bool compiler::lexer::is_correct_identifier(const std::string& token)
+bool stc::Lexer::is_correct_identifier(const std::string& token)
 {
     if (!isalpha(token[0]) && token[0] != '_')
     {

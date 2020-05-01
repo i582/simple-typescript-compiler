@@ -2,9 +2,9 @@
 #include <iostream>
 #include <string>
 #include <variant>
-#include "../../lexer/token/token.h"
+#include "../../lexer/token/Token.h"
 
-namespace compiler
+namespace stc
 {
     using std::string;
     using std::cout;
@@ -20,10 +20,10 @@ namespace compiler
 
     using number = long double;
 
-    using variable_value = std::variant<number, bool, string>;
+    using VariableValue = std::variant<number, bool, string>;
 
 
-    enum class variable_type
+    enum class VariableType
     {
         UNDEFINED       = 0xffffff,
 
@@ -41,20 +41,21 @@ namespace compiler
         VOID_ARRAY      = 0x40000,
     };
 
-    class variable
+    class Variable
     {
     private:
-        string _variable_name;
-        variable_type _variable_type;
+        string m_variable_name;
+        VariableType m_variable_type;
 
-        bool _is_const;
-        size_t _block_id;
+        bool m_is_const;
+        size_t m_block_id;
 
-        bool _is_global_variable;
-        bool _is_argument_variable;
+        bool m_is_global;
+        bool m_is_argument;
+
 
     public:
-        variable(const string& variable_name, variable_type variable_type, size_t block_id, bool is_const = false);
+        Variable(const string& variable_name, VariableType variable_type, size_t block_id, bool is_const = false);
 
 
 
@@ -62,7 +63,7 @@ namespace compiler
         void print() const;
 
         [[nodiscard]] string name() const;
-        [[nodiscard]] variable_type type() const;
+        [[nodiscard]] VariableType type() const;
 
         [[nodiscard]] string name_with_postfix() const;
 
@@ -83,7 +84,7 @@ namespace compiler
          * @param type
          * @return
          */
-        static bool is_array_type(variable_type type);
+        static bool is_array_type(VariableType type);
 
     public:
 
@@ -93,14 +94,14 @@ namespace compiler
          * @param rhs_ Переменная, с которой сравнивается
          * @return true | false
          */
-        bool has_equal_type(const variable& rhs_);
+        bool has_equal_type(const Variable& rhs_);
 
         /**
          * @brief Возвращает тип переменной, равной типу токена
          * @param token_type_
          * @return
          */
-        static variable_type variable_type_from_token_type(token_type token_type_);
+        static VariableType variable_type_from_token_type(TokenType token_type_);
 
         /**
          * @brief Возвращает истину если типы совместимы
@@ -108,7 +109,7 @@ namespace compiler
          * @param type2
          * @return true | false
          */
-        static bool is_types_reducible(variable_type type1, variable_type type2);
+        static bool is_types_reducible(VariableType type1, VariableType type2);
 
 
         /**
@@ -116,7 +117,7 @@ namespace compiler
          * @param type
          * @return string
          */
-        static string variable_type_to_string(variable_type type);
+        static string variable_type_to_string(VariableType type);
 
 
         /**
@@ -124,14 +125,14 @@ namespace compiler
          * @param type
          * @return variable_type
          */
-        static variable_type type_of_array_type(variable_type type);
+        static VariableType type_of_array_type(VariableType type);
 
         /**
          * @brief Возвращает тип, хранящийся в переданном значении
          * @param value
          * @return variable_type
          */
-        static variable_type type_variable_value(variable_value value);
+        static VariableType type_variable_value(VariableValue value);
 
 
         /**
@@ -139,7 +140,7 @@ namespace compiler
          * @param type
          * @return
          */
-        static size_t byte_on_type(variable_type type);
+        static size_t byte_on_type(VariableType type);
     };
 
 

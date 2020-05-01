@@ -1,15 +1,16 @@
 #pragma once
 #include <iostream>
 #include <string>
-#include "../../lexer/token/token.h"
-#include "../node/node.h"
-#include "../ast/ast.h"
+#include "../../lexer/token/Token.h"
+#include "../node/Node.h"
+#include "../ast/Ast.h"
 
 #include "asm_constants.h"
 
-namespace compiler
+namespace stc
 {
     using std::to_string;
+    using std::ofstream;
 
     enum class asm_place_for_writing
     {
@@ -20,26 +21,26 @@ namespace compiler
     };
 
 
-    class generic_asm
+    class Asm
     {
     private:
-        std::ofstream _file;
-        ast* _ast;
+        ofstream m_file;
+        Ast* m_ast;
 
         // blocks
-        string _data;
-        string _before_main;
-        string _function_implementations;
-        string _main;
+        string m_data;
+        string m_before_main;
+        string m_function_implementations;
+        string m_main;
 
-        string* _current_place_for_writing;
+        string* m_current_place_for_writing;
 
     private:
-        size_t _byte_on_stack;
+        size_t m_byte_on_stack;
 
     public:
-        explicit generic_asm(const string& file_name, ast* tree);
-        ~generic_asm();
+        explicit Asm(const string& file_name, Ast* tree);
+        ~Asm();
 
 
     public:
@@ -70,16 +71,16 @@ namespace compiler
 
     private:
 
-        void blocks_recursive(node* current_node);
-        void expression_recursive(node* current_node);
-        void relation_expression_recursive(node* current_node);
-        void function_implementation_recursive(node* current_node);
-        void function_implementation_args_recursive(node* current_node, size_t& stack_shift);
+        void blocks_recursive(Node* current_node);
+        void expression_recursive(Node* current_node);
+        void relation_expression_recursive(Node* current_node);
+        void function_implementation_recursive(Node* current_node);
+        void function_implementation_args_recursive(Node* current_node, size_t& stack_shift);
 
-        void init_string_constants_recursive(node* current_node, size_t& count_constant);
+        void init_string_constants_recursive(Node* current_node, size_t& count_constant);
 
-        void init_arguments_on_stack_recursive(node* current_node);
-        void init_global_functions_recursive(node* current_node);
+        void init_arguments_on_stack_recursive(Node* current_node);
+        void init_global_functions_recursive(Node* current_node);
 
 
 
@@ -98,11 +99,11 @@ namespace compiler
 
 
 
-        void stack_variable(const variable* var);
-        void stack_argument(const variable* var);
+        void stack_variable(const Variable* var);
+        void stack_argument(const Variable* var);
 
-        void global_variable(const variable* var);
-        void global_array(const array& arr);
+        void global_variable(const Variable* var);
+        void global_array(const Array& arr);
 
         // stack
         void push(const string& value);

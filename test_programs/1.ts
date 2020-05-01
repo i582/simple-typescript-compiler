@@ -94,3 +94,5 @@ function find_determinant(matrix: number[], help_matrix: number[], base_minor: n
 
     return help_minor / base_minor;
 }
+
+export {find_determinant};

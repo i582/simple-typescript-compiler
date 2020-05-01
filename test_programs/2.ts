@@ -1,3 +1,6 @@
+import find_determinant from "./1"
+
+
 function print(n: number): void;
 function println(n: string): void;
 
@@ -5,6 +8,8 @@ const size: number = 5;
 const began: number = 3;
 const max: number = 10000;
 
+
+find_determinant();
 
 let matrix: number[] = [0, 10000, 2, 123, 124,
     10000, 0, 34, 44, 56,

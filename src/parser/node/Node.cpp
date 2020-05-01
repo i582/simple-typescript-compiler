@@ -1,8 +1,8 @@
-#include "node.h"
+#include "Node.h"
 
-compiler::node::node(compiler::node_type type_, const any& value_, compiler::node* operand1_,
-                     compiler::node* operand2_, compiler::node* operand3_, compiler::node* operand4_,
-                     variable_table* vars_)
+stc::Node::Node(stc::NodeType type_, const any& value_, stc::Node* operand1_,
+                stc::Node* operand2_, stc::Node* operand3_, stc::Node* operand4_,
+                VariableTable* vars_)
 {
     this->type = type_;
     this->value = value_;
@@ -11,267 +11,257 @@ compiler::node::node(compiler::node_type type_, const any& value_, compiler::nod
     this->operand3 = operand3_;
     this->operand4 = operand4_;
     this->_statement_id = -1;
-    this->vars = vars_;
+    this->variables = vars_;
 
-    this->_in_function_id = -1;
 }
 
-void compiler::node::statement_id(size_t statement_id)
+void stc::Node::statement_id(size_t statement_id)
 {
     _statement_id = statement_id;
 }
 
-size_t compiler::node::statement_id() const
+size_t stc::Node::statement_id() const
 {
     return _statement_id;
 }
 
-std::string compiler::node::node_type_to_string(compiler::node_type type)
+std::string stc::Node::node_type_to_string(stc::NodeType type)
 {
     switch (type)
     {
-        case node_type::VARIABLE_DECLARATION:
+        case NodeType::VARIABLE_DECLARATION:
         {
             return "var decl";
         }
-        case node_type::USING_VARIABLE:
+        case NodeType::USING_VARIABLE:
         {
             return "var use";
         }
-        case node_type::VARIABLE_TYPE:
+        case NodeType::VARIABLE_TYPE:
         {
             return "var type";
         }
-        case node_type::CONSTANT_DECLARATION:
+        case NodeType::CONSTANT_DECLARATION:
         {
             return "const decl";
         }
-        case node_type::USING_CONSTANT:
+        case NodeType::USING_CONSTANT:
         {
             return "const use";
         }
-        case node_type::NUMBER_CONST:
+        case NodeType::NUMBER_CONST:
         {
             return "number const";
         }
-        case node_type::BOOLEAN_CONST:
+        case NodeType::BOOLEAN_CONST:
         {
             return "boolean const";
         }
-        case node_type::ADD:
+        case NodeType::ADD:
         {
             return "add (+)";
         }
-        case node_type::SUB:
+        case NodeType::SUB:
         {
             return "sub (-)";
         }
-        case node_type::MUL:
+        case NodeType::MUL:
         {
             return "mul (*)";
         }
-        case node_type::DIV:
+        case NodeType::DIV:
         {
             return "div (/)";
         }
-        case node_type::LESS:
+        case NodeType::LESS:
         {
             return "less (<)";
         }
-        case node_type::GREATER:
+        case NodeType::GREATER:
         {
             return "greater (>)";
         }
-        case node_type::EQUAL:
+        case NodeType::EQUAL:
         {
             return "equal (==)";
         }
-        case node_type::NOT_EQUAL:
+        case NodeType::NOT_EQUAL:
         {
             return "not equal (!=)";
         }
-        case node_type::LESS_EQUAL:
+        case NodeType::LESS_EQUAL:
         {
             return "less equal (<=)";
         }
-        case node_type::GREATER_EQUAL:
+        case NodeType::GREATER_EQUAL:
         {
             return "greater equal (>)";
         }
-        case node_type::FOR:
+        case NodeType::FOR:
         {
             return "for";
         }
-        case node_type::WHILE:
+        case NodeType::WHILE:
         {
             return "while";
         }
-        case node_type::BREAK:
+        case NodeType::BREAK:
         {
             return "break";
         }
-        case node_type::CONTINUE:
+        case NodeType::CONTINUE:
         {
             return "continue";
         }
-        case node_type::IF:
+        case NodeType::IF:
         {
             return "if";
         }
-        case node_type::IF_ELSE:
+        case NodeType::IF_ELSE:
         {
             return "if else";
         }
-        case node_type::NON_TERMINAL_NAME:
+        case NodeType::IDENTIFIER:
         {
             return "non terminal name";
         }
-        case node_type::BEFORE_INC:
+        case NodeType::BEFORE_INC:
         {
             return "postfix inc (a++)";
         }
-        case node_type::BEFORE_DEC:
+        case NodeType::BEFORE_DEC:
         {
             return "postfix dec (a--)";
         }
-        case node_type::AFTER_INC:
+        case NodeType::AFTER_INC:
         {
             return "prefix inc (++a)";
         }
-        case node_type::AFTER_DEC:
+        case NodeType::AFTER_DEC:
         {
             return "prefix dec (--a)";
         }
-        case node_type::UNARY_PLUS:
+        case NodeType::UNARY_PLUS:
         {
             return "unary + (+a)";
         }
-        case node_type::UNARY_MINUS:
+        case NodeType::UNARY_MINUS:
         {
             return "unary - (-a)";
         }
-        case node_type::UNARY_EXCLAMATION:
+        case NodeType::UNARY_EXCLAMATION:
         {
             return "unary ! (!a)";
         }
-        case node_type::LOGICAL_AND:
+        case NodeType::LOGICAL_AND:
         {
             return "logic and (&&)";
         }
-        case node_type::LOGICAL_OR:
+        case NodeType::LOGICAL_OR:
         {
             return "logic or (||)";
         }
-        case node_type::SET:
+        case NodeType::SET:
         {
             return "set";
         }
-        case node_type::INDEX_CAPTURE:
+        case NodeType::INDEX_CAPTURE:
         {
             return "index capture";
         }
-        case node_type::FUNCTION_CALL:
+        case NodeType::FUNCTION_CALL:
         {
             return "function call";
         }
-        case node_type::FUNCTION_ARG:
+        case NodeType::FUNCTION_ARG:
         {
             return "function arg";
         }
-        case node_type::EXPRESSION:
+        case NodeType::EXPRESSION:
         {
             return "expr";
         }
-        case node_type::CONST_EXPRESSION:
+        case NodeType::CONST_EXPRESSION:
         {
             return "const expr";
         }
-        case node_type::STATEMENT:
+        case NodeType::STATEMENT:
         {
             return "stmt";
         }
-        case node_type::SEQ_STATEMENT:
+        case NodeType::SEQ_STATEMENT:
         {
             return "stmt seq";
         }
-        case node_type::STATEMENT_LIST:
+        case NodeType::STATEMENT_LIST:
         {
             return "stmt list";
         }
-        case node_type::PROGRAM:
+        case NodeType::PROGRAM:
         {
             return "program";
         }
-        case node_type::DO_WHILE:
+        case NodeType::DO_WHILE:
         {
             return " do (while)";
         }
-        case node_type::INITIALIZER:
+        case NodeType::INITIALIZER:
         {
             return "initializer";
         }
-        case node_type::INITIALIZER_LIST:
+        case NodeType::INITIALIZER_LIST:
         {
             return "initializer list";
         }
-        case node_type::NEW:
+        case NodeType::NEW:
         {
             return "new";
         }
-        case node_type::FUNCTION_IMPLEMENTATION:
+        case NodeType::FUNCTION_IMPLEMENTATION:
         {
             return "function impl";
         }
-        case node_type::FUNCTION_IMPLEMENTATION_ARG:
+        case NodeType::FUNCTION_IMPLEMENTATION_ARG:
         {
             return "function impl arg";
         }
-        case node_type::FUNCTION_IMPLEMENTATION_RETURN_TYPE:
+        case NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE:
         {
             return "function impl return type";
         }
-        case node_type::RETURN:
+        case NodeType::RETURN:
         {
             return "return";
         }
-        case node_type::FUNCTION_IMPLEMENTATION_ARGS:
+        case NodeType::FUNCTION_IMPLEMENTATION_ARGS:
         {
             return "function impl args";
         }
-        case node_type::FUNCTION_ARGS:
+        case NodeType::FUNCTION_ARGS:
         {
             return "function args";
         }
-        case node_type::STRING_CONST:
+        case NodeType::STRING_CONST:
         {
             return "string const";
         }
-        case node_type::EXPONENTIATION:
+        case NodeType::EXPONENTIATION:
         {
             return "exponentiation (**)";
         }
     }
 }
 
-size_t compiler::node::in_function_id() const
-{
-    return _in_function_id;
-}
 
-void compiler::node::in_function_id(size_t in_function_id)
+bool stc::Node::is_comparison_operator(NodeType type)
 {
-    _in_function_id = in_function_id;
-}
-
-bool compiler::node::is_comparison_operator(node_type type)
-{
-    return type == node_type::LESS ||
-           type == node_type::GREATER ||
-           type == node_type::LESS_EQUAL ||
-           type == node_type::GREATER_EQUAL ||
-           type == node_type::EQUAL ||
-           type == node_type::NOT_EQUAL ||
-           type == node_type::LOGICAL_AND ||
-           type == node_type::LOGICAL_OR ||
-           type == node_type::UNARY_EXCLAMATION;
+    return type == NodeType::LESS ||
+           type == NodeType::GREATER ||
+           type == NodeType::LESS_EQUAL ||
+           type == NodeType::GREATER_EQUAL ||
+           type == NodeType::EQUAL ||
+           type == NodeType::NOT_EQUAL ||
+           type == NodeType::LOGICAL_AND ||
+           type == NodeType::LOGICAL_OR ||
+           type == NodeType::UNARY_EXCLAMATION;
 }

@@ -5,28 +5,27 @@
 #include "variable.h"
 #include "tuple"
 
-namespace compiler
+namespace stc
 {
     using std::vector;
     using std::tuple;
 
 
 
-    class variable_table
+    class VariableTable
     {
     private:
-        size_t _block_id;
+        size_t m_block_id;
 
-        vector<variable*> _vars;
-        variable_table* _parent;
-
+        vector<Variable*> m_variables;
+        VariableTable* m_parent;
 
 
     public:
-        explicit variable_table(size_t block_id);
+        explicit VariableTable(size_t block_id);
 
-        variable_table();
-        ~variable_table();
+        VariableTable();
+        ~VariableTable();
 
     private:
         [[nodiscard]] string generate_prefix() const;
@@ -46,21 +45,21 @@ namespace compiler
          * @brief Функция для установки родительской таблицы
          * @param parent Указатель на родительскую таблицу
          */
-        void set_parent(variable_table* parent);
+        void set_parent(VariableTable* parent);
 
 
         /**
          * @brief Функция для добавления новой переменной
          * @param var Указатель на добавляемую переменную
          */
-        void add_variable(variable* var);
+        void add_variable(Variable* var);
 
 
 
 
 
 
-        [[nodiscard]] variable* get_variable_by_name(const string& name_) const;
+        [[nodiscard]] Variable* get_variable_by_name(const string& name_) const;
         
         
         /**
@@ -71,7 +70,7 @@ namespace compiler
          * @note Функция проходит по текущей таблице, если в ней такой переменной нет, она
          * ищет переменную в родительской таблице
          */
-        [[nodiscard]] tuple<size_t, variable*> get_variable_and_block_id_where_it_defined(const string& name) const;
+        [[nodiscard]] tuple<size_t, Variable*> get_variable_and_block_id_where_it_defined(const string& name) const;
 
 
 
@@ -100,7 +99,7 @@ namespace compiler
          * @throw Возбуждает исключение, если переменная не найдена
          * @return Указатель на переменную
          */
-        [[nodiscard]] variable* get_variable(const string& name, size_t block_id) const;
+        [[nodiscard]] Variable* get_variable(const string& name, size_t block_id) const;
 
 
         /**
@@ -112,7 +111,7 @@ namespace compiler
          * @throw Возбуждает исключение, если переменная не найдена ни в одной таблице
          * @return Указатель на переменную
          */
-        [[nodiscard]] variable* get_variable_globally(const string& name, size_t block_id) const;
+        [[nodiscard]] Variable* get_variable_globally(const string& name, size_t block_id) const;
 
 
 
@@ -121,7 +120,7 @@ namespace compiler
          * @brief Функция возвращающая константную ссылку на массив переменных
          * @return
          */
-        [[nodiscard]] const vector<variable*>& vars() const;
+        [[nodiscard]] const vector<Variable*>& vars() const;
 
 
         [[nodiscard]] string generate_variable_with_prefix(const string& variable_name) const;

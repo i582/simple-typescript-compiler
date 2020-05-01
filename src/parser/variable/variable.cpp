@@ -1,181 +1,181 @@
-#include <token/token.h>
+#include <token/Token.h>
 #include "variable.h"
 
-compiler::variable::variable(const std::string& variable_name, compiler::variable_type variable_type, size_t block_id,
-                                                                                                    bool is_const)
+stc::Variable::Variable(const std::string& variable_name, stc::VariableType variable_type, size_t block_id,
+                        bool is_const)
 {
-    this->_variable_name = variable_name;
-    this->_variable_type = variable_type;
+    this->m_variable_name = variable_name;
+    this->m_variable_type = variable_type;
 
 
-    this->_block_id = block_id;
-    this->_is_const = is_const;
-    this->_is_global_variable = false;
-    this->_is_argument_variable = false;
+    this->m_block_id = block_id;
+    this->m_is_const = is_const;
+    this->m_is_global = false;
+    this->m_is_argument = false;
 }
 
-void compiler::variable::print() const
+void stc::Variable::print() const
 {
-    cout << "name: '" << _variable_name << "' with type: '" << variable_type_to_string(_variable_type) << "' in block: '"
-                                                                                        << _block_id  << "'" << endl;
+    cout << "name: '" << m_variable_name << "' with type: '" << variable_type_to_string(m_variable_type) << "' in block: '"
+         << m_block_id << "'" << endl;
 }
 
-std::string compiler::variable::name() const
+std::string stc::Variable::name() const
 {
-    return _variable_name;
+    return m_variable_name;
 }
 
-bool compiler::variable::is_const() const
+bool stc::Variable::is_const() const
 {
-    return _is_const;
+    return m_is_const;
 }
 
-bool compiler::variable::has_equal_type(const compiler::variable& rhs_)
+bool stc::Variable::has_equal_type(const stc::Variable& rhs_)
 {
-    return _variable_type == rhs_._variable_type &&
-           _is_const == rhs_._is_const;
+    return m_variable_type == rhs_.m_variable_type &&
+           m_is_const == rhs_.m_is_const;
 }
 
-compiler::variable_type compiler::variable::type() const
+stc::VariableType stc::Variable::type() const
 {
-    return _variable_type;
+    return m_variable_type;
 }
 
-bool compiler::variable::is_array() const
+bool stc::Variable::is_array() const
 {
-    return (size_t)_variable_type >= (size_t)variable_type::NUMBER_ARRAY;
+    return (size_t)m_variable_type >= (size_t)VariableType::NUMBER_ARRAY;
 }
 
-compiler::variable_type compiler::variable::variable_type_from_token_type(compiler::token_type token_type_)
+stc::VariableType stc::Variable::variable_type_from_token_type(stc::TokenType token_type_)
 {
     auto value = (int)token_type_;
-    return variable_type(value);
+    return VariableType(value);
 }
 
-bool compiler::variable::is_types_reducible(variable_type type1, variable_type type2)
+bool stc::Variable::is_types_reducible(VariableType type1, VariableType type2)
 {
-    return type1 == type2 || type2 == variable_type::ANY;
+    return type1 == type2 || type2 == VariableType::ANY;
 }
 
-std::string compiler::variable::variable_type_to_string(variable_type type)
+std::string stc::Variable::variable_type_to_string(VariableType type)
 {
     switch (type)
     {
-        case variable_type::UNDEFINED:
+        case VariableType::UNDEFINED:
             return "undefined";
-        case variable_type::NUMBER:
+        case VariableType::NUMBER:
             return "number";
-        case variable_type::BOOLEAN:
+        case VariableType::BOOLEAN:
             return "boolean";
-        case variable_type::VOID:
+        case VariableType::VOID:
             return "void";
-        case variable_type::STRING:
+        case VariableType::STRING:
             return "string";
-        case variable_type::NUMBER_ARRAY:
+        case VariableType::NUMBER_ARRAY:
             return "number[]";
-        case variable_type::BOOLEAN_ARRAY:
+        case VariableType::BOOLEAN_ARRAY:
             return "boolean[]";
-        case variable_type::VOID_ARRAY:
+        case VariableType::VOID_ARRAY:
             return "void[]";
-        case variable_type::STRING_ARRAY:
+        case VariableType::STRING_ARRAY:
             return "string[]";
         default:
             return "not defined, possible error";
     }
 }
 
-void compiler::variable::block_id(size_t block_id)
+void stc::Variable::block_id(size_t block_id)
 {
-    _block_id = block_id;
+    m_block_id = block_id;
 }
 
-size_t compiler::variable::block_id() const
+size_t stc::Variable::block_id() const
 {
-    return _block_id;
+    return m_block_id;
 }
 
-bool compiler::variable::is_array_type(compiler::variable_type type)
+bool stc::Variable::is_array_type(stc::VariableType type)
 {
-    return (size_t)type >= (size_t)variable_type::NUMBER_ARRAY;
+    return (size_t)type >= (size_t)VariableType::NUMBER_ARRAY;
 }
 
-std::string compiler::variable::name_with_postfix() const
+std::string stc::Variable::name_with_postfix() const
 {
-    return _variable_name + std::to_string(_block_id);
+    return m_variable_name + std::to_string(m_block_id);
 }
 
-compiler::variable_type compiler::variable::type_of_array_type(variable_type type)
+stc::VariableType stc::Variable::type_of_array_type(VariableType type)
 {
-    return (variable_type)(size_t(type) >> 4);
+    return (VariableType)(size_t(type) >> 4);
 }
 
-compiler::variable_type compiler::variable::type_variable_value(variable_value value)
+stc::VariableType stc::Variable::type_variable_value(VariableValue value)
 {
-    variable_type type = variable_type::UNDEFINED;
+    VariableType type = VariableType::UNDEFINED;
 
     std::visit(overload {
         [&](const number& n)
         {
-            type = variable_type::NUMBER;
+            type = VariableType::NUMBER;
         },
         [&](const string& s)
         {
-            type = variable_type::STRING;
+            type = VariableType::STRING;
         },
         [&](const bool b)
         {
-            type = variable_type::BOOLEAN;
+            type = VariableType::BOOLEAN;
         }
     }, value);
 
     return type;
 }
 
-size_t compiler::variable::byte_on_type(variable_type type)
+size_t stc::Variable::byte_on_type(VariableType type)
 {
     switch (type)
     {
-        case variable_type::UNDEFINED:
+        case VariableType::UNDEFINED:
             return 0;
-        case variable_type::NUMBER:
+        case VariableType::NUMBER:
             return 4;
-        case variable_type::BOOLEAN:
+        case VariableType::BOOLEAN:
             return 4;
-        case variable_type::STRING:
+        case VariableType::STRING:
             return 4;
-        case variable_type::VOID:
+        case VariableType::VOID:
             return 0;
-        case variable_type::ANY:
+        case VariableType::ANY:
             return 0;
-        case variable_type::NUMBER_ARRAY:
+        case VariableType::NUMBER_ARRAY:
             return 4;
-        case variable_type::BOOLEAN_ARRAY:
+        case VariableType::BOOLEAN_ARRAY:
             return 4;
-        case variable_type::STRING_ARRAY:
+        case VariableType::STRING_ARRAY:
             return 4;
-        case variable_type::VOID_ARRAY:
+        case VariableType::VOID_ARRAY:
             return 0;
         default:
             return 0;
     }
 }
 
-void compiler::variable::is_global_variable(bool is_global_variable)
+void stc::Variable::is_global_variable(bool is_global_variable)
 {
-    _is_global_variable = is_global_variable;
+    m_is_global = is_global_variable;
 }
 
-bool compiler::variable::is_global_variable() const
+bool stc::Variable::is_global_variable() const
 {
-    return _is_global_variable;
+    return m_is_global;
 }
 
-bool compiler::variable::is_argument_variable() const
+bool stc::Variable::is_argument_variable() const
 {
-    return _is_argument_variable;
+    return m_is_argument;
 }
 
-void compiler::variable::is_argument_variable(bool is_argument_variable)
+void stc::Variable::is_argument_variable(bool is_argument_variable)
 {
-    _is_argument_variable = is_argument_variable;
+    m_is_argument = is_argument_variable;
 }

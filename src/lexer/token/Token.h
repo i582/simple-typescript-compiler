@@ -2,19 +2,19 @@
 #include <iostream>
 #include <string>
 
-namespace compiler
+namespace stc
 {
     using std::string;
     using std::cout;
     using std::endl;
 
-    enum class token_type
+    enum class TokenType
     {
         NUMBER_CONST, // number const
         STRING_CONST, // string const
 
         // general for variable and function
-        NON_TERMINAL,
+        IDENTIFIER,
 
 
         // variables
@@ -121,41 +121,55 @@ namespace compiler
 
         // operator new
         NEW,
+
+
+        // classes
+        CLASS,
+        CONSTRUCTOR,
+        PRIVATE,
+        PUBLIC,
+        PROTECTED,
+        STATIC,
+        THIS,
+
+        INTERFACE,
     };
 
-    class token
+    class Token
     {
     private:
-        string _lexeme;
-        token_type _type;
+        string m_lexeme;
+        TokenType m_type;
 
-        size_t _line;
-        size_t _pos;
-
-    public:
-        explicit token(const string& lexeme, size_t line = 0, size_t pos = 0);
+        size_t m_line;
+        size_t m_pos;
 
     public:
-        [[nodiscard]] token_type type() const;
+        explicit Token(const string& lexeme, size_t line = 0, size_t pos = 0);
+
+    public:
+        [[nodiscard]] TokenType type() const;
         [[nodiscard]] string lexeme() const;
         [[nodiscard]] size_t line() const;
         [[nodiscard]] size_t pos() const;
 
-    public:
-        static bool is_hexadecimal(const string& lexeme);
 
+    public:
         static bool is_number(const string& lexeme);
         static bool is_string(const string& lexeme);
 
-        static bool is_unary_operator(token_type type);
-        static bool is_assignment_operator(token_type type);
+        static bool is_unary_operator(TokenType type);
+        static bool is_assignment_operator(TokenType type);
 
 
-        static bool is_this_type_is_type_of_variable(token_type type);
+        static bool is_this_type_is_type_of_variable(TokenType type);
 
-        static token_type what_type_of_lexeme(const string& lexeme);
+        static TokenType what_type_of_lexeme(const string& lexeme);
 
+
+        static bool isVisibilityModifier(TokenType type);
 
     };
+
 
 }
