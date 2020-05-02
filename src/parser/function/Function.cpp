@@ -1,6 +1,6 @@
 #include "Function.h"
 
-stc::Function::Function(const std::string& name, stc::ReturnType returnType,
+stc::Function::Function(const std::string& name, const ReturnType& returnType,
                         const std::vector<stc::ArgumentType>& arguments, size_t sizeLocalVariable)
 {
     this->m_name = name;
@@ -8,11 +8,6 @@ stc::Function::Function(const std::string& name, stc::ReturnType returnType,
     this->m_arguments = arguments;
     this->m_argumentsSizeInByte = 0;
     this->m_localVariableSizeInByte = sizeLocalVariable;
-
-    for (const auto& argument : arguments)
-    {
-        this->m_argumentsSizeInByte += argument.countByte();
-    }
 }
 
 std::string stc::Function::name() const noexcept
@@ -33,7 +28,6 @@ const std::vector<stc::ArgumentType>& stc::Function::arguments() const noexcept
 bool stc::Function::operator==(const stc::Function& rhs) const noexcept
 {
     auto eq = m_name == rhs.m_name &&
-              m_returnType == rhs.m_returnType &&
               m_arguments.size() == rhs.m_arguments.size();
 
 

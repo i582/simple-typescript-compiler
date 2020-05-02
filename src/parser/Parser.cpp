@@ -52,6 +52,10 @@ void stc::Parser::check()
     m_tree->identifyClasses();
     m_tree->identifyInterfaces();
 
+    m_tree->setConnectionTypeClass();
+
+    m_tree->checkClassAccess();
+
 //    m_tree->markBreakContinueOperators();
 //    m_tree->markReturnOperators();
 //
@@ -750,27 +754,9 @@ stc::Node* stc::Parser::declaration_statement()
 
 stc::Node* stc::Parser::declarationType()
 {
-    Node* tempNode = nullptr;
-
-
-
     eat(TokenType::COLON);
 
-
-
-    auto variableType = eat(TokenType::IDENTIFIER);
-
-
-    tempNode = new Node(NodeType::VARIABLE_TYPE, variableType);
-
-
-    if (tryEat(TokenType::LSQR))
-    {
-        eat(TokenType::RSQR);
-    }
-
-
-    return tempNode;
+    return declarationTypeStatement();
 }
 
 stc::Node* stc::Parser::initializer()

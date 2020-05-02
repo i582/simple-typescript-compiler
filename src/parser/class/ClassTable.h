@@ -18,7 +18,7 @@ public:
     _NODISCARD bool contains(const Class& a_class) const noexcept;
 
 public:
-    _NODISCARD Class& get(const string& a_class);
+    _NODISCARD Class* get(const string& name);
 
 public:
     _NODISCARD const vector<Class>& raw() const noexcept;

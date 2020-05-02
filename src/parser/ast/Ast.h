@@ -5,8 +5,7 @@
 #include "../node/Node.h"
 #include "../class/ClassTable.h"
 #include "../interface/InterfaceTable.h"
-#include "../types/types.h"
-
+#include "../types/genericType.h"
 
 namespace stc
 {
@@ -82,8 +81,8 @@ public:
 
     void identifyFunctions();
     void identifyFunctionsRecursive(Node* currentNode);
-    void identifyFunctionArgumentsRecursive(Node* currentNode, vector<Type>& argumentTypes,
-                                            vector<Variable>& arguments);
+    void identifyFunctionArgumentsRecursive(Node* currentNode, vector<GenericType>& argumentTypes,
+                                            vector<Variable*>& arguments);
 
     void identifyFunctionLocalVariablesRecursive(Node* currentNode, size_t& size);
 
@@ -97,15 +96,32 @@ public:
     void identifyInterfaces();
     void identifyInterfacesRecursive(Node* currentNode);
     void identifyInterfaceFunctionsRecursive(Node* currentNode, size_t scopeId, FunctionTable& table);
+
+
+    void setConnectionTypeClass();
+
+
+    void checkClassAccess();
+    void checkClassAccessRecursive(Node* currentNode, string& className);
+
+
     // check functions
     void check_const();
 
     void check_array();
 
-    void check_functions_call();
+    void checkFunctionCall();
 
     void check_expression();
 
+
+    void checkFunctionsCallRecursive(Node* currentNode);
+
+    void identifyFunctionCallArgumentsRecursive(Node* node, vector<GenericType>* arguments);
+
+
+
+    void giveExpressionTypeRecursive(Node* current_node, GenericType& type);
 
 private:
     void markAllScopesRecursive(Node* currentNode);
@@ -118,17 +134,14 @@ private:
     void identifyScopesRecursive(Node* currentNode, Node* currentScopeNode);
 
 
+
 /*
 
 
 
 
 
-    void check_functions_call_recursive(Node* node);
 
-    void designate_function_call_arguments_recursive(Node* node, vector<VariableType>* arguments);
-
-    void check_expression_recursive(Node* node);
 
     void designate_arrays_recursive(Node* node);
 
@@ -141,7 +154,7 @@ private:
 
     void check_array_recursive(Node* current_node);
 
-    void give_expression_type_recursive(Node* current_node, VariableType& type);
+
 
 
     VariableType variable_type_of_node(Node* current_node);*/
@@ -149,7 +162,7 @@ private:
     Node* get_stmt_by_id(size_t stmt_id);
 
 private:
-    void error(const string& message);
+    static void error(const string& message);
 
     void print(Node* currentNode, size_t level) const;
 

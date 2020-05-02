@@ -9,8 +9,8 @@ namespace stc
 using std::string;
 using std::vector;
 
-using ReturnType = Type;
-using ArgumentType = Type;
+using ReturnType = GenericType;
+using ArgumentType = GenericType;
 
 class Function
 {
@@ -24,7 +24,7 @@ private:
 
 
 public:
-    Function(const string& name, ReturnType returnType, const vector<ArgumentType>& arguments,
+    Function(const string& name, const ReturnType& returnType, const vector<ArgumentType>& arguments,
              size_t sizeLocalVariable = 0);
 
 

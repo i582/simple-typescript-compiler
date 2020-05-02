@@ -16,20 +16,20 @@ bool stc::ClassTable::contains(const stc::Class& a_class) const noexcept
     return false;
 }
 
-stc::Class& stc::ClassTable::get(const std::string& a_class)
+stc::Class* stc::ClassTable::get(const std::string& name)
 {
     auto it = std::find_if(m_classes.begin(), m_classes.end(), [&](const Class& t_class)
     {
-        return t_class.name() == a_class;
+        return t_class.name() == name;
     });
 
     if (it == m_classes.end())
     {
-        cout << "Error! Class with name '" + a_class + "' not found!" << endl;
+        cout << "Error! Class with name '" + name + "' not found!" << endl;
         throw std::logic_error("");
     }
 
-    return *it;
+    return &*it;
 }
 
 const std::vector<stc::Class>& stc::ClassTable::raw() const noexcept

@@ -8,7 +8,8 @@
 
 #include "../../lexer/token/Token.h"
 
-#include "../types/types.h"
+#include "../types/genericType.h"
+
 
 namespace stc
 {
@@ -25,7 +26,7 @@ class Variable
 {
 private:
     string m_variableName;
-    Type m_variableType;
+    GenericType m_variableType;
 
     bool m_isConst;
 
@@ -37,7 +38,7 @@ private:
     bool m_isArgument;
 
 public:
-    Variable(const string& name, const Type& type, size_t scopeId, bool isConst = false);
+    Variable(const string& name, const GenericType& type, size_t scopeId, bool isConst = false);
 
 
 public:
@@ -45,7 +46,8 @@ public:
 
     _NODISCARD string name() const noexcept;
     _NODISCARD string nameWithScopeId() const noexcept;
-    _NODISCARD const Type& type() const noexcept;
+    _NODISCARD const GenericType& type() const noexcept;
+    _NODISCARD GenericType& type() noexcept;
 
     _NODISCARD bool isConst() const noexcept;
     _NODISCARD size_t scopeIdWhereVariableDeclared() const noexcept;

@@ -5,7 +5,7 @@
 #include "../../lexer/Lexer.h"
 #include "ast/Ast.h"
 #include "class/Class.h"
-
+#include "types/genericType.h"
 
 namespace stc
 {
@@ -179,7 +179,12 @@ namespace stc
 
         Node* declarationTypeStatement()
         {
-            auto fieldTypeString = eat([](TokenType type){ return Token::is_this_type_is_type_of_variable(type); });
+            auto fieldTypeString = eat([](TokenType type)
+            {
+                return  type == TokenType::IDENTIFIER || type == TokenType::NUMBER ||
+                        type == TokenType::BOOLEAN || type == TokenType::STRING ||
+                        type == TokenType::VOID || type == TokenType::ANY;
+            });
             auto isArray = false;
 
             if (tryEat(TokenType::LSQR))
@@ -191,7 +196,7 @@ namespace stc
                 eat(TokenType::RSQR);
             }
 
-            Type declarationType(fieldTypeString, isArray);
+            GenericType declarationType(fieldTypeString);
 
             return new Node(NodeType::DECLARATION_TYPE, declarationType);
         }
@@ -219,7 +224,7 @@ namespace stc
 
             auto functionArgumentsNode = functionDeclarationArgumentsStatement();
 
-            auto returnTypeNode = new Node(NodeType::DECLARATION_TYPE, Type(FundamentalType::VOID));
+            auto returnTypeNode = new Node(NodeType::DECLARATION_TYPE, GenericType("void"));
 
             if (tryEat(TokenType::COLON))
             {
@@ -416,7 +421,7 @@ namespace stc
 
             auto functionArgumentsNode = functionDeclarationArgumentsStatement();
 
-            auto returnTypeNode = new Node(NodeType::DECLARATION_TYPE, Type(FundamentalType::VOID));
+            auto returnTypeNode = new Node(NodeType::DECLARATION_TYPE, GenericType("void"));
 
             if (tryEat(TokenType::COLON))
             {

@@ -5,6 +5,15 @@ interface Number2
     toFixed(fractionDigits: number): number;
 }
 
+class Number
+{
+    sagas: number;
+
+    toString(): number {}
+
+    toFixed(fractionDigits: number): number {}
+}
+
 class Test
 {
     public name: number;

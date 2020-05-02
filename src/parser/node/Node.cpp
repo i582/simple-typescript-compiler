@@ -25,7 +25,7 @@ size_t stc::Node::scopeId() const
     return m_scopeId;
 }
 
-std::string stc::Node::node_type_to_string(stc::NodeType type)
+std::string stc::Node::nodeTypeToString(stc::NodeType type)
 {
     switch (type)
     {

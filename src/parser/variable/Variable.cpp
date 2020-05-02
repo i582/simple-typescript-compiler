@@ -1,7 +1,8 @@
 #include <token/Token.h>
 #include "Variable.h"
+#include "../class/Class.h"
 
-stc::Variable::Variable(const string& name, const Type& type, size_t scopeId, bool isConst)
+stc::Variable::Variable(const string& name, const GenericType& type, size_t scopeId, bool isConst)
 {
     this->m_variableName = name;
     this->m_variableType = type;
@@ -15,8 +16,11 @@ stc::Variable::Variable(const string& name, const Type& type, size_t scopeId, bo
 
 void stc::Variable::print() const noexcept
 {
-    cout << "Variable name: '" << m_variableName << "'. Type: '" << m_variableType.toString() <<
-    "'. Declared in block: '" << m_scopeId << "'" << endl;
+    cout << "Variable name: '" << m_variableName << "'. Type: '" << m_variableType.toString() << "'. ";
+
+    cout << "Ref to '0x" << m_variableType.getClass() << "' class. ";
+
+    cout << "Declared in block: '" << m_scopeId << "'" << endl;
 }
 
 std::string stc::Variable::name() const noexcept
@@ -29,7 +33,12 @@ bool stc::Variable::isConst() const noexcept
     return m_isConst;
 }
 
-const stc::Type& stc::Variable::type() const noexcept
+const stc::GenericType& stc::Variable::type() const noexcept
+{
+    return m_variableType;
+}
+
+stc::GenericType& stc::Variable::type() noexcept
 {
     return m_variableType;
 }

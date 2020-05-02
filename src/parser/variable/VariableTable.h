@@ -16,7 +16,7 @@ class VariableTable
 private:
     size_t m_scopeId{};
 
-    vector<Variable> m_variables;
+    vector<Variable*> m_variables;
     VariableTable* m_parent{};
 
 
@@ -29,12 +29,12 @@ public:
     void setParentTable(VariableTable* parent) noexcept;
 
 public:
-    void add(const Variable& variable);
+    void add(Variable* variable);
 
 public:
-    _NODISCARD Variable& getByName(const string& variable);
+    _NODISCARD Variable* getByName(const string& variable);
     _NODISCARD tuple<size_t, Variable*> getVariableAndScopeIdWhereItDeclared(const string& name);
-    _NODISCARD Variable& getByNameAndScopeId(const string& name, size_t block_id);
+    _NODISCARD Variable* getByNameAndScopeId(const string& name, size_t block_id);
 
 
 public:
@@ -45,8 +45,8 @@ public:
 
 public:
     _NODISCARD size_t scopeId() const noexcept;
-    _NODISCARD const vector<Variable>& raw() const;
-
+    _NODISCARD const vector<Variable*>& raw() const;
+    _NODISCARD vector<Variable*>& raw();
 
 public:
     void print() const noexcept;

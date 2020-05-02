@@ -150,7 +150,7 @@ namespace stc
         void setScopeId(size_t scopeId);
         _NODISCARD size_t scopeId() const;
 
-        static string node_type_to_string(NodeType type);
+        static string nodeTypeToString(NodeType type);
 
         static bool is_comparison_operator(NodeType type);
     };
