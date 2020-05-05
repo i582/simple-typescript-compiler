@@ -30,3 +30,6 @@ do
         break;
     }
 } while (num > 10);
+
+
+export {factorial};

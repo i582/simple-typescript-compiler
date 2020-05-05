@@ -3,9 +3,10 @@
 #include "../lexer/Lexer.h"
 #include "../parser/Parser.h"
 #include "../parser/ast/Ast.h"
+#include "../analyzer/Analyzer.h"
 #include "../parser/asm/Asm.h"
-
-#include "../console-color.hpp"
+#include "../log/Log.h"
+#include "../rang.hpp"
 
 namespace stc
 {
@@ -19,17 +20,25 @@ private:
     Ast* m_ast;
     Asm* m_asm;
 
+    Analyzer* m_analyzer;
+
     string m_inputFilePath;
+    string m_outputFilePath;
+
+    bool m_debugMode;
 
 public:
-    ICM(const string& inputFilePath, const string& outputFilePath)
+    ICM(const string& inputFilePath, const string& outputFilePath, bool debugMode = false)
     {
-        this->m_lexer = new Lexer(inputFilePath);
-        this->m_parser = new Parser(m_lexer);
-        this->m_ast = m_parser->ast();
-        this->m_asm = new Asm(outputFilePath, m_ast);
+        this->m_lexer = nullptr;
+        this->m_parser = nullptr;
+        this->m_ast = nullptr;
+        this->m_asm = nullptr;
+        this->m_analyzer = nullptr;
 
         this->m_inputFilePath = inputFilePath;
+        this->m_outputFilePath = outputFilePath;
+        this->m_debugMode = debugMode;
     }
 
     ~ICM()
@@ -38,16 +47,24 @@ public:
         delete m_parser;
         delete m_ast;
         delete m_asm;
+        delete m_analyzer;
     }
 
 public:
-    void compile(bool withoutLexer = false, bool withoutParser = false,
+    bool compile(bool withoutLexer = false, bool withoutParser = false,
                  bool withoutSymantic = false, bool withoutGenerate = false)
     {
-        cout << "-- Started compilation of the file \"" << m_inputFilePath << "\'" << endl;
+        Log::write("-- Started compilation of the file \"" + m_inputFilePath + "\'\n");
 
         try
         {
+            this->m_lexer = new Lexer(m_inputFilePath, m_debugMode);
+            this->m_parser = new Parser(m_lexer, m_debugMode);
+            this->m_ast = m_parser->ast();
+            this->m_asm = new Asm(m_outputFilePath, m_ast, m_debugMode);
+
+            this->m_analyzer = new Analyzer(m_ast);
+
             if (!withoutLexer)
             {
                 m_lexer->split();
@@ -66,10 +83,15 @@ public:
                 m_parser->printTree();
             }
 
-            if (!withoutGenerate)
-            {
-                m_asm->generate();
-            }
+            m_analyzer->identifyBaseBlocks();
+
+
+//            if (!withoutGenerate)
+//            {
+//                m_asm->generate();
+//            }
+
+            return true;
         }
         catch (const std::logic_error& error)
         {
@@ -89,6 +111,8 @@ public:
             std::cout << rang::fgB::red << rang::style::bold <<
             error.what()
             << rang::fg::reset << rang::style::reset << std::endl;
+
+            return false;
         }
     }
 

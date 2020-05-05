@@ -16,18 +16,18 @@ stc::Variable::Variable(const std::string& variableName, stc::VariableType varia
 
 void stc::Variable::print() const
 {
-    cout << "{ ";
+    Log::write("{ ");
 
-    cout << "Variable name: ";
-    cout << std::setw(20) << std::left << ("'" + m_variableName + "', ");
+    Log::write("Variable name: ");
+    Log::write("'" + m_variableName + "', ");
 
-    cout << "Type: ";
-    cout << std::setw(15) << std::left << ("'" + variableTypeToString(m_variableType) + "', ");
+    Log::write("Type: ");
+    Log::write("'" + variableTypeToString(m_variableType) + "', ");
 
-    cout << "Scope ID: ";
-    cout << std::setw(3) << std::left  << m_scopeId;
+    Log::write("Scope ID: ");
+    Log::write(std::to_string(m_scopeId));
 
-    cout << " }\n";
+    Log::write(" }\n");
 }
 
 std::string stc::Variable::name() const

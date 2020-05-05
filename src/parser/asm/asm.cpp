@@ -1,12 +1,14 @@
 #include "Asm.h"
 
-stc::Asm::Asm(const std::string& outputFilePath, stc::Ast* tree)
+stc::Asm::Asm(const std::string& outputFilePath, stc::Ast* tree, bool debugMode)
 {
-    m_file.open(outputFilePath);
-    m_ast = tree;
-    m_current_place_for_writing = &m_main;
+    this->m_file.open(outputFilePath);
+    this->m_ast = tree;
+    this->m_current_place_for_writing = &m_main;
 
-    m_byte_on_stack = 4;
+    this->m_byte_on_stack = 4;
+
+    this->m_debugMode = debugMode;
 }
 
 stc::Asm::~Asm()
@@ -16,7 +18,7 @@ stc::Asm::~Asm()
 
 void stc::Asm::generate()
 {
-    cout << "-- Started preparation for code generation" << endl;
+    Log::write("-- Started preparation for code generation\n");
 
     init_string_constants();
     init_operands_for_division();
@@ -25,10 +27,10 @@ void stc::Asm::generate()
     init_function_arguments();
     initGlobalFunctions();
 
-    cout << "-- Preparation for code generation done" << endl;
+    Log::write("-- Preparation for code generation done\n");
 
-    cout << "-- Started code generation" << endl;
-    blocks_to_asm();
+    Log::write("-- Started code generation\n");
+    blocksToAsm();
 
     write(asm_header);
 
@@ -53,7 +55,7 @@ void stc::Asm::generate()
     write(text_end);
     write(label_end);
 
-    cout << "-- Code generation done" << endl;
+    Log::write("-- Code generation done\n");
 }
 
 void stc::Asm::init_local_variables()
@@ -103,20 +105,20 @@ void stc::Asm::init_function_arguments()
     }
 }
 
-void stc::Asm::blocks_to_asm()
+void stc::Asm::blocksToAsm()
 {
-    blocks_recursive(m_ast->m_root);
+    blockToAsmRecursive(m_ast->m_root);
 }
 
-void stc::Asm::blocks_recursive(stc::Node* current_node)
+void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
 {
-    if (current_node == nullptr)
+    if (currentNode == nullptr)
         return;
 
-    if (current_node->type == NodeType::SET)
+    if (currentNode->type == NodeType::SET)
     {
-        Node* op1 = current_node->operand1;
-        Node* op2 = current_node->operand2;
+        Node* op1 = currentNode->operand1;
+        Node* op2 = currentNode->operand2;
 
         if (op1->type == NodeType::USING_VARIABLE ||
             op1->type == NodeType::VARIABLE_DECLARATION ||
@@ -133,7 +135,7 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
             if (is_array)
                 return;
 
-            expression_recursive(op2);
+            expressionToAsmRecursive(op2);
 
             // pop eax
             pop(eax);
@@ -198,10 +200,10 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
                     break;
             }
 
-            expression_recursive(op2);
+            expressionToAsmRecursive(op2);
             pop(edx);
 
-            expression_recursive(index_node->operand1);
+            expressionToAsmRecursive(index_node->operand1);
             pop(ecx);
             imul(ecx, array_item_shift);
 
@@ -224,29 +226,29 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
 
         return;
     }
-    else if (Node::isComparisonOperator(current_node->type))
+    else if (Node::isComparisonOperator(currentNode->type))
     {
-        relation_expression_recursive(current_node);
+        relation_expression_recursive(currentNode);
         return;
     }
-    else if (current_node->type == NodeType::IF
-             || current_node->type == NodeType::IF_ELSE)
+    else if (currentNode->type == NodeType::IF
+             || currentNode->type == NodeType::IF_ELSE)
     {
-        Node* condition         = current_node->operand1->operand1;
-        Node* statement         = current_node->operand2;
-        Node* else_statement    = current_node->operand3;
+        Node* condition         = currentNode->operand1->operand1;
+        Node* statement         = currentNode->operand2;
+        Node* else_statement    = currentNode->operand3;
 
         string start_label_     = "_if_start_" + to_string(statement->scopeId());
         string end_label_       = "_if_end_" + to_string(statement->scopeId());
         string else_label_      = "_if_else_" + to_string(statement->scopeId());
 
 
-        blocks_recursive(condition);
+        blockToAsmRecursive(condition);
         pop(eax);
         cmp(eax, null);
 
         string end_or_else_label = end_label_;
-        if (current_node->type == NodeType::IF_ELSE)
+        if (currentNode->type == NodeType::IF_ELSE)
         {
             end_or_else_label = else_label_;
         }
@@ -256,28 +258,28 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
 
 
 
-        if (current_node->type == NodeType::IF_ELSE)
+        if (currentNode->type == NodeType::IF_ELSE)
         {
             // label:
             label(start_label_);
-            blocks_recursive(statement);
+            blockToAsmRecursive(statement);
 
             // jmp label
             jmp(end_label_);
 
             // label:
             label(else_label_);
-            blocks_recursive(else_statement);
+            blockToAsmRecursive(else_statement);
 
             // label:
             label(end_label_);
 
         }
-        else if (current_node->type == NodeType::IF)
+        else if (currentNode->type == NodeType::IF)
         {
             // label:
             label(start_label_);
-            blocks_recursive(statement);
+            blockToAsmRecursive(statement);
 
             // label:
             label(end_label_);
@@ -285,10 +287,10 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
 
         return;
     }
-    else if (current_node->type == NodeType::WHILE)
+    else if (currentNode->type == NodeType::WHILE)
     {
-        Node* condition = current_node->operand1->operand1;
-        Node* statement = current_node->operand2;
+        Node* condition = currentNode->operand1->operand1;
+        Node* statement = currentNode->operand2;
 
         string start_label_     = "_loop_start_" + std::to_string(statement->scopeId());
         string end_label_       = "_loop_end_" + std::to_string(statement->scopeId());
@@ -299,7 +301,7 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
         label(aftereffects_label_);
 
 
-        blocks_recursive(condition);
+        blockToAsmRecursive(condition);
 
         pop(eax);
         cmp(eax, null);
@@ -307,7 +309,7 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
         je(end_label_);
 
         // label:
-        blocks_recursive(statement);
+        blockToAsmRecursive(statement);
         jmp(start_label_);
 
         // label:
@@ -315,10 +317,10 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
 
         return;
     }
-    else if (current_node->type == NodeType::DO_WHILE)
+    else if (currentNode->type == NodeType::DO_WHILE)
     {
-        Node* condition = current_node->operand1->operand1;
-        Node* statement = current_node->operand2;
+        Node* condition = currentNode->operand1->operand1;
+        Node* statement = currentNode->operand2;
 
         string start_label_     = "_loop_start_" + std::to_string(statement->scopeId());
         string end_label_       = "_loop_end_" + std::to_string(statement->scopeId());
@@ -330,9 +332,9 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
 
 
         // label:
-        blocks_recursive(statement);
+        blockToAsmRecursive(statement);
 
-        blocks_recursive(condition);
+        blockToAsmRecursive(condition);
 
         pop(eax);
         cmp(eax, null);
@@ -346,22 +348,22 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
 
         return;
     }
-    else if (current_node->type == NodeType::FOR)
+    else if (currentNode->type == NodeType::FOR)
     {
-        Node* prevention = current_node->operand1->operand1;
-        Node* condition = current_node->operand2->operand1;
-        Node* aftereffects = current_node->operand3->operand1;
-        Node* statement = current_node->operand4;
+        Node* prevention = currentNode->operand1->operand1;
+        Node* condition = currentNode->operand2->operand1;
+        Node* aftereffects = currentNode->operand3->operand1;
+        Node* statement = currentNode->operand4;
 
         string start_label_     = "_loop_start_" + std::to_string(statement->scopeId());
         string end_label_       = "_loop_end_" + std::to_string(statement->scopeId());
         string aftereffects_label_       = "_loop_aftereffects_" + std::to_string(statement->scopeId());
 
 
-        blocks_recursive(prevention);
+        blockToAsmRecursive(prevention);
         label(start_label_);
 
-        blocks_recursive(condition);
+        blockToAsmRecursive(condition);
 
         pop(eax);
         cmp(eax, null);
@@ -370,101 +372,101 @@ void stc::Asm::blocks_recursive(stc::Node* current_node)
 
 
         // label:
-        blocks_recursive(statement);
+        blockToAsmRecursive(statement);
         label(aftereffects_label_);
-        blocks_recursive(aftereffects);
+        blockToAsmRecursive(aftereffects);
         jmp(start_label_);
 
         // label:
         label(end_label_);
         return;
     }
-    else if (current_node->type == NodeType::BREAK)
+    else if (currentNode->type == NodeType::BREAK)
     {
-        auto block_id = current_node->scopeId() + 2;
+        auto block_id = currentNode->scopeId() + 2;
         string label_value = "_loop_end_" + to_string(block_id);
 
         jmp(label_value);
         return;
     }
-    else if (current_node->type == NodeType::CONTINUE)
+    else if (currentNode->type == NodeType::CONTINUE)
     {
-        auto block_id = current_node->scopeId() + 2;
+        auto block_id = currentNode->scopeId() + 2;
         string label_value = "_loop_aftereffects_" + std::to_string(block_id);
 
         jmp(label_value);
         return;
     }
 
-    else if (current_node->type == NodeType::FUNCTION_IMPLEMENTATION)
+    else if (currentNode->type == NodeType::FUNCTION_IMPLEMENTATION)
     {
         set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
 
-        function_implementation_recursive(current_node);
+        functionImplementationRecursive(currentNode);
 
         set_place_for_writing(asm_place_for_writing::MAIN);
 
         return;
     }
-    else if (current_node->type == NodeType::RETURN)
+    else if (currentNode->type == NodeType::RETURN)
     {
-        if (current_node->operand1->operand1 != nullptr)
+        if (currentNode->operand1->operand1 != nullptr)
         {
-            expression_recursive(current_node->operand1);
+            expressionToAsmRecursive(currentNode->operand1);
             pop(eax);
         }
 
-        auto arguments_size = any_cast<size_t>(current_node->value);
+        auto arguments_size = any_cast<size_t>(currentNode->value);
 
         procedure_epilogue();
         ret(to_string(arguments_size));
         return;
     }
-    else if (current_node->type == NodeType::FUNCTION_CALL)
+    else if (currentNode->type == NodeType::FUNCTION_CALL)
     {
-        expression_recursive(current_node);
+        expressionToAsmRecursive(currentNode);
         return;
     }
-    else if (current_node->type == NodeType::BEFORE_INC ||
-             current_node->type == NodeType::BEFORE_DEC)
+    else if (currentNode->type == NodeType::BEFORE_INC ||
+             currentNode->type == NodeType::BEFORE_DEC)
     {
-        expression_recursive(current_node);
+        expressionToAsmRecursive(currentNode);
         return;
     }
-    else if (current_node->type == NodeType::NUMBER_CONST ||
-             current_node->type == NodeType::BOOLEAN_CONST ||
-             current_node->type == NodeType::USING_VARIABLE ||
-             current_node->type == NodeType::USING_CONSTANT ||
-             current_node->type == NodeType::INDEX_CAPTURE ||
-             current_node->type == NodeType::UNARY_EXCLAMATION ||
-             current_node->type == NodeType::UNARY_MINUS)
+    else if (currentNode->type == NodeType::NUMBER_CONST ||
+             currentNode->type == NodeType::BOOLEAN_CONST ||
+             currentNode->type == NodeType::USING_VARIABLE ||
+             currentNode->type == NodeType::USING_CONSTANT ||
+             currentNode->type == NodeType::INDEX_CAPTURE ||
+             currentNode->type == NodeType::UNARY_EXCLAMATION ||
+             currentNode->type == NodeType::UNARY_MINUS)
     {
-        expression_recursive(current_node);
+        expressionToAsmRecursive(currentNode);
         return;
     }
-    else if (current_node->type == NodeType::EXPRESSION)
+    else if (currentNode->type == NodeType::EXPRESSION)
     {
-        blocks_recursive(current_node->operand1);
+        blockToAsmRecursive(currentNode->operand1);
         return;
     }
 
 
-    blocks_recursive(current_node->operand1);
-    blocks_recursive(current_node->operand2);
-    blocks_recursive(current_node->operand3);
-    blocks_recursive(current_node->operand4);
+    blockToAsmRecursive(currentNode->operand1);
+    blockToAsmRecursive(currentNode->operand2);
+    blockToAsmRecursive(currentNode->operand3);
+    blockToAsmRecursive(currentNode->operand4);
 }
 
-void stc::Asm::expression_recursive(stc::Node* current_node)
+void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
 {
-    if (current_node == nullptr)
+    if (currentNode == nullptr)
         return;
 
 
-    if (current_node->type == NodeType::ADD)
+    if (currentNode->type == NodeType::ADD)
     {
-        expression_recursive(current_node->operand1);
-        expression_recursive(current_node->operand2);
+        expressionToAsmRecursive(currentNode->operand1);
+        expressionToAsmRecursive(currentNode->operand2);
 
         // pop eax
         pop(eax);
@@ -475,10 +477,10 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
         // push eax
         push(eax);
     }
-    else if (current_node->type == NodeType::SUB)
+    else if (currentNode->type == NodeType::SUB)
     {
-        expression_recursive(current_node->operand1);
-        expression_recursive(current_node->operand2);
+        expressionToAsmRecursive(currentNode->operand1);
+        expressionToAsmRecursive(currentNode->operand2);
 
         // pop ebx
         pop(ebx);
@@ -489,10 +491,10 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
         // push eax
         push(eax);
     }
-    else if (current_node->type == NodeType::MUL)
+    else if (currentNode->type == NodeType::MUL)
     {
-        expression_recursive(current_node->operand1);
-        expression_recursive(current_node->operand2);
+        expressionToAsmRecursive(currentNode->operand1);
+        expressionToAsmRecursive(currentNode->operand2);
 
         // pop eax
         pop(eax);
@@ -503,10 +505,10 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
         // push eax
         push(eax);
     }
-    else if (current_node->type == NodeType::DIV)
+    else if (currentNode->type == NodeType::DIV)
     {
-        expression_recursive(current_node->operand1);
-        expression_recursive(current_node->operand2);
+        expressionToAsmRecursive(currentNode->operand1);
+        expressionToAsmRecursive(currentNode->operand2);
 
         // pop ebx
         pop(ebx);
@@ -523,9 +525,9 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
         fist("div_operand_1");
         push("div_operand_1");
     }
-    else if (current_node->type == NodeType::UNARY_MINUS)
+    else if (currentNode->type == NodeType::UNARY_MINUS)
     {
-        expression_recursive(current_node->operand1);
+        expressionToAsmRecursive(currentNode->operand1);
 
         // pop eax
         pop(eax);
@@ -534,9 +536,9 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
         // push eax
         push(eax);
     }
-    else if (current_node->type == NodeType::UNARY_EXCLAMATION)
+    else if (currentNode->type == NodeType::UNARY_EXCLAMATION)
     {
-        expression_recursive(current_node->operand1);
+        expressionToAsmRecursive(currentNode->operand1);
 
         // pop eax
         pop(eax);
@@ -544,17 +546,17 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
         logical_and(eax, one);
         push(eax);
     }
-    else if (current_node->type == NodeType::AFTER_INC ||
-             current_node->type == NodeType::AFTER_DEC)
+    else if (currentNode->type == NodeType::AFTER_INC ||
+             currentNode->type == NodeType::AFTER_DEC)
     {
         cout << "Current not supported a++ or a--!" << endl;
     }
-    else if (current_node->type == NodeType::BEFORE_INC)
+    else if (currentNode->type == NodeType::BEFORE_INC)
     {
         string variable_name;
         size_t block_id = 0;
 
-        auto value_node = current_node->operand1;
+        auto value_node = currentNode->operand1;
 
         if (value_node->type == NodeType::USING_VARIABLE ||
             value_node->type == NodeType::USING_CONSTANT)
@@ -606,16 +608,16 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
 
             auto set_node = Node(NodeType::SET, "", value_node, &sub_node);
 
-            blocks_recursive(&set_node);
+            blockToAsmRecursive(&set_node);
         }
 
     }
-    else if (current_node->type == NodeType::BEFORE_DEC)
+    else if (currentNode->type == NodeType::BEFORE_DEC)
     {
         string variable_name;
         size_t block_id = 0;
 
-        auto value_node = current_node->operand1;
+        auto value_node = currentNode->operand1;
 
         if (value_node->type == NodeType::USING_VARIABLE ||
             value_node->type == NodeType::USING_CONSTANT)
@@ -665,34 +667,34 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
 
             auto set_node = Node(NodeType::SET, "", value_node, &sub_node);
 
-            blocks_recursive(&set_node);
+            blockToAsmRecursive(&set_node);
         }
 
     }
-    else if (current_node->type == NodeType::NUMBER_CONST)
+    else if (currentNode->type == NodeType::NUMBER_CONST)
     {
         // push const
-        auto number_value = to_string((int)any_cast<number>(current_node->value));
+        auto number_value = to_string((int)any_cast<number>(currentNode->value));
         push(number_value);
     }
-    else if (current_node->type == NodeType::BOOLEAN_CONST)
+    else if (currentNode->type == NodeType::BOOLEAN_CONST)
     {
         // push const
-        auto number_value = to_string((size_t)any_cast<int>(current_node->value));
+        auto number_value = to_string((size_t)any_cast<int>(currentNode->value));
         push(number_value);
     }
-    else if (current_node->type == NodeType::STRING_CONST)
+    else if (currentNode->type == NodeType::STRING_CONST)
     {
         // push const
-        auto value_id = current_node->scopeId();
+        auto value_id = currentNode->scopeId();
         auto string_access = "string_const_" + to_string(value_id);
         push(offset(string_access));
     }
-    else if (current_node->type == NodeType::USING_VARIABLE ||
-             current_node->type == NodeType::USING_CONSTANT)
+    else if (currentNode->type == NodeType::USING_VARIABLE ||
+             currentNode->type == NodeType::USING_CONSTANT)
     {
-        auto variable_name = any_cast<string>(current_node->value);
-        auto block_id = current_node->scopeId();
+        auto variable_name = any_cast<string>(currentNode->value);
+        auto block_id = currentNode->scopeId();
         auto variable = m_ast->m_allVariables.getByNameAndScopeId(variable_name, block_id);
 
         variable_name += to_string(block_id);
@@ -714,21 +716,21 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
         }
 
     }
-    else if (Node::isComparisonOperator(current_node->type))
+    else if (Node::isComparisonOperator(currentNode->type))
     {
-        relation_expression_recursive(current_node);
+        relation_expression_recursive(currentNode);
     }
-    else if (current_node->type == NodeType::FUNCTION_CALL)
+    else if (currentNode->type == NodeType::FUNCTION_CALL)
     {
-        auto functionName = any_cast<string>(current_node->value);
+        auto functionName = any_cast<string>(currentNode->value);
 
         raw("\n");
         comment("init stack for " + functionName);
 
-        init_arguments_on_stack_recursive(current_node->operand1);
+        init_arguments_on_stack_recursive(currentNode->operand1);
 
         vector<VariableType> types;
-        m_ast->designateFunctionCallArgumentsRecursive(current_node->operand1, &types);
+        m_ast->identifyFunctionCallArgumentsRecursive(currentNode->operand1, types);
 
 
         Function* function;
@@ -757,10 +759,10 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
 
         return;
     }
-    else if (current_node->type == NodeType::INDEX_CAPTURE)
+    else if (currentNode->type == NodeType::INDEX_CAPTURE)
     {
-        auto op1 = current_node->operand1;
-        auto op2 = current_node->operand2;
+        auto op1 = currentNode->operand1;
+        auto op2 = currentNode->operand2;
 
         auto array_name = any_cast<string>(op1->value);
         auto block_id = op1->scopeId();
@@ -801,7 +803,7 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
                 break;
         }
 
-        expression_recursive(op2->operand1);
+        expressionToAsmRecursive(op2->operand1);
         pop(edx);
         imul(edx, array_item_shift);
 
@@ -822,9 +824,9 @@ void stc::Asm::expression_recursive(stc::Node* current_node)
 
         push("[esi[edx]]");
     }
-    else if (current_node->type == NodeType::EXPRESSION)
+    else if (currentNode->type == NodeType::EXPRESSION)
     {
-        expression_recursive(current_node->operand1);
+        expressionToAsmRecursive(currentNode->operand1);
     }
 }
 
@@ -951,9 +953,9 @@ void stc::Asm::relation_expression_recursive(Node* current_node)
         Node* op1 = current_node->operand1;
         Node* op2 = current_node->operand2;
 
-        expression_recursive(op1);
+        expressionToAsmRecursive(op1);
         pop(ecx);
-        expression_recursive(op2);
+        expressionToAsmRecursive(op2);
         pop(edx);
 
         // cmp ecx, edx
@@ -1042,7 +1044,7 @@ void stc::Asm::relation_expression_recursive(Node* current_node)
     }
 }
 
-void stc::Asm::function_implementation_recursive(stc::Node* current_node)
+void stc::Asm::functionImplementationRecursive(stc::Node* current_node)
 {
     if (current_node == nullptr)
         return;
@@ -1059,7 +1061,7 @@ void stc::Asm::function_implementation_recursive(stc::Node* current_node)
 
     vector<VariableType> types;
     vector<Variable*> variables;
-    m_ast->designate_function_arguments_recursive(current_node->operand2, types, variables);
+    m_ast->identifyFunctionArgumentsRecursive(current_node->operand2, types, variables);
 
     vector<VariableType> typesTemp;
 
@@ -1079,7 +1081,7 @@ void stc::Asm::function_implementation_recursive(stc::Node* current_node)
     auto stack_size = function->argumentsSize();
 
 
-    blocks_recursive(current_node->operand3);
+    blockToAsmRecursive(current_node->operand3);
 
     procedure_epilogue();
     ret(to_string(stack_size));
@@ -1094,7 +1096,7 @@ void stc::Asm::init_arguments_on_stack_recursive(stc::Node* current_node)
 
     if (current_node->type == NodeType::FUNCTION_ARGS)
     {
-        expression_recursive(current_node->operand1);
+        expressionToAsmRecursive(current_node->operand1);
     }
     else if (current_node->type == NodeType::FUNCTION_CALL)
     {
@@ -1327,8 +1329,6 @@ void stc::Asm::stack_variable(const Variable* var)
 {
     auto variable_name = var->nameWithPostfix();
     auto variable_size = Variable::typeSizeInByte(var->type());
-
-
 
     m_before_main.append(variable_name + " = " + "-" + to_string(m_byte_on_stack) + " ; size = " + to_string(variable_size) + "\n");
 

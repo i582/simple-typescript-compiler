@@ -2,7 +2,7 @@
 
 #include <functional>
 #include "asm/Asm.h"
-
+#include "../log/Log.h"
 
 namespace stc
 {
@@ -15,9 +15,10 @@ private:
     Lexer* m_lexer;
     Ast* m_tree;
 
+    bool m_debugMode;
 
 public:
-    explicit Parser(Lexer* lexer);
+    explicit Parser(Lexer* lexer, bool debugMode = false);
 
 public:
     void parse();

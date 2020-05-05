@@ -4,6 +4,7 @@
 #include <string>
 #include <variant>
 #include "../../lexer/token/Token.h"
+#include "../../log/Log.h"
 
 namespace stc
 {

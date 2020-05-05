@@ -251,19 +251,48 @@ bool stc::Token::isAssignmentOperator(stc::TokenType type)
 
 void stc::Token::print() const
 {
-    cout << "Token: ";
-    cout << std::setw(30) << std::left << ("'" + m_lexeme + "'");
+    Log::write("Token: ");
 
-    cout << "Type: ";
-    cout << std::setw(20) << std::left << ("'" + tokenTypeToString(m_type) + "'");
+    bool logInOutputStream = Log::loggedInOutputStream();
 
-    cout << "Line: ";
-    cout << std::setw(10) << std::left << ("'" + std::to_string(m_line) + "'");
+    if (logInOutputStream)
+        cout << std::setw(30) << std::left << ("'" + m_lexeme + "'");
 
-    cout << "Pos: ";
-    cout << std::setw(10) << std::left << ("'" + std::to_string(m_pos) + "'");
 
-    cout << endl;
+    Log::setLogInOutputStream(false);
+    Log::write("'" + m_lexeme + "'");
+    Log::setLogInOutputStream(logInOutputStream);
+
+    Log::write(" Type: ");
+
+    if (logInOutputStream)
+        cout << std::setw(20) << std::left << ("'" + tokenTypeToString(m_type) + "'");
+
+
+    Log::setLogInOutputStream(false);
+    Log::write("'" + tokenTypeToString(m_type) + "'");
+    Log::setLogInOutputStream(logInOutputStream);
+
+    Log::write(" Line: ");
+
+    if (logInOutputStream)
+        cout << std::setw(10) << std::left << ("'" + std::to_string(m_line) + "'");
+
+
+    Log::setLogInOutputStream(false);
+    Log::write("'" + std::to_string(m_line) + "'");
+    Log::setLogInOutputStream(logInOutputStream);
+
+    Log::write(" Pos: ");
+
+    if (logInOutputStream)
+        cout << std::setw(10) << std::left << ("'" + std::to_string(m_pos) + "'");
+
+    logInOutputStream = Log::loggedInOutputStream();
+    Log::setLogInOutputStream(false);
+    Log::write("'" +  std::to_string(m_pos) + "'");
+    Log::setLogInOutputStream(logInOutputStream);
+    Log::write("\n");
 }
 
 bool stc::Token::isCorrectIdentifier(const std::string& lexeme)

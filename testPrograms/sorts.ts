@@ -1,6 +1,10 @@
 import { print, println, input } from "./lib/io";
 
-
+/**
+ * Print array
+ * @param array
+ * @param size
+ */
 function printArray(array: number[], size: number)
 {
     for (let i = 0; i < size; i += 1)

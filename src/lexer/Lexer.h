@@ -1,13 +1,15 @@
 #pragma once
 
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
 
+#include "../log/Log.h"
+#include "../errorHandle/errorHandle.h"
 #include "token/Token.h"
 
-#include <filesystem>
 
 namespace fs = std::filesystem;
 
@@ -41,8 +43,10 @@ private:
 
     path m_filePath;
 
+    bool m_debugMode;
+
 public:
-    explicit Lexer(const string& filePath);
+    explicit Lexer(const string& filePath, bool debugNode = false);
     ~Lexer();
 
 public:

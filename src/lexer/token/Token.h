@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <string>
 #include "../../errorHandle/errorHandle.h"
+#include "../../log/Log.h"
+
 
 namespace stc
 {

@@ -1,12 +1,13 @@
 #include "Lexer.h"
 
-stc::Lexer::Lexer(const std::string& filePath)
+stc::Lexer::Lexer(const std::string& filePath, bool debugNode)
 {
     this->m_currentTokenIndex = 0;
     this->m_state = LexerState::DEFAULT;
 
 
     this->m_filePath = fs::current_path() / filePath;
+    this->m_debugMode = debugNode;
 
     this->open(filePath);
 }
@@ -18,16 +19,17 @@ stc::Lexer::~Lexer()
 
 void stc::Lexer::printTokens()
 {
-    cout << "-- Started printing token table" << endl;
+
+    Log::write("-- Started printing token table\n");
 
     for (const auto& token : m_tokens)
     {
         token.print();
     }
 
-    cout << "-- End of token table" << endl;
+    Log::write("-- End of token table\n");
+    Log::write("\n");
 
-    cout << "\n";
 }
 
 bool stc::Lexer::nextToken()
@@ -60,7 +62,7 @@ void stc::Lexer::open(const std::string& filePath)
 
     if (!in.is_open())
     {
-        throw std::logic_error("File not found!");
+        ErrorHandle::raise("File not found! (" + filePath + ")");
     }
 
     int size = in.seekg( 0, std::ios::end).tellg();
@@ -76,7 +78,7 @@ void stc::Lexer::open(const std::string& filePath)
 
 void stc::Lexer::split()
 {
-    cout << "-- Started token splitting" << endl;
+    Log::write("-- Started token splitting\n");
 
     string temp_token;
 
@@ -222,7 +224,7 @@ void stc::Lexer::split()
         temp_token.clear();
     }
 
-    cout << "-- Token separation done" << endl;
+    Log::write("-- Token separation done\n");
 }
 
 void stc::Lexer::skipExcessSymbols(int& index, size_t& currentLine, size_t& currentPos)
@@ -352,7 +354,7 @@ void stc::Lexer::printCurrentTokenLine()
     {
         if (k - i == count_symbol_before)
         {
-            cout << "" << m_tokens[k].lexeme() << "" << " ";
+            Log::write("" + m_tokens[k].lexeme() + "" + " ");
             size_current_token = m_tokens[k].lexeme().size();
             continue;
         }

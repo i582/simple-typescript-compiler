@@ -29,4 +29,5 @@ add_executable(stc
         src/parser/asm/asm_constants.h
         src/errorHandle/errorHandle.h src/ICM/icm.h
         src/parser/ast/exportTable/ExportTable.h
-        src/console-color.hpp)
+        src/rang.hpp
+        src/clipp.h src/log/Log.h src/log/Log.cpp src/analyzer/Analyzer.h src/analyzer/baseBlock.h)

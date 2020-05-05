@@ -1,9 +1,11 @@
 #include "Parser.h"
 
-stc::Parser::Parser(Lexer* lexer)
+stc::Parser::Parser(Lexer* lexer, bool debugMode)
 {
     this->m_lexer = lexer;
-    this->m_tree = new Ast(m_lexer->filePath());
+    this->m_tree = new Ast(m_lexer->filePath(), debugMode);
+
+    this->m_debugMode = debugMode;
 }
 
 
@@ -24,31 +26,28 @@ void stc::Parser::error(const std::string& message)
 
 void stc::Parser::parse()
 {
-    cout << "-- Started construction of the abstract syntax tree" << endl;
+    Log::write("-- Started construction of the abstract syntax tree\n");
 
     Node* statementNode = statement();
     m_tree->m_root = new Node(NodeType::PROGRAM, 0, statementNode);
 
-    cout << "-- Construction of the abstract syntax tree done" << endl;
+    Log::write("-- Construction of the abstract syntax tree done\n");
 }
 
 
 void stc::Parser::check()
 {
-    cout << "-- Started semantic correctness checks" << endl;
-
-    cout << "-- Started import processing" << endl;
+    Log::write("-- Started semantic correctness checks\n");
+    Log::write("-- Started import processing\n");
     m_tree->checkImports();
     m_tree->handleImports();
-    cout << "-- Import processing done" << endl;
+    Log::write("-- Import processing done\n");
 
-
-    cout << "-- Started analysis preparation" << endl;
+    Log::write("-- Started analysis preparation\n");
     m_tree->identifyBlocks();
 
     m_tree->markAllScopes();
 
-   // m_tree->deduceVariableType();
 
     m_tree->identifyVariables();
     m_tree->identifyGlobalVariables();
@@ -60,41 +59,43 @@ void stc::Parser::check()
     m_tree->identifyFunctions();
     m_tree->markBreakContinueOperators();
     m_tree->markReturnOperator();
-    cout << "-- Analysis preparation done" << endl;
+    Log::write("-- Analysis preparation done\n");
 
-
-    cout << "-- Started constant verification" << endl;
+    Log::write("-- Started constant verification\n");
     m_tree->checkConstant();
-    cout << "-- Constant verification done" << endl;
+    Log::write("-- Constant verification done\n");
 
-    cout << "-- Started array verification" << endl;
+    Log::write("-- Started array verification\n");
     m_tree->checkArray();
-    cout << "-- Array verification done" << endl;
+    Log::write("-- Array verification done\n");
 
-    cout << "-- Started functions call verification" << endl;
+    Log::write("-- Started functions call verification\n");
     m_tree->checkFunctionsCall();
-    cout << "-- Functions call verification done" << endl;
+    Log::write("-- Functions call verification done\n");
 
-    cout << "-- Started expression verification" << endl;
+    Log::write("-- Started expression verification\n");
     m_tree->checkExpression();
-    cout << "-- Expression verification done" << endl;
+    Log::write("-- Expression verification done\n");
 
 
-    cout << "-- Started export verification" << endl;
+    Log::write("-- Started export verification\n");
     m_tree->checkExports();
     m_tree->handleExports();
-    cout << "-- Export verification done" << endl;
+    Log::write("-- Export verification done\n");
 
-    cout << "-- Semantic correctness checks done" << endl;
+    Log::write("-- Semantic correctness checks done\n");
 }
 
 void stc::Parser::printTree()
 {
-    m_tree->print();
-    m_tree->printVariableTable();
-    m_tree->printFunctionsTable();
-    m_tree->printImportVariableTable();
-    m_tree->printImportFunctionsTable();
+    if (m_debugMode)
+    {
+        m_tree->print();
+        m_tree->printVariableTable();
+        m_tree->printFunctionsTable();
+        m_tree->printImportVariableTable();
+        m_tree->printImportFunctionsTable();
+    }
 }
 
 stc::Ast* stc::Parser::ast()

@@ -1,0 +1,129 @@
+-- Started compilation of the file "flow.ts'
+-- Started token splitting
+-- Token separation done
+-- Started printing token table
+Token: '{' Type: 'Lbra' Line: '1' Pos: '1'
+Token: 'let' Type: 'Let' Line: '3' Pos: '5'
+Token: 'b' Type: 'Identifier' Line: '3' Pos: '7'
+Token: '=' Type: 'Assign' Line: '3' Pos: '8'
+Token: '100' Type: 'Number Constant' Line: '3' Pos: '13'
+Token: ';' Type: 'Semicolon' Line: '3' Pos: '13'
+Token: 'let' Type: 'Let' Line: '4' Pos: '5'
+Token: 'c' Type: 'Identifier' Line: '4' Pos: '7'
+Token: '=' Type: 'Assign' Line: '4' Pos: '8'
+Token: '100' Type: 'Number Constant' Line: '4' Pos: '13'
+Token: ';' Type: 'Semicolon' Line: '4' Pos: '13'
+Token: 'let' Type: 'Let' Line: '6' Pos: '5'
+Token: 'd' Type: 'Identifier' Line: '6' Pos: '7'
+Token: '=' Type: 'Assign' Line: '6' Pos: '8'
+Token: 'b' Type: 'Identifier' Line: '6' Pos: '11'
+Token: '+' Type: 'Plus' Line: '6' Pos: '12'
+Token: 'c' Type: 'Identifier' Line: '6' Pos: '15'
+Token: '+' Type: 'Plus' Line: '6' Pos: '16'
+Token: '146' Type: 'Number Constant' Line: '6' Pos: '21'
+Token: ';' Type: 'Semicolon' Line: '6' Pos: '21'
+Token: 'if' Type: 'If' Line: '8' Pos: '4'
+Token: '(' Type: 'Lpar' Line: '8' Pos: '5'
+Token: 'd' Type: 'Identifier' Line: '8' Pos: '7'
+Token: '>' Type: 'Greater' Line: '8' Pos: '8'
+Token: '500' Type: 'Number Constant' Line: '8' Pos: '13'
+Token: ')' Type: 'Rpar' Line: '8' Pos: '13'
+Token: '{' Type: 'Lbra' Line: '9' Pos: '2'
+Token: 'd' Type: 'Identifier' Line: '10' Pos: '7'
+Token: '=' Type: 'Assign' Line: '10' Pos: '8'
+Token: '100' Type: 'Number Constant' Line: '10' Pos: '13'
+Token: ';' Type: 'Semicolon' Line: '10' Pos: '13'
+Token: '}' Type: 'Rbra' Line: '11' Pos: '2'
+Token: 'else' Type: 'Else' Line: '12' Pos: '7'
+Token: '{' Type: 'Lbra' Line: '13' Pos: '2'
+Token: 'd' Type: 'Identifier' Line: '14' Pos: '7'
+Token: '=' Type: 'Assign' Line: '14' Pos: '8'
+Token: '0' Type: 'Number Constant' Line: '14' Pos: '11'
+Token: ';' Type: 'Semicolon' Line: '14' Pos: '11'
+Token: '}' Type: 'Rbra' Line: '15' Pos: '2'
+Token: '}' Type: 'Rbra' Line: '17' Pos: '2'
+-- End of token table
+
+-- Started construction of the abstract syntax tree
+-- Construction of the abstract syntax tree done
+-- Started semantic correctness checks
+-- Started import processing
+-- Import processing done
+-- Started analysis preparation
+-- Analysis preparation done
+-- Started constant verification
+-- Constant verification done
+-- Started array verification
+-- Array verification done
+-- Started functions call verification
+-- Functions call verification done
+-- Started expression verification
+-- Expression verification done
+-- Started export verification
+-- Export verification done
+-- Semantic correctness checks done
+-- Started print AST
++-prog 
+  +-stmt  (scope id: 1)
+    +-seq 
+      +-seq 
+        +-seq 
+          +-seq 
+            +-expr 
+              +-set 
+                +-new var 'b' (scope id: 1) (scope id: 1)
+                +-number const 100.000000
+          +-expr 
+            +-set 
+              +-new var 'c' (scope id: 1) (scope id: 1)
+              +-number const 100.000000
+        +-expr 
+          +-set 
+            +-new var 'd' (scope id: 1) (scope id: 1)
+            +-add 
+              +-use var 'b' (declared in scope: 1) (scope id: 1)
+              +-add 
+                +-use var 'c' (declared in scope: 1) (scope id: 1)
+                +-number const 146.000000
+      +-if else 
+        +-expr 
+          +-greater 
+            +-use var 'd' (declared in scope: 1) (scope id: 1)
+            +-number const 500.000000
+        +-stmt  (scope id: 3)
+          +-stmt  (scope id: 4)
+            +-seq 
+              +-expr 
+                +-set 
+                  +-use var 'd' (declared in scope: 1) (scope id: 1)
+                  +-number const 100.000000
+        +-stmt  (scope id: 5)
+          +-seq 
+            +-expr 
+              +-set 
+                +-use var 'd' (declared in scope: 1) (scope id: 1)
+                +-number const 0.000000
+
+
+-- Started print variable table
+{
+   { Variable name: 'b', Type: 'number', Scope ID: 1 }
+   { Variable name: 'c', Type: 'number', Scope ID: 1 }
+   { Variable name: 'd', Type: 'number', Scope ID: 1 }
+}
+-- Started print function table
+{
+   empty
+}
+-- Started print import variable table
+{
+   empty
+}
+-- Started print import functions table
+{
+   empty
+}
+-- Started preparation for code generation
+-- Preparation for code generation done
+-- Started code generation
+-- Code generation done

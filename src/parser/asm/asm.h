@@ -35,11 +35,13 @@ namespace stc
 
         string* m_current_place_for_writing;
 
+        bool m_debugMode;
+
     private:
         size_t m_byte_on_stack;
 
     public:
-        explicit Asm(const string& outputFilePath, Ast* tree);
+        explicit Asm(const string& outputFilePath, Ast* tree, bool debugMode = false);
         ~Asm();
 
 
@@ -48,7 +50,7 @@ namespace stc
 
 
     private:
-        void blocks_to_asm();
+        void blocksToAsm();
 
 
         void init_local_variables();
@@ -71,10 +73,10 @@ namespace stc
 
     private:
 
-        void blocks_recursive(Node* current_node);
-        void expression_recursive(Node* current_node);
+        void blockToAsmRecursive(Node* currentNode);
+        void expressionToAsmRecursive(Node* currentNode);
         void relation_expression_recursive(Node* current_node);
-        void function_implementation_recursive(Node* current_node);
+        void functionImplementationRecursive(Node* current_node);
         void init_string_constants_recursive(Node* current_node, size_t& count_constant);
 
         void init_arguments_on_stack_recursive(Node* current_node);

@@ -25,49 +25,49 @@ stc::Function::Function(const std::string& name, stc::ReturnType returnType,
 
 void stc::Function::print() const noexcept
 {
-    cout << "   Function name: ";
-    cout << ("'" + m_name + "'");
+    Log::write("   Function name: ");
+    Log::write("'" + m_name + "'");
 
-    cout << ". Return type: ";
-    cout << ("'" + Variable::variableTypeToString(m_returnType) + "'");
+    Log::write(". Return type: ");
+    Log::write("'" + Variable::variableTypeToString(m_returnType) + "'");
 
-    cout << ". Arguments: ";
-    cout << argumentsViewString() << endl;
+    Log::write(". Arguments:");
+    Log::write(argumentsViewString() + "\n");
 
-    cout << "   {" << endl;
+    Log::write("   {\n");
 
-    cout << "      Local variables: " << "(" << m_localVariableSize << " byte)" << endl;
-    cout << "      {" << endl;
+    Log::write("      Local variables: (" + std::to_string(m_localVariableSize) + " byte)\n");
+    Log::write("      {\n");
     for (const auto& localVariable : m_localVariables)
     {
-        cout << "         ";
+        Log::write("         ");
         localVariable->print();
     }
     if (m_localVariables.empty())
     {
-        cout << "         void" << endl;
+        Log::write("         void\n");
     }
-    cout << "      }" << endl;
+    Log::write("      }\n");
 
-    cout << endl;
+    Log::write("\n");
 
 
-    cout << "      Argument variables: " << "(" << m_argumentsSize << " byte)" << endl;
-    cout << "      {" << endl;
+    Log::write("      Argument variables: (" + std::to_string(m_argumentsSize) + " byte)\n");
+    Log::write("      {\n");
     for (const auto& argumentVariable : m_argumentVariables)
     {
-        cout << "         ";
+        Log::write("         ");
         argumentVariable->print();
     }
     if (m_argumentVariables.empty())
     {
-        cout << "         void" << endl;
+        Log::write("         void\n");
     }
-    cout << "      }" << endl;
+    Log::write("      }\n");
 
-    cout << "   }" << endl;
+    Log::write("   }\n");
 
-    cout << "\n";
+    Log::write("\n");
 }
 
 std::string stc::Function::name() const

@@ -26,7 +26,7 @@ void stc::VariableTable::print() const
 {
     for (const auto& variable : m_variables)
     {
-        cout << "   ";
+        Log::write("   ");
         variable->print();
     }
 }
