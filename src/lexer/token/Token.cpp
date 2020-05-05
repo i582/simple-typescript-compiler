@@ -3,7 +3,7 @@
 stc::Token::Token(const std::string& lexeme, size_t line, size_t pos)
 {
     this->m_lexeme = lexeme;
-    this->m_type = what_type_of_lexeme(lexeme);
+    this->m_type = typeByLexeme(lexeme);
 
     this->m_line = line;
     this->m_pos = pos;
@@ -29,7 +29,7 @@ size_t stc::Token::pos() const
     return m_pos;
 }
 
-stc::TokenType stc::Token::what_type_of_lexeme(const std::string& lexeme)
+stc::TokenType stc::Token::typeByLexeme(const std::string& lexeme)
 {
     // variables
     if (lexeme == "let")
@@ -104,8 +104,6 @@ stc::TokenType stc::Token::what_type_of_lexeme(const std::string& lexeme)
         return TokenType::INC;
     if (lexeme == "--")
         return TokenType::DEC;
-    if (lexeme == "**")
-        return TokenType::STAR_STAR;
 
     // brackets
     if (lexeme == "{")
@@ -173,36 +171,30 @@ stc::TokenType stc::Token::what_type_of_lexeme(const std::string& lexeme)
         return TokenType::BLOCK_COMMENT_END;
 
 
-    if (is_number(lexeme))
+    if (lexeme == "declare")
+        return TokenType::DECLARE;
+    if (lexeme == "import")
+        return TokenType::IMPORT;
+    if (lexeme == "export")
+        return TokenType::EXPORT;
+    if (lexeme == "from")
+        return TokenType::FROM;
+
+
+    if (isNumber(lexeme))
         return TokenType::NUMBER_CONST;
 
-    if (is_string(lexeme))
+    if (isString(lexeme))
         return TokenType::STRING_CONST;
 
-    // classes
-    if (lexeme == "class")
-        return TokenType::CLASS;
-    if (lexeme == "constructor")
-        return TokenType::CONSTRUCTOR;
-    if (lexeme == "private")
-        return TokenType::PRIVATE;
-    if (lexeme == "public")
-        return TokenType::PUBLIC;
-    if (lexeme == "protected")
-        return TokenType::PROTECTED;
-    if (lexeme == "static")
-        return TokenType::STATIC;
-    if (lexeme == "this")
-        return TokenType::THIS;
 
-
-    if (lexeme == "interface")
-        return TokenType::INTERFACE;
-
-    return TokenType::IDENTIFIER;
+    if (isCorrectIdentifier(lexeme))
+        return TokenType::IDENTIFIER;
+    else
+        ErrorHandle::raise("Lexical error! Incorrect identifier '" + lexeme + "'!");
 }
 
-bool stc::Token::is_number(const std::string& lexeme)
+bool stc::Token::isNumber(const std::string& lexeme)
 {
     bool point = false;
 
@@ -228,12 +220,12 @@ bool stc::Token::is_number(const std::string& lexeme)
     return true;
 }
 
-bool stc::Token::is_string(const std::string& lexeme)
+bool stc::Token::isString(const std::string& lexeme)
 {
     return lexeme.front() == '"' && lexeme.back() == '"';
 }
 
-bool stc::Token::is_this_type_is_type_of_variable(stc::TokenType type)
+bool stc::Token::isThisTypeIsVariableType(stc::TokenType type)
 {
     return type == TokenType::NUMBER ||
            type == TokenType::BOOLEAN ||
@@ -241,14 +233,14 @@ bool stc::Token::is_this_type_is_type_of_variable(stc::TokenType type)
            type == TokenType::STRING;
 }
 
-bool stc::Token::is_unary_operator(TokenType type)
+bool stc::Token::isUnaryOperator(TokenType type)
 {
     return type == TokenType::PLUS ||
            type == TokenType::MINUS ||
            type == TokenType::EXCLAMATION;
 }
 
-bool stc::Token::is_assignment_operator(stc::TokenType type)
+bool stc::Token::isAssignmentOperator(stc::TokenType type)
 {
     return type == TokenType::ASSIGN ||
            type == TokenType::ADD_ASSIGN ||
@@ -257,10 +249,162 @@ bool stc::Token::is_assignment_operator(stc::TokenType type)
            type == TokenType::DIV_ASSIGN;
 }
 
-bool stc::Token::isVisibilityModifier(stc::TokenType type)
+void stc::Token::print() const
 {
-    return type == TokenType::PUBLIC ||
-           type == TokenType::PRIVATE ||
-           type == TokenType::PROTECTED;
+    cout << "Token: ";
+    cout << std::setw(30) << std::left << ("'" + m_lexeme + "'");
+
+    cout << "Type: ";
+    cout << std::setw(20) << std::left << ("'" + tokenTypeToString(m_type) + "'");
+
+    cout << "Line: ";
+    cout << std::setw(10) << std::left << ("'" + std::to_string(m_line) + "'");
+
+    cout << "Pos: ";
+    cout << std::setw(10) << std::left << ("'" + std::to_string(m_pos) + "'");
+
+    cout << endl;
 }
 
+bool stc::Token::isCorrectIdentifier(const std::string& lexeme)
+{
+    if (!isalpha(lexeme[0]) && lexeme[0] != '_')
+        return false;
+
+    for (const auto& symbol : lexeme)
+        if (!isalpha(symbol) && !isdigit(symbol) && symbol != '_')
+            return false;
+
+    return true;
+}
+
+stc::string stc::Token::tokenTypeToString(stc::TokenType type)
+{
+    switch (type)
+    {
+
+        case TokenType::NUMBER_CONST:
+            return "Number Constant";
+        case TokenType::STRING_CONST:
+            return "String Constant";
+        case TokenType::IDENTIFIER:
+            return "Identifier";
+        case TokenType::LET:
+            return "Let";
+        case TokenType::CONST:
+            return "Const";
+        case TokenType::NUMBER:
+            return "Number";
+        case TokenType::BOOLEAN:
+            return "Boolean";
+        case TokenType::STRING:
+            return "String";
+        case TokenType::VOID:
+            return "Void";
+        case TokenType::ANY:
+            return "Any";
+        case TokenType::DO_WHILE:
+            return "Do While";
+        case TokenType::WHILE:
+            return "While";
+        case TokenType::FOR:
+            return "For";
+        case TokenType::BREAK:
+            return "Break";
+        case TokenType::CONTINUE:
+            return "Continue";
+        case TokenType::IF:
+            return "If";
+        case TokenType::ELSE:
+            return "Else";
+        case TokenType::LESS:
+            return "Less";
+        case TokenType::GREATER:
+            return "Greater";
+        case TokenType::LESS_EQUAL:
+            return "Less Equal";
+        case TokenType::GREATER_EQUAL:
+            return "Greater Equal";
+        case TokenType::EQUAL:
+            return "Equal";
+        case TokenType::NOT_EQUAL:
+            return "Not Equal";
+        case TokenType::AND:
+            return "AND";
+        case TokenType::OR:
+            return "OR";
+        case TokenType::PLUS:
+            return "Plus";
+        case TokenType::MINUS:
+            return "Minus";
+        case TokenType::STAR:
+            return "Star";
+        case TokenType::SLASH:
+            return "Slash";
+        case TokenType::INC:
+            return "Inc";
+        case TokenType::DEC:
+            return "Dec";
+        case TokenType::LBRA:
+            return "Lbra";
+        case TokenType::RBRA:
+            return "Rbra";
+        case TokenType::LPAR:
+            return "Lpar";
+        case TokenType::RPAR:
+            return "Rpar";
+        case TokenType::LSQR:
+            return "Lsqr";
+        case TokenType::RSQR:
+            return "Rsqr";
+        case TokenType::ASSIGN:
+            return "Assign";
+        case TokenType::ADD_ASSIGN:
+            return "Add Assign";
+        case TokenType::SUB_ASSIGN:
+            return "Sub Assign";
+        case TokenType::MUL_ASSIGN:
+            return "Mul Assign";
+        case TokenType::DIV_ASSIGN:
+            return "Div Assign";
+        case TokenType::FUNCTION:
+            return "Function";
+        case TokenType::RETURN:
+            return "Return";
+        case TokenType::TRUE:
+            return "True";
+        case TokenType::FALSE:
+            return "False";
+        case TokenType::SEMICOLON:
+            return "Semicolon";
+        case TokenType::COLON:
+            return "Colon";
+        case TokenType::COMMA:
+            return "Comma";
+        case TokenType::POINT:
+            return "Point";
+        case TokenType::QUESTION:
+            return "Question";
+        case TokenType::EXCLAMATION:
+            return "Exclamation";
+        case TokenType::LINE_COMMENT:
+            return "Line Comment";
+        case TokenType::BLOCK_COMMENT_START:
+            return "Block Comment Start";
+        case TokenType::BLOCK_COMMENT_END:
+            return "Block Comment End";
+        case TokenType::NEW:
+            return "New";
+        case TokenType::DECLARE:
+            return "Declare";
+        case TokenType::IMPORT:
+            return "Import";
+        case TokenType::EXPORT:
+            return "Export";
+        case TokenType::FROM:
+            return "From";
+
+        default:
+            return "";
+    }
+}

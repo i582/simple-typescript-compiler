@@ -1,47 +1,37 @@
-#include "compiler/compiler.h"
+#include "ICM/icm.h"
+
 
 int main(int argc, char** argv)
 {
-//    if (argc <= 1)
+    stc::ICM icm("../testPrograms/main.ts", "test.asm");
+    icm.compile();
+
+
+
+//    try
 //    {
-//        std::cout << "Usage: <input_file> <output_file>" << std::endl;
-//    }
-//    else
-//    {
-//        std::string inputFile(argv[1]);
-//        std::string outputFile(argv[2]);
+//        stc::Lexer lexer("../testPrograms/main.ts");
+//        lexer.split();
+//        lexer.printTokens();
 //
-//
-//        auto begin = std::chrono::steady_clock::now();
-//
-//
-//        compiler::Parser parser(inputFile, outputFile);
+//        stc::Parser parser(&lexer);
 //        parser.parse();
-//        parser.generate();
+//        parser.check();
+//        parser.printTree();
+//
+//        stc::Asm an_asm("test.asm", parser.ast());
+//        an_asm.generate();
 //
 //
-//        auto end = std::chrono::steady_clock::now();
-//
-//        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-//        std::cout << "The time: " << elapsed_ms.count() << " ms\n";
+
 //    }
-
-    //stc::Compiler::compile("../test_programs/factorial.ts", "test.asm");
-
-
-    stc::Lexer lexer("../test_programs/classes.ts");
-    lexer.split();
-    lexer.print_tokens();
-
-    stc::Parser parser(&lexer);
-    parser.parse();
-    parser.check();
-    parser.printTree();
-//
-//    stc::Asm an_asm("test.asm", parser.ast());
-//    an_asm.generate();
+//    catch (const std::logic_error& error)
+//    {
+//        std::cout << "\n\n";
+//        std::cout << "Error detected:" << std::endl;
+//        std::cout << error.what() << std::endl;
+//        std::cout << "\n\n";
+//    }
 
     return 0;
 }
-
-

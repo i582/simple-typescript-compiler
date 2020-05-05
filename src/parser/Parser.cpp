@@ -2,76 +2,99 @@
 
 stc::Parser::Parser(Lexer* lexer)
 {
-    m_lexer = lexer;
-    m_tree = new Ast();
-
-    m_lexer->split();
-
-#ifndef NO_DEBUG_INFO
-    m_lex->print_tokens();
-#endif
+    this->m_lexer = lexer;
+    this->m_tree = new Ast(m_lexer->filePath());
 }
 
-stc::Parser::~Parser()
-{
-    delete m_tree;
-}
 
 void stc::Parser::error(const std::string& message)
 {
-    cout << "Parse error: " << message << " ";
+    auto fullMessage = "Parse error: " + message + "\n" +
+            "Current token: '" + m_lexer->currentToken().lexeme() + "' (" +
+                                 to_string(m_lexer->currentToken().line()) + ", " +
+                                 to_string(m_lexer->currentToken().pos()) + ")" + "\n";
 
-    cout << "Current token: '" << m_lexer->current_token().lexeme() + "' (" +
-                                  std::to_string(m_lexer->current_token().line()) + ", " +
-                                  std::to_string(m_lexer->current_token().pos()) + ")"
-                                 << endl;
 
-    m_lexer->print_current_token_line();
 
-    throw std::logic_error(message);
+
+    //m_lexer->printCurrentTokenLine();
+
+    throw std::logic_error(fullMessage);
 }
 
 void stc::Parser::parse()
 {
+    cout << "-- Started construction of the abstract syntax tree" << endl;
+
     Node* statementNode = statement();
-    m_tree->m_root = new Node(NodeType::PROGRAM, "", statementNode);
+    m_tree->m_root = new Node(NodeType::PROGRAM, 0, statementNode);
+
+    cout << "-- Construction of the abstract syntax tree done" << endl;
 }
 
 
 void stc::Parser::check()
 {
-    m_tree->identifyScopes();
+    cout << "-- Started semantic correctness checks" << endl;
+
+    cout << "-- Started import processing" << endl;
+    m_tree->checkImports();
+    m_tree->handleImports();
+    cout << "-- Import processing done" << endl;
+
+
+    cout << "-- Started analysis preparation" << endl;
+    m_tree->identifyBlocks();
 
     m_tree->markAllScopes();
+
+   // m_tree->deduceVariableType();
 
     m_tree->identifyVariables();
     m_tree->identifyGlobalVariables();
 
+    m_tree->identifyArrays();
+
+    m_tree->addImportVariables();
+
     m_tree->identifyFunctions();
+    m_tree->markBreakContinueOperators();
+    m_tree->markReturnOperator();
+    cout << "-- Analysis preparation done" << endl;
 
-    m_tree->identifyClasses();
-    m_tree->identifyInterfaces();
 
-    m_tree->setConnectionTypeClass();
+    cout << "-- Started constant verification" << endl;
+    m_tree->checkConstant();
+    cout << "-- Constant verification done" << endl;
 
-    m_tree->checkClassAccess();
+    cout << "-- Started array verification" << endl;
+    m_tree->checkArray();
+    cout << "-- Array verification done" << endl;
 
-//    m_tree->markBreakContinueOperators();
-//    m_tree->markReturnOperators();
-//
-//    m_tree->check_const();
-//    m_tree->check_array();
-//    m_tree->check_functions_call();
-//    m_tree->check_expression();
+    cout << "-- Started functions call verification" << endl;
+    m_tree->checkFunctionsCall();
+    cout << "-- Functions call verification done" << endl;
+
+    cout << "-- Started expression verification" << endl;
+    m_tree->checkExpression();
+    cout << "-- Expression verification done" << endl;
+
+
+    cout << "-- Started export verification" << endl;
+    m_tree->checkExports();
+    m_tree->handleExports();
+    cout << "-- Export verification done" << endl;
+
+    cout << "-- Semantic correctness checks done" << endl;
 }
 
 void stc::Parser::printTree()
 {
     m_tree->print();
-    m_tree->printAllVariables();
-    m_tree->printAllFunctions();
-    m_tree->printAllClasses();
-    m_tree->printAllInterfaces();
+    m_tree->printVariableTable();
+    m_tree->printFunctionsTable();
+    m_tree->printImportVariableTable();
+    m_tree->printImportFunctionsTable();
 }
 
 stc::Ast* stc::Parser::ast()
@@ -79,855 +102,645 @@ stc::Ast* stc::Parser::ast()
     return m_tree;
 }
 
-
-stc::Node* stc::Parser::primary_expression()
+stc::Node* stc::Parser::primaryExpression()
 {
-    Node* temp_node = nullptr;
-
-    if (m_lexer->currentTokenType() == TokenType::NUMBER_CONST)
+    if (tryEat(TokenType::NUMBER_CONST))
     {
-        string number_str = m_lexer->current_token().lexeme();
+        auto value = eat(TokenType::NUMBER_CONST);
+        auto number = stold(value);
 
-
-        number number_val = stold(number_str);
-        temp_node = new Node(NodeType::NUMBER_CONST, number_val);
-
-        m_lexer->nextToken();
+        return new Node(NodeType::NUMBER_CONST, number);
     }
-    else if (m_lexer->currentTokenType() == TokenType::STRING_CONST)
+    else if (tryEat(TokenType::STRING_CONST))
     {
-        string str = m_lexer->current_token().lexeme();
+        auto value = eat(TokenType::STRING_CONST);
 
-        temp_node = new Node(NodeType::STRING_CONST, str);
-        m_lexer->nextToken();
+        return new Node(NodeType::STRING_CONST, value);
     }
-    else if (m_lexer->currentTokenType() == TokenType::TRUE)
+    else if (tryEat(TokenType::TRUE))
     {
-        temp_node = new Node(NodeType::BOOLEAN_CONST, 1);
+        eat(TokenType::TRUE);
 
-        m_lexer->nextToken();
+        return new Node(NodeType::BOOLEAN_CONST, 1);
     }
-    else if (m_lexer->currentTokenType() == TokenType::FALSE)
+    else if (tryEat(TokenType::FALSE))
     {
-        temp_node = new Node(NodeType::BOOLEAN_CONST, 0);
+        eat(TokenType::FALSE);
 
-        m_lexer->nextToken();
+        return new Node(NodeType::BOOLEAN_CONST, 0);
     }
-    else if (m_lexer->currentTokenType() == TokenType::IDENTIFIER)
+    else if (tryEat(TokenType::IDENTIFIER))
     {
-        string name = m_lexer->current_token().lexeme();
+        auto name = eat(TokenType::IDENTIFIER);
 
-        if (!Lexer::is_correct_identifier(name))
-        {
-            error("Invalid identifier: '" + m_lexer->current_token().lexeme() + "'");
-        }
-
-        m_lexer->nextToken();
-
-
-        if (m_lexer->currentTokenType() == TokenType::LPAR)
-        {
-            temp_node = new Node(NodeType::FUNCTION_CALL, name);
-        }
-        else
-        {
-            temp_node = new Node(NodeType::USING_VARIABLE, name);
-        }
-
+        return new Node(NodeType::USING_VARIABLE, name);
     }
-    else if (m_lexer->currentTokenType() == TokenType::LPAR)
+    else if (tryEat(TokenType::LPAR))
     {
-        temp_node = parenthesized_expression();
+        return parenthesizedExpression();
     }
-    else if (m_lexer->currentTokenType() == TokenType::LSQR)
+    else if (tryEat(TokenType::LSQR))
     {
-        temp_node = initializer();
+        return initializer();
     }
-    else if (m_lexer->currentTokenType() == TokenType::LET ||
-            m_lexer->currentTokenType() == TokenType::CONST)
+    else if (tryEat(TokenType::LET) || tryEat(TokenType::CONST))
     {
-        temp_node = declaration_statement();
+        return declarationStatement();
     }
-    else if (m_lexer->currentTokenType() == TokenType::NEW)
+    else if (tryEat(TokenType::NEW))
     {
-        temp_node = operator_statement();
-    }
-    else
-    {
-#ifndef NO_DEBUG_INFO
-        cout << "What happens? Current token: '" + m_lex->current_token().lexeme() + "' ("
-             << m_lex->current_token().line() << ", " << m_lex->current_token().pos() << ")" << endl;
-#endif
+        return operatorStatement();
     }
 
-    return temp_node;
+
+    return nullptr;
 }
 
-stc::Node* stc::Parser::parenthesized_expression()
+stc::Node* stc::Parser::parenthesizedExpression()
 {
-    if (m_lexer->currentTokenType() != TokenType::LPAR)
-    {
-        error("'(' expected!");
-    }
-    m_lexer->nextToken();
+    eat(TokenType::LPAR);
 
+    auto tempNode = expression();
 
-    auto temp_node = expression();
+    eat(TokenType::RPAR);
 
-
-    if (m_lexer->currentTokenType() != TokenType::RPAR)
-    {
-        error("')' expected!");
-    }
-    m_lexer->nextToken();
-
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::postfix_expression()
+stc::Node* stc::Parser::postfixExpression()
 {
-    Node* temp_node = primary_expression();
+    auto tempNode = primaryExpression();
 
-    if (m_lexer->currentTokenType() == TokenType::LSQR)
+    if (tryEat(TokenType::LSQR))
     {
-        m_lexer->nextToken();
-        auto temp_expression = expression();
+        eat(TokenType::LSQR);
 
-        if (m_lexer->currentTokenType() != TokenType::RSQR)
-        {
-            error("']' expected!");
-        }
-        m_lexer->nextToken();
+        auto tempExpression = expression();
 
-        temp_node = new Node(NodeType::INDEX_CAPTURE, 0, temp_node, temp_expression);
+        eat(TokenType::RSQR);
+
+        return new Node(NodeType::INDEX_CAPTURE, 0, tempNode, tempExpression);
     }
-    else if (m_lexer->currentTokenType() == TokenType::LPAR)
+    else if (tryEat(TokenType::LPAR))
     {
-        m_lexer->nextToken();
-        auto function_name = any_cast<string>(temp_node->value);
-        auto temp_argument_expression_list = argument_expression_list();
+        eat(TokenType::LPAR);
 
-        if (m_lexer->currentTokenType() != TokenType::RPAR)
-        {
-            error("')' expected!");
-        }
-        m_lexer->nextToken();
+        auto functionName = any_cast<string>(tempNode->value);
+        auto argumentExpressionListNode = argumentExpressionList();
 
-        temp_node = new Node(NodeType::FUNCTION_CALL, function_name, temp_argument_expression_list);
-    }
-    else if (m_lexer->currentTokenType() == TokenType::INC)
-    {
-        m_lexer->nextToken();
-        temp_node = new Node(NodeType::AFTER_INC, 0, temp_node);
-    }
-    else if (m_lexer->currentTokenType() == TokenType::DEC)
-    {
-        m_lexer->nextToken();
-        temp_node = new Node(NodeType::AFTER_DEC, 0, temp_node);
+        eat(TokenType::RPAR);
+
+        return new Node(NodeType::FUNCTION_CALL, functionName, argumentExpressionListNode);
     }
 
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::argument_expression_list()
+stc::Node* stc::Parser::argumentExpressionList()
 {
-    Node* temp_node = nullptr;
+    Node* tempNode = nullptr;
 
-    while (m_lexer->currentTokenType() != TokenType::RPAR)
+    while (!tryEat(TokenType::RPAR))
     {
-        auto temp_function_argument = assignment_expression();
+        auto tempFunctionArgument = assignmentExpression();
 
-        temp_node = new Node(NodeType::FUNCTION_ARGS, "", temp_function_argument, temp_node);
+        tempNode = new Node(NodeType::FUNCTION_ARGS, 0, tempFunctionArgument, tempNode);
 
-        if (m_lexer->currentTokenType() == TokenType::COMMA)
+        if (tryEat(TokenType::COMMA))
         {
-            m_lexer->nextToken();
+            skip();
         }
     }
 
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::unary_expression()
+stc::Node* stc::Parser::unaryExpression()
 {
-    Node* temp_node = nullptr;
-
-
-    if (m_lexer->currentTokenType() == TokenType::INC)
+    if (tryEat(TokenType::INC))
     {
-        m_lexer->nextToken();
-        temp_node = unary_expression();
-        temp_node = new Node(NodeType::BEFORE_INC, 0, temp_node);
+        skip();
+        auto unaryExpressionNode = unaryExpression();
+        return new Node(NodeType::BEFORE_INC, 0, unaryExpressionNode);
     }
-    else if (m_lexer->currentTokenType() == TokenType::DEC)
+    else if (tryEat(TokenType::DEC))
     {
-        m_lexer->nextToken();
-        temp_node = unary_expression();
-        temp_node = new Node(NodeType::BEFORE_DEC, 0, temp_node);
+        skip();
+        auto unaryExpressionNode = unaryExpression();
+        return new Node(NodeType::BEFORE_DEC, 0, unaryExpressionNode);
     }
-    else if (Token::is_unary_operator(m_lexer->currentTokenType()))
+    else if (tryEat([](TokenType type){ return Token::isUnaryOperator(type); }))
     {
         auto type = NodeType::UNARY_PLUS;
 
-        if (m_lexer->currentTokenType() == TokenType::MINUS)
+        if (tryEat(TokenType::MINUS))
+        {
             type = NodeType::UNARY_MINUS;
-        else if (m_lexer->currentTokenType() == TokenType::EXCLAMATION)
+        }
+        else if (tryEat(TokenType::EXCLAMATION))
+        {
             type = NodeType::UNARY_EXCLAMATION;
-
-        m_lexer->nextToken();
-        temp_node = unary_expression();
-        temp_node = new Node(type, 0, temp_node);
-    }
-    else
-    {
-        temp_node = postfixExpression();
-    }
-
-
-    return temp_node;
-}
-
-stc::Node* stc::Parser::multiplicative_expression()
-{
-    Node* temp_node = unary_expression();
-
-
-    if (m_lexer->currentTokenType() == TokenType::STAR || m_lexer->currentTokenType() == TokenType::SLASH)
-    {
-        NodeType temp_type = NodeType::MUL;
-
-        if (m_lexer->currentTokenType() == TokenType::SLASH)
-        {
-            temp_type = NodeType::DIV;
         }
 
-        m_lexer->nextToken();
-
-        auto temp_unary_expression = multiplicative_expression();
-
-        temp_node = new Node(temp_type, "", temp_node, temp_unary_expression);
+        skip();
+        auto unaryExpressionNode = unaryExpression();
+        return new Node(type, 0, unaryExpressionNode);
     }
 
-    return temp_node;
+    return postfixExpression();
 }
 
-stc::Node* stc::Parser::additive_expression()
+stc::Node* stc::Parser::multiplicativeExpression()
 {
-    Node* temp_node = multiplicative_expression();
+    auto tempNode = unaryExpression();
 
 
-    if (m_lexer->currentTokenType() == TokenType::PLUS || m_lexer->currentTokenType() == TokenType::MINUS)
+    if (tryEat(TokenType::STAR) || tryEat(TokenType::SLASH))
     {
-        NodeType temp_type = NodeType::ADD;
+        auto tempType = NodeType::MUL;
 
-        if (m_lexer->currentTokenType() == TokenType::MINUS)
+        if (tryEat(TokenType::SLASH))
         {
-            temp_type = NodeType::SUB;
+            tempType = NodeType::DIV;
         }
 
-        m_lexer->nextToken();
+        skip();
 
-        auto temp_multiplicative_expression = additive_expression();
+        auto multiplicativeNode = multiplicativeExpression();
 
-        temp_node = new Node(temp_type, "", temp_node, temp_multiplicative_expression);
+        return new Node(tempType, 0, tempNode, multiplicativeNode);
     }
 
-
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::relational_expression()
+stc::Node* stc::Parser::additiveExpression()
 {
-    Node* temp_node = additive_expression();
+    auto tempNode = multiplicativeExpression();
 
-
-    if (m_lexer->currentTokenType() == TokenType::LESS)
+    if (tryEat(TokenType::PLUS) || tryEat(TokenType::MINUS))
     {
-        m_lexer->nextToken();
-        auto temp_additive_expression = additive_expression();
+        auto tempType = NodeType::ADD;
 
-        temp_node = new Node(NodeType::LESS, "", temp_node, temp_additive_expression);
-    }
-    else if (m_lexer->currentTokenType() == TokenType::GREATER)
-    {
-        m_lexer->nextToken();
-        auto temp_additive_expression = additive_expression();
+        if (tryEat(TokenType::MINUS))
+        {
+            tempType = NodeType::SUB;
+        }
 
-        temp_node = new Node(NodeType::GREATER, "", temp_node, temp_additive_expression);
-    }
-    else if (m_lexer->currentTokenType() == TokenType::GREATER_EQUAL)
-    {
-        m_lexer->nextToken();
-        auto temp_additive_expression = additive_expression();
+        skip();
 
-        temp_node = new Node(NodeType::GREATER_EQUAL, "", temp_node, temp_additive_expression);
-    }
-    else if (m_lexer->currentTokenType() == TokenType::LESS_EQUAL)
-    {
-        m_lexer->nextToken();
-        auto temp_additive_expression = additive_expression();
+        auto additiveNode = additiveExpression();
 
-        temp_node = new Node(NodeType::LESS_EQUAL, "", temp_node, temp_additive_expression);
+        return new Node(tempType, 0, tempNode, additiveNode);
     }
 
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::equality_expression()
+stc::Node* stc::Parser::relationalExpression()
 {
-    Node* temp_node = relational_expression();
+    auto tempNode = additiveExpression();
 
-
-    if (m_lexer->currentTokenType() == TokenType::EQUAL)
+    if (tryEat(TokenType::LESS))
     {
-        m_lexer->nextToken();
-        auto temp_relational_expression = relational_expression();
+        skip();
+        auto additiveExpressionNode = additiveExpression();
 
-        temp_node = new Node(NodeType::EQUAL, "", temp_node, temp_relational_expression);
+        return new Node(NodeType::LESS, 0, tempNode, additiveExpressionNode);
     }
-    else if (m_lexer->currentTokenType() == TokenType::NOT_EQUAL)
+    else if (tryEat(TokenType::GREATER))
     {
-        m_lexer->nextToken();
-        auto temp_relational_expression = relational_expression();
+        skip();
+        auto additiveExpressionNode = additiveExpression();
 
-        temp_node = new Node(NodeType::NOT_EQUAL, "", temp_node, temp_relational_expression);
+        return new Node(NodeType::GREATER, 0, tempNode, additiveExpressionNode);
+    }
+    else if (tryEat(TokenType::GREATER_EQUAL))
+    {
+        skip();
+        auto additiveExpressionNode = additiveExpression();
+
+        return new Node(NodeType::GREATER_EQUAL, 0, tempNode, additiveExpressionNode);
+    }
+    else if (tryEat(TokenType::LESS_EQUAL))
+    {
+        skip();
+        auto additiveExpressionNode = additiveExpression();
+
+        return new Node(NodeType::LESS_EQUAL, 0, tempNode, additiveExpressionNode);
     }
 
-
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::logical_and_expression()
+stc::Node* stc::Parser::equalityExpression()
 {
-    Node* temp_node = equality_expression();
+    auto tempNode = relationalExpression();
 
-
-    if (m_lexer->currentTokenType() == TokenType::AND)
+    if (tryEat(TokenType::EQUAL))
     {
-        m_lexer->nextToken();
-        auto temp_logical_and_expression = logical_and_expression();
+        skip();
+        auto relationalExpressionNode = relationalExpression();
 
-        temp_node = new Node(NodeType::LOGICAL_AND, "", temp_node, temp_logical_and_expression);
+        return new Node(NodeType::EQUAL, 0, tempNode, relationalExpressionNode);
+    }
+    else if (tryEat(TokenType::NOT_EQUAL))
+    {
+        skip();
+        auto relationalExpressionNode = relationalExpression();
+
+        return new Node(NodeType::NOT_EQUAL, 0, tempNode, relationalExpressionNode);
     }
 
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::logical_or_expression()
+stc::Node* stc::Parser::logicalAndExpression()
 {
-    Node* temp_node = logical_and_expression();
+    auto tempNode = equalityExpression();
 
-
-    if (m_lexer->currentTokenType() == TokenType::OR)
+    if (tryEat(TokenType::AND))
     {
-        m_lexer->nextToken();
-        auto temp_logical_or_expression = logical_or_expression();
+        skip();
+        auto logicalAndExpressionNode = logicalAndExpression();
 
-        temp_node = new Node(NodeType::LOGICAL_OR, "", temp_node, temp_logical_or_expression);
+        return new Node(NodeType::LOGICAL_AND, 0, tempNode, logicalAndExpressionNode);
     }
 
-
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::conditional_expression()
+stc::Node* stc::Parser::logicalOrExpression()
 {
-    Node* temp_node = logical_or_expression();
+    auto tempNode = equalityExpression();
 
-
-    if (m_lexer->currentTokenType() == TokenType::QUESTION)
+    if (tryEat(TokenType::OR))
     {
-        m_lexer->nextToken();
-        auto temp_expression = expression();
+        skip();
+        auto logicalOrExpressionNode = logicalOrExpression();
 
-        if (m_lexer->currentTokenType() != TokenType::COLON)
-        {
-            error("':' expected!");
-        }
-        m_lexer->nextToken();
-
-        auto temp_conditional_expression = conditional_expression();
-
-        temp_node = new Node(NodeType::IF_ELSE, "", temp_node, temp_expression, temp_conditional_expression);
+        return tempNode = new Node(NodeType::LOGICAL_OR, 0, tempNode, logicalOrExpressionNode);
     }
 
-
-
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::assignment_expression()
+stc::Node* stc::Parser::assignmentExpression()
 {
-    Node* temp_node = conditional_expression();
+    Node* tempNode = logicalOrExpression();
 
-
-    if (Token::is_assignment_operator(m_lexer->currentTokenType()))
+    if (tryEat([](TokenType type){ return Token::isAssignmentOperator(type); }))
     {
-        auto current_token_type = m_lexer->currentTokenType();
+        auto currentTokenType = eatType();
+        auto tempAssignmentExpression = assignmentExpression();
 
-        m_lexer->nextToken();
-        auto temp_assignment_expression = assignment_expression();
-
-
-        if (current_token_type == TokenType::ASSIGN)
+        if (currentTokenType == TokenType::ASSIGN)
         {
-            temp_node = new Node(NodeType::SET, "", temp_node, temp_assignment_expression);
+            return new Node(NodeType::SET, 0, tempNode, tempAssignmentExpression);
         }
-        else if (current_token_type == TokenType::ADD_ASSIGN)
+        else if (currentTokenType == TokenType::ADD_ASSIGN)
         {
-            auto temp_math = new Node(NodeType::ADD, "", temp_node, temp_assignment_expression);
-            temp_node = new Node(NodeType::SET, "", temp_node, temp_math);
+            auto addNode = new Node(NodeType::ADD, 0, tempNode, tempAssignmentExpression);
+            return new Node(NodeType::SET, 0, tempNode, addNode);
         }
-        else if (current_token_type == TokenType::SUB_ASSIGN)
+        else if (currentTokenType == TokenType::SUB_ASSIGN)
         {
-            auto temp_math = new Node(NodeType::SUB, "", temp_node, temp_assignment_expression);
-            temp_node = new Node(NodeType::SET, "", temp_node, temp_math);
+            auto subNode = new Node(NodeType::SUB, 0, tempNode, tempAssignmentExpression);
+            return new Node(NodeType::SET, 0, tempNode, subNode);
         }
-        else if (current_token_type == TokenType::MUL_ASSIGN)
+        else if (currentTokenType == TokenType::MUL_ASSIGN)
         {
-            auto temp_math = new Node(NodeType::MUL, "", temp_node, temp_assignment_expression);
-            temp_node = new Node(NodeType::SET, "", temp_node, temp_math);
+            auto mulNode = new Node(NodeType::MUL, 0, tempNode, tempAssignmentExpression);
+            return new Node(NodeType::SET, 0, tempNode, mulNode);
         }
-        else if (current_token_type == TokenType::DIV_ASSIGN)
+        else if (currentTokenType == TokenType::DIV_ASSIGN)
         {
-            auto temp_math = new Node(NodeType::DIV, "", temp_node, temp_assignment_expression);
-            temp_node = new Node(NodeType::SET, "", temp_node, temp_math);
+            auto divNode = new Node(NodeType::DIV, 0, tempNode, tempAssignmentExpression);
+            return new Node(NodeType::SET, 0, tempNode, divNode);
         }
-
     }
 
-    return temp_node;
+    return tempNode;
 }
 
 stc::Node* stc::Parser::expression()
 {
-    Node* temp_node = assignment_expression();
+    auto tempNode = assignmentExpression();
 
-    temp_node = new Node(NodeType::EXPRESSION, "", temp_node);
-
-    return temp_node;
-}
-
-stc::Node* stc::Parser::constant_expression()
-{
-    Node* temp_node = assignment_expression();
-
-    temp_node = new Node(NodeType::CONST_EXPRESSION, "", temp_node);
-
-    return temp_node;
+    return new Node(NodeType::EXPRESSION, 0, tempNode);
 }
 
 stc::Node* stc::Parser::statement()
 {
-    Node* temp_node = nullptr;
+    Node* tempNode = nullptr;
 
-    if (m_lexer->currentTokenType() == TokenType::LBRA)
+    if (tryEat(TokenType::LBRA))
     {
-        temp_node = compound_statement();
+        return compoundStatement();
     }
-
-    else if (m_lexer->currentTokenType() == TokenType::IF)
+    else if (tryEat(TokenType::IF))
     {
-        return selection_statement();
+        return selectionStatement();
     }
-    else if (m_lexer->currentTokenType() == TokenType::WHILE ||
-            m_lexer->currentTokenType() == TokenType::DO_WHILE ||
-            m_lexer->currentTokenType() == TokenType::FOR)
+    else if (tryEat(TokenType::WHILE) ||
+             tryEat(TokenType::DO_WHILE) ||
+             tryEat(TokenType::FOR))
     {
-        temp_node = iteration_statement();
+        tempNode = iterationStatement();
     }
-    else if (m_lexer->currentTokenType() == TokenType::FUNCTION)
+    else if (tryEat(TokenType::FUNCTION))
     {
-        m_lexer->nextToken();
-        temp_node = function_statement();
+        skip();
+        tempNode = functionStatement();
     }
-    else if (m_lexer->currentTokenType() == TokenType::RETURN ||
-            m_lexer->currentTokenType() == TokenType::BREAK ||
-            m_lexer->currentTokenType() == TokenType::CONTINUE)
+    else if (tryEat(TokenType::RETURN) ||
+            tryEat(TokenType::BREAK) ||
+            tryEat(TokenType::CONTINUE))
     {
-        return operator_statement();
+        return operatorStatement();
     }
-    else if (m_lexer->currentTokenType() == TokenType::CLASS)
+    else if (tryEat(TokenType::DECLARE))
     {
-        return classStatement();
+        tempNode = declareFunctionStatement();
     }
-    else if (m_lexer->currentTokenType() == TokenType::INTERFACE)
+    else if (tryEat(TokenType::IMPORT))
     {
-        return interfaceStatement();
+        return importStatement();
     }
-    else
+    else if (tryEat(TokenType::EXPORT))
     {
-        return expression_statement();
-    }
-
-    temp_node = new Node(NodeType::STATEMENT, "", temp_node);
-
-
-    return temp_node;
-}
-
-stc::Node* stc::Parser::compound_statement()
-{
-    m_lexer->nextToken();
-
-    Node* temp_node = statement_list();
-
-    return temp_node;
-}
-
-stc::Node* stc::Parser::statement_list()
-{
-    Node* temp_node = nullptr;
-
-
-    while (m_lexer->currentTokenType() != TokenType::RBRA)
-    {
-        auto temp_statement = statement();
-        temp_node = new Node(NodeType::STATEMENT_LIST, "", temp_node, temp_statement);
-    }
-    eat(TokenType::RBRA);
-
-
-    return temp_node;
-}
-
-stc::Node* stc::Parser::expression_statement()
-{
-    Node* temp_node = expression();
-
-    if (m_lexer->currentTokenType() != TokenType::SEMICOLON)
-    {
-        error("';' expected!");
-    }
-    m_lexer->nextToken();
-
-    return temp_node;
-}
-
-stc::Node* stc::Parser::selection_statement()
-{
-    Node* temp_node = new Node(NodeType::IF);
-
-    m_lexer->nextToken();
-
-    temp_node->operand1 = parenthesized_expression();
-    temp_node->operand2 = statement();
-
-
-    if (m_lexer->currentTokenType() == TokenType::ELSE)
-    {
-        temp_node->type = NodeType::IF_ELSE;
-        m_lexer->nextToken();
-
-        temp_node->operand3 = statement();
-    }
-
-
-    return temp_node;
-}
-
-stc::Node* stc::Parser::iteration_statement()
-{
-    Node* temp_node = nullptr;
-
-    if (m_lexer->currentTokenType() == TokenType::WHILE)
-    {
-        temp_node = new Node(NodeType::WHILE);
-
-        m_lexer->nextToken();
-
-        temp_node->operand1 = parenthesized_expression();
-        temp_node->operand2 = statement();
-    }
-    else if (m_lexer->currentTokenType() == TokenType::DO_WHILE)
-    {
-        temp_node = new Node(NodeType::DO_WHILE);
-
-        m_lexer->nextToken();
-
-        temp_node->operand2 = statement();
-
-        if (m_lexer->currentTokenType() != TokenType::WHILE)
-        {
-            error("'while' expected!");
-        }
-        m_lexer->nextToken();
-
-        temp_node->operand1 = parenthesized_expression();
-    }
-    else if (m_lexer->currentTokenType() == TokenType::FOR)
-    {
-        temp_node = new Node(NodeType::FOR);
-
-        m_lexer->nextToken();
-
-        if (m_lexer->currentTokenType() != TokenType::LPAR)
-        {
-            error("'(' expected!");
-        }
-
-        m_lexer->nextToken();
-        auto for_variable = expression();
-
-        if (m_lexer->currentTokenType() != TokenType::SEMICOLON)
-        {
-            error("';' expected!");
-        }
-        m_lexer->nextToken();
-
-
-        auto for_test = expression();
-
-        if (m_lexer->currentTokenType() != TokenType::SEMICOLON)
-        {
-            error("';' expected!");
-        }
-        m_lexer->nextToken();
-
-
-        auto for_action = expression();
-
-        if (m_lexer->currentTokenType() != TokenType::RPAR)
-        {
-            error("')' expected!");
-        }
-
-        m_lexer->nextToken();
-
-        temp_node->operand1 = for_variable;
-        temp_node->operand2 = for_test;
-        temp_node->operand3 = for_action;
-        temp_node->operand4 = statement();
-
-
-        auto temp_stmt = new Node(NodeType::STATEMENT, "");
-
-        temp_stmt->operand1 = temp_node;
-        temp_node = temp_stmt;
-    }
-
-
-    return temp_node;
-}
-
-stc::Node* stc::Parser::declaration_statement()
-{
-    Node* temp_node = nullptr;
-
-    bool is_const = false;
-
-    if (m_lexer->currentTokenType() == TokenType::LET)
-    {
-        temp_node = new Node(NodeType::VARIABLE_DECLARATION);
-        m_lexer->nextToken();
-    }
-    else if (m_lexer->currentTokenType() == TokenType::CONST)
-    {
-        temp_node = new Node(NodeType::CONSTANT_DECLARATION);
-        m_lexer->nextToken();
-        is_const = true;
-    }
-
-    if (m_lexer->currentTokenType() != TokenType::IDENTIFIER)
-    {
-        error("Name of variable expected!");
-    }
-
-    string variable_name = m_lexer->current_token().lexeme();
-    m_lexer->nextToken();
-
-
-    auto temp_variable_type = declarationType();
-
-
-    if (!is_const)
-    {
-        temp_node = new Node(NodeType::VARIABLE_DECLARATION, variable_name, temp_variable_type);
+        return exportStatement();
     }
     else
     {
-        temp_node = new Node(NodeType::CONSTANT_DECLARATION, variable_name, temp_variable_type);
+        return expressionStatement();
     }
 
-    return temp_node;
+    tempNode = new Node(NodeType::STATEMENT, 0, tempNode);
+
+    return tempNode;
+}
+
+stc::Node* stc::Parser::compoundStatement()
+{
+    skip();
+    return statementList();
+}
+
+stc::Node* stc::Parser::statementList()
+{
+    Node* tempNode = nullptr;
+
+    while (!tryEat(TokenType::RBRA))
+    {
+        auto statementNode = statement();
+        tempNode = new Node(NodeType::STATEMENT_LIST, 0, tempNode, statementNode);
+    }
+    skip();
+
+    return new Node(NodeType::STATEMENT, 0, tempNode);
+}
+
+stc::Node* stc::Parser::expressionStatement()
+{
+    auto tempNode = expression();
+
+    eat(TokenType::SEMICOLON);
+
+    return tempNode;
+}
+
+stc::Node* stc::Parser::selectionStatement()
+{
+    skip();
+
+    auto conditionNode = parenthesizedExpression();
+    auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
+    auto elseNode = (Node*)nullptr;
+    auto nodeType = NodeType::IF;
+
+    if (tryEat(TokenType::ELSE))
+    {
+        nodeType = NodeType::IF_ELSE;
+        skip();
+
+        elseNode = statement();
+    }
+
+    return new Node(nodeType, 0, conditionNode, bodyNode, elseNode);
+}
+
+stc::Node* stc::Parser::iterationStatement()
+{
+    if (tryEat(TokenType::WHILE))
+    {
+        skip();
+
+        auto conditionNode = parenthesizedExpression();
+        auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
+
+        return new Node(NodeType::WHILE, 0, conditionNode, bodyNode);
+    }
+    else if (tryEat(TokenType::DO_WHILE))
+    {
+        skip();
+
+        auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
+        eat(TokenType::WHILE);
+        auto conditionNode = parenthesizedExpression();
+
+        return new Node(NodeType::DO_WHILE, 0, conditionNode, bodyNode);
+    }
+    else if (tryEat(TokenType::FOR))
+    {
+        skip();
+
+        eat(TokenType::LPAR);
+        auto variableNode = expression();
+        eat(TokenType::SEMICOLON);
+        auto conditionNode = expression();
+        eat(TokenType::SEMICOLON);
+        auto actionNode = expression();
+        eat(TokenType::RPAR);
+        auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
+
+
+        return new Node(NodeType::FOR, 0, variableNode, conditionNode, actionNode, bodyNode);
+    }
+
+    return nullptr;
+}
+
+stc::Node* stc::Parser::declarationStatement()
+{
+    auto isConst = tryEat(TokenType::CONST);
+    skip();
+    auto variableName = eat(TokenType::IDENTIFIER);
+
+    auto declarationTypeNode = (Node*)nullptr;
+
+    if (tryEat(TokenType::COLON))
+    {
+        declarationTypeNode = declarationType();
+    }
+    else if (tryEat(TokenType::ASSIGN))
+    {
+        declarationTypeNode = nullptr;
+    }
+    else
+    {
+        error("Expected variable type or assignment to expression.");
+    }
+
+
+
+    return new Node(isConst ? NodeType::CONSTANT_DECLARATION : NodeType::VARIABLE_DECLARATION, variableName, declarationTypeNode);
 }
 
 stc::Node* stc::Parser::declarationType()
 {
     eat(TokenType::COLON);
+    auto variableType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
 
-    return declarationTypeStatement();
+
+    if (tryEat(TokenType::LSQR))
+    {
+        auto currentType = (int)variableType;
+        auto newArrayType = TokenType(currentType << 4);
+
+        skip();
+        eat(TokenType::RSQR);
+
+        variableType = newArrayType;
+    }
+
+    return new Node(NodeType::VARIABLE_TYPE, variableType);
 }
 
 stc::Node* stc::Parser::initializer()
 {
-    Node* temp_node = nullptr;
+    Node* tempNode = nullptr;
 
-    m_lexer->nextToken();
-
-    while (m_lexer->currentTokenType() != TokenType::RSQR)
+    skip();
+    while (!tryEat(TokenType::RSQR))
     {
-        auto temp_initializer_list = initializer_list();
-        temp_node = new Node(NodeType::INITIALIZER_LIST, "", temp_node, temp_initializer_list);
+        auto initializerListNode = initializerList();
+        tempNode = new Node(NodeType::INITIALIZER_LIST, 0, tempNode, initializerListNode);
     }
-    m_lexer->nextToken();
+    skip();
 
-    temp_node = new Node(NodeType::INITIALIZER, "", temp_node);
-
-    return temp_node;
+    return new Node(NodeType::INITIALIZER, 0, tempNode);
 }
 
-stc::Node* stc::Parser::initializer_list()
+stc::Node* stc::Parser::initializerList()
 {
-    Node* temp_node = nullptr;
-
-    if (m_lexer->currentTokenType() == TokenType::COMMA)
+    if (tryEat(TokenType::COMMA))
     {
-        m_lexer->nextToken();
-
-        temp_node = initializer_list();
+        skip();
+        return initializerList();
     }
     else
     {
-        temp_node = assignment_expression();
+        return assignmentExpression();
     }
 
-    return temp_node;
 }
 
-stc::Node* stc::Parser::function_statement()
+stc::Node* stc::Parser::functionStatement()
 {
-    Node* temp_node = nullptr;
+    auto functionName = eat(TokenType::IDENTIFIER);
+    auto functionArgsNode = functionArgumentList();
 
-    if (m_lexer->currentTokenType() != TokenType::IDENTIFIER)
+    auto functionReturnType = TokenType::VOID;
+
+    if (tryEat(TokenType::COLON))
     {
-        error("Name of function expected!");
+        eat(TokenType::COLON);
+        functionReturnType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
     }
 
-    string function_name = m_lexer->current_token().lexeme();
-    m_lexer->nextToken();
 
-    auto temp_function_args = function_argument_list();
-
-
-    if (m_lexer->currentTokenType() != TokenType::COLON)
-    {
-        error("':' expected!");
-    }
-    m_lexer->nextToken();
-
-    if (!Token::is_this_type_is_type_of_variable(m_lexer->currentTokenType()))
-    {
-        error("Type of function expected!");
-    }
-    auto function_type = Token::what_type_of_lexeme(m_lexer->current_token().lexeme());
-    m_lexer->nextToken();
+    auto functionBodyNode = statement();
+    auto functionReturnTypeNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, functionReturnType);
 
 
-    auto temp_function_compound_statement = statement();
-
-    auto temp_function_return_type = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, function_type);
-
-    temp_node = new Node(NodeType::FUNCTION_IMPLEMENTATION, function_name, temp_function_return_type,
-                         temp_function_args, temp_function_compound_statement);
-
-    return temp_node;
+    return new Node(NodeType::FUNCTION_IMPLEMENTATION, functionName, functionReturnTypeNode,
+                        functionArgsNode, functionBodyNode);
 }
 
-stc::Node* stc::Parser::function_argument_list()
+stc::Node* stc::Parser::functionArgumentList()
 {
-    Node* temp_node = nullptr;
+    Node* tempNode = nullptr;
 
-    if (m_lexer->currentTokenType() != TokenType::LPAR)
+    eat(TokenType::LPAR);
+
+    while (!tryEat(TokenType::RPAR))
     {
-        error("'(' expected!");
+        auto tempFunctionArgument = functionArgument();
+
+        tempNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_ARGS, 0, tempNode, tempFunctionArgument);
+
+        if (tryEat(TokenType::COMMA))
+            skip();
     }
-    m_lexer->nextToken();
+    skip();
 
-    while (m_lexer->currentTokenType() != TokenType::RPAR)
-    {
-        auto temp_function_argument = function_argument();
-
-        temp_node = new Node(NodeType::FUNCTION_IMPLEMENTATION_ARGS, "", temp_node, temp_function_argument);
-
-        if (m_lexer->currentTokenType() == TokenType::COMMA)
-        {
-            m_lexer->nextToken();
-        }
-    }
-
-
-    if (m_lexer->currentTokenType() != TokenType::RPAR)
-    {
-        error("')' expected!");
-    }
-    m_lexer->nextToken();
-
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::function_argument()
+stc::Node* stc::Parser::functionArgument()
 {
-    Node* temp_node = nullptr;
+    Node* tempNode = nullptr;
 
-    if (m_lexer->currentTokenType() != TokenType::IDENTIFIER)
-    {
-        error("Name of variable expected!");
-    }
+    auto variableName = eat(TokenType::IDENTIFIER);
+    auto declarationTypeNode = declarationType();
 
-    string variable_name = m_lexer->current_token().lexeme();
-    m_lexer->nextToken();
+    tempNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_ARG, variableName, declarationTypeNode);
 
-
-    auto temp_variable_type = declarationType();
-
-
-    temp_node = new Node(NodeType::FUNCTION_IMPLEMENTATION_ARG, variable_name, temp_variable_type);
-
-    return temp_node;
+    return tempNode;
 }
 
-stc::Node* stc::Parser::operator_statement()
+stc::Node* stc::Parser::operatorStatement()
 {
-    Node* temp_node = nullptr;
+    if (tryEat(TokenType::RETURN))
+    {
+        skip();
+        auto expressionStatementNode = expressionStatement();
 
-    if (m_lexer->currentTokenType() == TokenType::RETURN)
+        return new Node(NodeType::RETURN, 0, expressionStatementNode);
+    }
+    else if (tryEat(TokenType::BREAK))
     {
-        m_lexer->nextToken();
-        auto temp_expression_statement = expression_statement();
+        skip();
+        eat(TokenType::SEMICOLON);
 
-        temp_node = new Node(NodeType::RETURN, 0, temp_expression_statement);
+        return new Node(NodeType::BREAK, 0);
     }
-    else if (m_lexer->currentTokenType() == TokenType::BREAK)
+    else if (tryEat(TokenType::CONTINUE))
     {
-        m_lexer->nextToken();
-        temp_node = new Node(NodeType::BREAK, 0);
-        m_lexer->nextToken();
+        skip();
+        eat(TokenType::SEMICOLON);
+
+        return new Node(NodeType::CONTINUE, 0);
     }
-    else if (m_lexer->currentTokenType() == TokenType::CONTINUE)
+    else if (tryEat(TokenType::NEW))
     {
-        m_lexer->nextToken();
-        temp_node = new Node(NodeType::CONTINUE, 0);
-        m_lexer->nextToken();
-    }
-    else if (m_lexer->currentTokenType() == TokenType::NEW)
-    {
-        m_lexer->nextToken();
-        temp_node = postfixExpression();
-        temp_node = new Node(NodeType::NEW, 0, temp_node);
+        skip();
+        auto postfixExpressionNode = postfixExpression();
+        return new Node(NodeType::NEW, 0, postfixExpressionNode);
     }
 
-    return temp_node;
+    return nullptr;
 }
 
 std::string stc::Parser::eat(stc::TokenType type, bool shift)
 {
     if (!tryEat(type))
     {
-        error(to_string((int)type) + " expected!");
+        error(Token::tokenTypeToString(type) + " expected!");
     }
 
-    string value = m_lexer->current_token().lexeme();
+    auto value = m_lexer->currentToken().lexeme();
 
     if (shift)
     {
@@ -951,7 +764,7 @@ std::string stc::Parser::eat(const std::function<bool(stc::TokenType)>& predicat
         error(to_string((int)currentType) + " expected!");
     }
 
-    string value = m_lexer->current_token().lexeme();
+    auto value = m_lexer->currentToken().lexeme();
 
     if (shift)
     {
@@ -968,14 +781,123 @@ bool stc::Parser::tryEat(const std::function<bool(stc::TokenType)>& predicate)
 
 std::string stc::Parser::eat()
 {
-    string value = m_lexer->current_token().lexeme();
+    auto value = m_lexer->currentToken().lexeme();
     return value;
 }
 
-void stc::Parser::unEat()
+void stc::Parser::skip()
 {
-    m_lexer->prev_token();
+    m_lexer->nextToken();
 }
 
+stc::TokenType stc::Parser::eatType()
+{
+    auto value = m_lexer->currentToken().type();
+    m_lexer->nextToken();
+    return value;
+}
 
-   
+stc::TokenType stc::Parser::eatType(const std::function<bool(stc::TokenType)>& predicate)
+{
+    auto currentType = m_lexer->currentTokenType();
+
+    if (!predicate(currentType))
+    {
+        error(to_string((int)currentType) + " expected!");
+    }
+
+    auto value = m_lexer->currentToken().type();
+
+    m_lexer->nextToken();
+
+    return value;
+}
+
+stc::Node* stc::Parser::declareFunctionStatement()
+{
+    skip();
+    eat(TokenType::FUNCTION);
+    auto functionName = eat(TokenType::IDENTIFIER);
+    auto functionArgsNode = functionArgumentList();
+
+    auto functionReturnType = TokenType::VOID;
+
+    if (tryEat(TokenType::COLON))
+    {
+        eat(TokenType::COLON);
+        functionReturnType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
+    }
+
+    auto functionReturnTypeNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, functionReturnType);
+    auto functionBodyNode = new Node(NodeType::STATEMENT);
+    eat(TokenType::SEMICOLON);
+
+
+    return new Node(NodeType::FUNCTION_IMPLEMENTATION, functionName, functionReturnTypeNode,
+                    functionArgsNode, functionBodyNode);
+}
+
+stc::Node* stc::Parser::importStatement()
+{
+    eat(TokenType::IMPORT);
+
+    auto importItemListNode = importList();
+
+    eat(TokenType::FROM);
+
+    auto relativeFilePath = eat(TokenType::STRING_CONST);
+    auto relativeFilePathNode = new Node(NodeType::IMPORT_FILE, relativeFilePath);
+
+    auto importNode = new Node(NodeType::IMPORT, 0, importItemListNode, relativeFilePathNode);
+
+    return importNode;
+}
+
+stc::Node* stc::Parser::importList()
+{
+    eat(TokenType::LBRA);
+
+    Node* tempNode = nullptr;
+    while (!tryEat(TokenType::RBRA))
+    {
+        auto importItem = eat(TokenType::IDENTIFIER);
+        auto importItemNode = new Node(NodeType::IMPORT_LIST_ELEMENT, importItem);
+        tempNode = new Node(NodeType::IMPORT_LIST, 0, importItemNode, tempNode);
+
+        if (tryEat(TokenType::COMMA))
+            skip();
+    }
+    skip();
+
+    return tempNode;
+}
+
+stc::Node* stc::Parser::exportList()
+{
+    eat(TokenType::LBRA);
+
+    Node* tempNode = nullptr;
+    while (!tryEat(TokenType::RBRA))
+    {
+        auto exportItem = eat(TokenType::IDENTIFIER);
+        auto exportItemNode = new Node(NodeType::EXPORT_LIST_ELEMENT, exportItem);
+        tempNode = new Node(NodeType::EXPORT_LIST, 0, exportItemNode, tempNode);
+
+        if (tryEat(TokenType::COMMA))
+            skip();
+    }
+    skip();
+
+    return tempNode;
+}
+
+stc::Node* stc::Parser::exportStatement()
+{
+    eat(TokenType::EXPORT);
+
+    auto exportItemListNode = exportList();
+    auto exportNode = new Node(NodeType::EXPORT, 0, exportItemListNode);
+
+    return exportNode;
+}
+

@@ -15,9 +15,9 @@ stc::Node::Node(stc::NodeType type_, const any& value_, stc::Node* operand1_,
 
 }
 
-void stc::Node::setScopeId(size_t scopeId)
+void stc::Node::scopeId(size_t id)
 {
-    m_scopeId = scopeId;
+    m_scopeId = id;
 }
 
 size_t stc::Node::scopeId() const
@@ -245,14 +245,11 @@ std::string stc::Node::nodeTypeToString(stc::NodeType type)
         {
             return "string const";
         }
-
-        default:
-            return "";
     }
 }
 
 
-bool stc::Node::is_comparison_operator(NodeType type)
+bool stc::Node::isComparisonOperator(NodeType type)
 {
     return type == NodeType::LESS ||
            type == NodeType::GREATER ||

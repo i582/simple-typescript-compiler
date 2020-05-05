@@ -1,11 +1,14 @@
 #include "Lexer.h"
 
-stc::Lexer::Lexer(const std::string& file_path)
+stc::Lexer::Lexer(const std::string& filePath)
 {
-    this->m_current_token_index = 0;
+    this->m_currentTokenIndex = 0;
     this->m_state = LexerState::DEFAULT;
 
-    this->open(file_path);
+
+    this->m_filePath = fs::current_path() / filePath;
+
+    this->open(filePath);
 }
 
 stc::Lexer::~Lexer()
@@ -13,24 +16,25 @@ stc::Lexer::~Lexer()
     m_tokens.clear();
 }
 
-void stc::Lexer::print_tokens()
+void stc::Lexer::printTokens()
 {
+    cout << "-- Started printing token table" << endl;
+
     for (const auto& token : m_tokens)
     {
-        cout <<
-        token.lexeme() << "" <<
-        "\t\twith type:" << (int)token.type() <<
-        "\tline:" << token.line() <<
-        "\tposition:" << token.pos() <<
-        "\n";
+        token.print();
     }
+
+    cout << "-- End of token table" << endl;
+
+    cout << "\n";
 }
 
 bool stc::Lexer::nextToken()
 {
-    if (m_current_token_index < m_tokens.size() - 1)
+    if (m_currentTokenIndex < m_tokens.size() - 1)
     {
-        ++m_current_token_index;
+        ++m_currentTokenIndex;
         return false;
     }
     else
@@ -39,40 +43,20 @@ bool stc::Lexer::nextToken()
     }
 }
 
-bool stc::Lexer::prev_token()
-{
-    if (m_current_token_index > 0)
-    {
-        --m_current_token_index;
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-}
 
-stc::TokenType stc::Lexer::next_token_type()
+stc::Token& stc::Lexer::currentToken()
 {
-    nextToken();
-    auto token_type = currentTokenType();
-    prev_token();
-    return token_type;
-}
-
-stc::Token& stc::Lexer::current_token()
-{
-    return m_tokens[m_current_token_index];
+    return m_tokens[m_currentTokenIndex];
 }
 
 stc::TokenType stc::Lexer::currentTokenType()
 {
-    return current_token().type();
+    return currentToken().type();
 }
 
-void stc::Lexer::open(const std::string& file_path)
+void stc::Lexer::open(const std::string& filePath)
 {
-    std::ifstream in(file_path, std::ios::binary);
+    std::ifstream in(filePath, std::ios::binary);
 
     if (!in.is_open())
     {
@@ -92,6 +76,8 @@ void stc::Lexer::open(const std::string& file_path)
 
 void stc::Lexer::split()
 {
+    cout << "-- Started token splitting" << endl;
+
     string temp_token;
 
     size_t current_line = 1;
@@ -100,9 +86,40 @@ void stc::Lexer::split()
 
     for (int i = 0; i < m_code.size(); ++i)
     {
-        skip_excess_symbols(i, current_line, current_pos);
+        if (m_code[i] == '\n' && m_state == LexerState::IN_LINE_COMMENT)
+        {
+            m_state = LexerState::DEFAULT;
+            continue;
+        }
+
+        skipExcessSymbols(i, current_line, current_pos);
 
         const auto& symbol = m_code[i];
+
+        if (symbol == '/' && i + 1 < m_code.size() && m_code[i + 1] == '/')
+        {
+            m_state = LexerState::IN_LINE_COMMENT;
+        }
+
+        if (symbol == '/' && i + 1 < m_code.size() && m_code[i + 1] == '*')
+        {
+            m_state = LexerState::IN_BLOCK_COMMENT;
+        }
+
+        if (symbol == '*' && i + 1 < m_code.size() && m_code[i + 1] == '/')
+        {
+            m_state = LexerState::DEFAULT;
+            ++i;
+            continue;
+        }
+
+        if (m_state == LexerState::IN_LINE_COMMENT ||
+                m_state == LexerState::IN_BLOCK_COMMENT)
+        {
+            continue;
+        }
+
+
 
         if (symbol == '"')
         {
@@ -126,7 +143,8 @@ void stc::Lexer::split()
             continue;
         }
 
-        if (is_split_symbol(symbol))
+
+        if (isSplitSymbol(symbol))
         {
             ++current_pos;
 
@@ -147,9 +165,9 @@ void stc::Lexer::split()
             }
 
 
-            if (is_token_symbol(symbol))
+            if (isTokenSymbol(symbol))
             {
-                if (i + 1 < m_code.size() && next_symbol_is_part_of_token(symbol, m_code[i + 1]))
+                if (i + 1 < m_code.size() && nextSymbolIsPartOfToken(symbol, m_code[i + 1]))
                 {
                     auto next_symbol = m_code[i + 1];
 
@@ -203,9 +221,11 @@ void stc::Lexer::split()
         m_tokens.push_back(Token(temp_token, current_line, current_pos));
         temp_token.clear();
     }
+
+    cout << "-- Token separation done" << endl;
 }
 
-void stc::Lexer::skip_excess_symbols(int& index, size_t& current_line, size_t& current_pos)
+void stc::Lexer::skipExcessSymbols(int& index, size_t& currentLine, size_t& currentPos)
 {
     char& current_symbol = m_code[index];
 
@@ -213,12 +233,12 @@ void stc::Lexer::skip_excess_symbols(int& index, size_t& current_line, size_t& c
     {
         if (current_symbol == '\n')
         {
-            ++current_line;
-            current_pos = 0;
+            ++currentLine;
+            currentPos = 0;
         }
         else
         {
-            ++current_pos;
+            ++currentPos;
         }
 
         current_symbol = ' ';
@@ -230,12 +250,12 @@ void stc::Lexer::skip_excess_symbols(int& index, size_t& current_line, size_t& c
         if (index + 1 < m_code.size() && m_code[index + 1] == ' ')
         {
             ++index;
-            ++current_pos;
+            ++currentPos;
         }
     }
 }
 
-bool stc::Lexer::is_split_symbol(const char& symbol)
+bool stc::Lexer::isSplitSymbol(const char& symbol)
 {
     return  symbol == ':' || symbol == ';' ||
             symbol == ',' || symbol == '.' ||
@@ -253,12 +273,12 @@ bool stc::Lexer::is_split_symbol(const char& symbol)
             symbol == ' ';
 }
 
-bool stc::Lexer::is_token_symbol(const char& symbol_)
+bool stc::Lexer::isTokenSymbol(const char& symbol)
 {
-    return symbol_ != ' ' && symbol_ != '\0';
+    return symbol != ' ' && symbol != '\0';
 }
 
-bool stc::Lexer::next_symbol_is_part_of_token(const char& token, const char& symbol)
+bool stc::Lexer::nextSymbolIsPartOfToken(const char& token, const char& symbol)
 {
     switch (token)
     {
@@ -306,11 +326,11 @@ bool stc::Lexer::next_symbol_is_part_of_token(const char& token, const char& sym
     }
 }
 
-void stc::Lexer::print_current_token_line()
+void stc::Lexer::printCurrentTokenLine()
 {
-    int i = m_current_token_index;
-    int j = m_current_token_index;
-    auto current_line = current_token().line();
+    int i = m_currentTokenIndex;
+    int j = m_currentTokenIndex;
+    auto current_line = currentToken().line();
 
     while (i > 0 && m_tokens[i].line() == current_line)
     {
@@ -318,7 +338,7 @@ void stc::Lexer::print_current_token_line()
     }
     ++i;
 
-    int count_symbol_before = m_current_token_index - i;
+    int count_symbol_before = m_currentTokenIndex - i;
 
     while (j < m_tokens.size() && m_tokens[j].line() == current_line)
     {
@@ -359,20 +379,8 @@ void stc::Lexer::print_current_token_line()
     cout << underline;
 }
 
-bool stc::Lexer::is_correct_identifier(const std::string& token)
+const std::filesystem::path& stc::Lexer::filePath() const
 {
-    if (!isalpha(token[0]) && token[0] != '_')
-    {
-        return false;
-    }
-
-    for (const auto& symbol : token)
-    {
-        if (!isalpha(symbol) && !isdigit(symbol) && symbol != '_')
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return m_filePath;
 }
+

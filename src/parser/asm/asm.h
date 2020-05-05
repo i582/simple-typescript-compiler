@@ -1,4 +1,3 @@
-/*
 #pragma once
 #include <iostream>
 #include <string>
@@ -17,7 +16,7 @@ namespace stc
     {
         DATA,
         BEFORE_MAIN,
-        FUNCTION_IMLEMENTATIONS,
+        FUNCTION_IMPLEMENTATIONS,
         MAIN
     };
 
@@ -40,7 +39,7 @@ namespace stc
         size_t m_byte_on_stack;
 
     public:
-        explicit Asm(const string& file_name, Ast* tree);
+        explicit Asm(const string& outputFilePath, Ast* tree);
         ~Asm();
 
 
@@ -57,7 +56,7 @@ namespace stc
 
         void init_function_arguments();
 
-        void init_global_functions();
+        void initGlobalFunctions();
         void init_string_constants();
 
         // global functions
@@ -76,12 +75,10 @@ namespace stc
         void expression_recursive(Node* current_node);
         void relation_expression_recursive(Node* current_node);
         void function_implementation_recursive(Node* current_node);
-        void function_implementation_args_recursive(Node* current_node, size_t& stack_shift);
-
         void init_string_constants_recursive(Node* current_node, size_t& count_constant);
 
         void init_arguments_on_stack_recursive(Node* current_node);
-        void init_global_functions_recursive(Node* current_node);
+        void initGlobalFunctionsRecursive(Node* currentNode);
 
 
 
@@ -104,7 +101,7 @@ namespace stc
         void stack_argument(const Variable* var);
 
         void global_variable(const Variable* var);
-
+        void global_array(const Array& arr);
 
         // stack
         void push(const string& value);
@@ -164,4 +161,4 @@ namespace stc
         void comment(const string& value);
     };
 
-}*/
+}

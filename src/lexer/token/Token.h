@@ -1,7 +1,8 @@
 #pragma once
-
 #include <iostream>
+#include <iomanip>
 #include <string>
+#include "../../errorHandle/errorHandle.h"
 
 namespace stc
 {
@@ -20,21 +21,19 @@ enum class TokenType
 
     // variables
     LET,
-    CONST,
+    CONST = 0x0010,
 
 
     // types
-
-    NUMBER,
-    BOOLEAN,
-    STRING,
-    VOID,
-    ANY,
-
+    NUMBER          = 0x001000,
+    BOOLEAN         = 0x002000,
+    STRING          = 0x003000,
+    VOID            = 0x004000,
+    ANY             = 0x005000,
 
 
     // cycles
-    DO_WHILE,
+    DO_WHILE = 0x00F0,
     WHILE,
     FOR,
     // cycles addition
@@ -71,7 +70,6 @@ enum class TokenType
     SLASH, // /
     INC, // ++
     DEC, // --
-    STAR_STAR, // **
 
 
     // brackets
@@ -117,16 +115,10 @@ enum class TokenType
     NEW,
 
 
-    // classes
-    CLASS,
-    CONSTRUCTOR,
-    PRIVATE,
-    PUBLIC,
-    PROTECTED,
-    STATIC,
-    THIS,
-
-    INTERFACE,
+    DECLARE,
+    IMPORT,
+    EXPORT,
+    FROM,
 };
 
 class Token
@@ -147,22 +139,22 @@ public:
     _NODISCARD size_t line() const;
     _NODISCARD size_t pos() const;
 
+public:
+    void print() const;
 
 public:
-    static bool is_number(const string& lexeme);
-    static bool is_string(const string& lexeme);
+    static bool isNumber(const string& lexeme);
+    static bool isString(const string& lexeme);
 
-    static bool is_unary_operator(TokenType type);
-    static bool is_assignment_operator(TokenType type);
+    static bool isUnaryOperator(TokenType type);
+    static bool isAssignmentOperator(TokenType type);
+    static bool isThisTypeIsVariableType(TokenType type);
 
+    static TokenType typeByLexeme(const string& lexeme);
 
-    static bool is_this_type_is_type_of_variable(TokenType type);
+    _NODISCARD static string tokenTypeToString(TokenType type);
 
-    static TokenType what_type_of_lexeme(const string& lexeme);
-
-
-    static bool isVisibilityModifier(TokenType type);
-
+    static bool isCorrectIdentifier(const string& lexeme);
 };
 
 

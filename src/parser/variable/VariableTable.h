@@ -2,54 +2,53 @@
 
 #include <algorithm>
 #include <vector>
+#include <tuple>
 #include "Variable.h"
-#include "tuple"
+#include "../../errorHandle/errorHandle.h"
 
 namespace stc
 {
+
 using std::vector;
 using std::tuple;
-
 
 class VariableTable
 {
 private:
-    size_t m_scopeId{};
+    size_t m_scopeId;
 
     vector<Variable*> m_variables;
-    VariableTable* m_parent{};
+    VariableTable* m_parent;
 
 
 public:
-    VariableTable() = default;
     explicit VariableTable(size_t scopeId);
+    VariableTable();
 
+    ~VariableTable();
 
 public:
-    void setParentTable(VariableTable* parent) noexcept;
+    _NODISCARD size_t scopeId() const;
 
-public:
+
+    void setParent(VariableTable* parent);
     void add(Variable* variable);
 
-public:
-    _NODISCARD Variable* getByName(const string& variable);
-    _NODISCARD tuple<size_t, Variable*> getVariableAndScopeIdWhereItDeclared(const string& name);
-    _NODISCARD Variable* getByNameAndScopeId(const string& name, size_t block_id);
+
+    _NODISCARD Variable* getByName(const string& name) const;
+    _NODISCARD tuple<size_t, Variable*> getVariableAndScopeIdWhereItDeclared(const string& name) const;
+    _NODISCARD Variable* getByNameAndScopeId(const string& name, size_t scopeId) const;
 
 
-public:
-    _NODISCARD bool contains(const string& variable) const;
+    _NODISCARD bool contains(const string& name) const;
     _NODISCARD bool containsGlobally(const string& name) const;
 
 
-
-public:
-    _NODISCARD size_t scopeId() const noexcept;
     _NODISCARD const vector<Variable*>& raw() const;
-    _NODISCARD vector<Variable*>& raw();
+
 
 public:
-    void print() const noexcept;
+    void print() const;
 
 };
 

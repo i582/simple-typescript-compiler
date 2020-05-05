@@ -7,6 +7,10 @@
 
 #include "token/Token.h"
 
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
 namespace stc
 {
 using std::cout;
@@ -14,6 +18,7 @@ using std::endl;
 using std::string;
 using std::vector;
 
+using fs::path;
 
 enum class LexerState
 {
@@ -21,6 +26,8 @@ enum class LexerState
     IN_NUMBER,
 
     IN_STRING,
+    IN_LINE_COMMENT,
+    IN_BLOCK_COMMENT,
 };
 
 class Lexer
@@ -30,43 +37,37 @@ private:
     vector<Token> m_tokens;
     LexerState m_state;
 
-    size_t m_current_token_index;
+    size_t m_currentTokenIndex;
+
+    path m_filePath;
 
 public:
-    explicit Lexer(const string& file_path);
-
+    explicit Lexer(const string& filePath);
     ~Lexer();
-
-public:
-    void print_tokens();
-
-    void print_current_token_line();
 
 public:
     void split();
 
+public:
+    void printTokens();
+    void printCurrentTokenLine();
+
+public:
     bool nextToken();
 
-    bool prev_token();
-
-    [[nodiscard]] TokenType next_token_type();
-
-    [[nodiscard]] Token& current_token();
-
-    [[nodiscard]] TokenType currentTokenType();
-
-    static bool is_correct_identifier(const string& token);
+public:
+    _NODISCARD Token& currentToken();
+    _NODISCARD TokenType currentTokenType();
+    _NODISCARD const path& filePath() const;
 
 private:
-    void open(const string& file_path);
+    void open(const string& filePath);
 
-    void skip_excess_symbols(int& index, size_t& current_line, size_t& current_pos);
+    void skipExcessSymbols(int& index, size_t& currentLine, size_t& currentPos);
 
-    static bool is_split_symbol(const char& symbol);
-
-    static bool is_token_symbol(const char& symbol_);
-
-    static bool next_symbol_is_part_of_token(const char& token, const char& symbol);
+    static bool isSplitSymbol(const char& symbol);
+    static bool isTokenSymbol(const char& symbol);
+    static bool nextSymbolIsPartOfToken(const char& token, const char& symbol);
 };
 
 

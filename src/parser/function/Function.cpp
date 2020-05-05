@@ -1,31 +1,91 @@
 #include "Function.h"
 
-stc::Function::Function(const std::string& name, const ReturnType& returnType,
-                        const std::vector<stc::ArgumentType>& arguments, size_t sizeLocalVariable)
+stc::Function::Function(const std::string& name, stc::ReturnType returnType,
+                        const std::vector<stc::ArgumentType>& arguments, Node* m_node,
+                        size_t sizeLocalVariable, const vector<Variable*>& argumentVariables,
+                        const vector<Variable*>& localVariables)
 {
     this->m_name = name;
     this->m_returnType = returnType;
     this->m_arguments = arguments;
-    this->m_argumentsSizeInByte = 0;
-    this->m_localVariableSizeInByte = sizeLocalVariable;
+    this->m_argumentsSize = 0;
+    this->m_localVariableSize = sizeLocalVariable;
+
+    this->m_node = m_node;
+
+    this->m_argumentVariables = argumentVariables;
+    this->m_localVariables = localVariables;
+
+    for (const auto& argument : arguments)
+    {
+        this->m_argumentsSize += Variable::typeSizeInByte(argument);
+    }
 }
 
-std::string stc::Function::name() const noexcept
+
+void stc::Function::print() const noexcept
+{
+    cout << "   Function name: ";
+    cout << ("'" + m_name + "'");
+
+    cout << ". Return type: ";
+    cout << ("'" + Variable::variableTypeToString(m_returnType) + "'");
+
+    cout << ". Arguments: ";
+    cout << argumentsViewString() << endl;
+
+    cout << "   {" << endl;
+
+    cout << "      Local variables: " << "(" << m_localVariableSize << " byte)" << endl;
+    cout << "      {" << endl;
+    for (const auto& localVariable : m_localVariables)
+    {
+        cout << "         ";
+        localVariable->print();
+    }
+    if (m_localVariables.empty())
+    {
+        cout << "         void" << endl;
+    }
+    cout << "      }" << endl;
+
+    cout << endl;
+
+
+    cout << "      Argument variables: " << "(" << m_argumentsSize << " byte)" << endl;
+    cout << "      {" << endl;
+    for (const auto& argumentVariable : m_argumentVariables)
+    {
+        cout << "         ";
+        argumentVariable->print();
+    }
+    if (m_argumentVariables.empty())
+    {
+        cout << "         void" << endl;
+    }
+    cout << "      }" << endl;
+
+    cout << "   }" << endl;
+
+    cout << "\n";
+}
+
+std::string stc::Function::name() const
 {
     return m_name;
 }
 
-stc::ReturnType stc::Function::returnType() const noexcept
+stc::ReturnType stc::Function::returnType() const
 {
     return m_returnType;
 }
 
-const std::vector<stc::ArgumentType>& stc::Function::arguments() const noexcept
+const std::vector<stc::ArgumentType>& stc::Function::arguments() const
 {
     return m_arguments;
 }
 
-bool stc::Function::operator==(const stc::Function& rhs) const noexcept
+bool stc::Function::operator==(const stc::Function& rhs) const
 {
     auto eq = m_name == rhs.m_name &&
               m_arguments.size() == rhs.m_arguments.size();
@@ -36,7 +96,7 @@ bool stc::Function::operator==(const stc::Function& rhs) const noexcept
 
     for (int i = 0; i < m_arguments.size(); ++i)
     {
-        if (!(m_arguments[i] == rhs.m_arguments[i]))
+        if (m_arguments[i] != rhs.m_arguments[i])
         {
             return false;
         }
@@ -45,24 +105,29 @@ bool stc::Function::operator==(const stc::Function& rhs) const noexcept
     return true;
 }
 
-size_t stc::Function::argumentsSizeInByte() const noexcept
+size_t stc::Function::argumentsSize() const
 {
-    return m_argumentsSizeInByte;
+    return m_argumentsSize;
 }
 
-size_t stc::Function::localVariableSizeInByte() const noexcept
+size_t stc::Function::localVariableSize() const
 {
-    return m_localVariableSizeInByte;
+    return m_localVariableSize;
 }
 
-std::string stc::Function::argumentsViewString() const noexcept
+std::string stc::Function::argumentsViewString() const
 {
     return argumentsToString(m_arguments);
 }
 
-void stc::Function::print() const noexcept
+const std::vector<stc::Variable*>& stc::Function::localVariables() const
 {
-    cout << "Function name: '" << m_name << "'. Return type: '" << m_returnType.toString() << "'. Arguments: " << argumentsViewString() << endl;
+    return m_localVariables;
+}
+
+const std::vector<stc::Variable*>& stc::Function::argumentVariables() const
+{
+    return m_argumentVariables;
 }
 
 std::string stc::Function::argumentsToString(const std::vector<stc::ArgumentType>& arguments) noexcept
@@ -71,15 +136,24 @@ std::string stc::Function::argumentsToString(const std::vector<stc::ArgumentType
 
     for (const auto& argument : arguments)
     {
-        result += argument.toString() + ",";
+        result += Variable::variableTypeToString(argument) + ", ";
     }
 
     if (arguments.empty())
+    {
         result += "void";
+    }
     else
+    {
         result.pop_back();
+        result.pop_back();
+    }
 
     result += ")";
     return result;
 }
 
+stc::Node* stc::Function::implementationNode() const
+{
+    return m_node;
+}
