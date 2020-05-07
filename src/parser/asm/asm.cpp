@@ -75,7 +75,7 @@ void stc::Asm::init_local_variables()
 
 void stc::Asm::init_global_variables()
 {
-    set_place_for_writing(asm_place_for_writing::DATA);
+    setPlaceForWriting(asm_place_for_writing::DATA);
     raw("\n; Global variable START\n");
     for (const auto& variable: m_ast->m_globalVariables.raw())
     {
@@ -87,7 +87,7 @@ void stc::Asm::init_global_variables()
         global_array(array);
     }
     raw("; Global variable END\n\n");
-    set_place_for_writing(asm_place_for_writing::MAIN);
+    setPlaceForWriting(asm_place_for_writing::MAIN);
 }
 
 void stc::Asm::init_function_arguments()
@@ -392,11 +392,11 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
 
     else if (currentNode->type == NodeType::FUNCTION_IMPLEMENTATION)
     {
-        set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
 
         functionImplementationRecursive(currentNode);
 
-        set_place_for_writing(asm_place_for_writing::MAIN);
+        setPlaceForWriting(asm_place_for_writing::MAIN);
 
         return;
     }
@@ -1014,11 +1014,11 @@ void stc::Asm::relation_expression_recursive(Node* current_node)
         {
             // je (==) label
             je(label_if_not_equal);
-            push(one);
+            push(null);
             jmp(label_compare_end);
 
             label(label_if_not_equal);
-            push(null);
+            push(one);
 
             label(label_compare_end);
         }
@@ -1118,70 +1118,105 @@ void stc::Asm::initGlobalFunctionsRecursive(stc::Node* currentNode)
 
 void stc::Asm::init_input_function()
 {
-    set_place_for_writing(asm_place_for_writing::DATA);
+    setPlaceForWriting(asm_place_for_writing::DATA);
     raw(tab + "input_format db \"%d\", 0\n");
     raw(tab + "input_result dd 0\n");
-    set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+    setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
 
     proc("input");
     procedure_prolog(0, 0);
 
+    push(eax);
+    push(ebx);
+    push(ecx);
+    push(edx);
+
     raw(tab + "invoke crt_scanf, offset input_format, offset input_result\n");
     mov(eax, "input_result");
+
+    pop(eax);
+    pop(ebx);
+    pop(ecx);
+    pop(edx);
 
     procedure_epilogue();
     ret();
     endp("input");
 
-    set_place_for_writing(asm_place_for_writing::MAIN);
+    setPlaceForWriting(asm_place_for_writing::MAIN);
 }
 
 void stc::Asm::init_print_function()
 {
-    set_place_for_writing(asm_place_for_writing::DATA);
+    setPlaceForWriting(asm_place_for_writing::DATA);
     raw(tab + "print_format db \"%d \", 0\n");
-    set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+    setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
 
     proc("print");
     procedure_prolog(0, 0);
 
+    push(eax);
+    push(ebx);
+    push(ecx);
+    push(edx);
+
     mov(eax, "[ebp + 8]");
     raw(tab + "invoke crt_printf, offset print_format, eax\n");
+
+    pop(eax);
+    pop(ebx);
+    pop(ecx);
+    pop(edx);
 
     procedure_epilogue();
     ret("4");
     endp("print");
 
-    set_place_for_writing(asm_place_for_writing::MAIN);
+    setPlaceForWriting(asm_place_for_writing::MAIN);
 }
 
 void stc::Asm::init_println_function()
 {
-    set_place_for_writing(asm_place_for_writing::DATA);
+    setPlaceForWriting(asm_place_for_writing::DATA);
     raw(tab + "println_format db \"%s\", 0\n");
-    set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+    setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
 
     proc("println");
     procedure_prolog(0, 0);
 
+    push(eax);
+    push(ebx);
+    push(ecx);
+    push(edx);
+
     mov(eax, "[ebp + 8]");
     raw(tab + "invoke crt_printf, offset println_format, eax\n");
+
+    pop(eax);
+    pop(ebx);
+    pop(ecx);
+    pop(edx);
 
     procedure_epilogue();
     ret("4");
     endp("println");
 
-    set_place_for_writing(asm_place_for_writing::MAIN);
+    setPlaceForWriting(asm_place_for_writing::MAIN);
 }
 
 void stc::Asm::init_sqrt_function()
 {
-    set_place_for_writing(asm_place_for_writing::DATA);
+    setPlaceForWriting(asm_place_for_writing::DATA);
     raw(tab + "sqrt_result dd 0\n");
-    set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+    setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
 
     proc("sqrt");
     procedure_prolog(0, 0);
+
+    push(eax);
+    push(ebx);
+    push(ecx);
+    push(edx);
 
     mov(eax, "[ebp + 8]");
     mov("sqrt_result", eax);
@@ -1191,17 +1226,22 @@ void stc::Asm::init_sqrt_function()
     fist("sqrt_result");
     mov(eax, "sqrt_result");
 
+    pop(ebx);
+    pop(ecx);
+    pop(edx);
+
+
     procedure_epilogue();
     ret("4");
     endp("sqrt");
 
-    set_place_for_writing(asm_place_for_writing::MAIN);
+    setPlaceForWriting(asm_place_for_writing::MAIN);
 }
 
 
 void stc::Asm::init_concat_function()
 {
-    set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+    setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
     raw("concat PROC\n"
         "   enter 32, 0\n"
         "\n"
@@ -1249,19 +1289,19 @@ void stc::Asm::init_concat_function()
         "   ret 8\n"
         "concat ENDP\n");
 
-    set_place_for_writing(asm_place_for_writing::MAIN);
+    setPlaceForWriting(asm_place_for_writing::MAIN);
 }
 
 
 void stc::Asm::init_operands_for_division()
 {
-    set_place_for_writing(asm_place_for_writing::DATA);
+    setPlaceForWriting(asm_place_for_writing::DATA);
     raw(tab + "div_operand_1 dd 0\n");
     raw(tab + "div_operand_2 dd 0\n");
-    set_place_for_writing(asm_place_for_writing::MAIN);
+    setPlaceForWriting(asm_place_for_writing::MAIN);
 }
 
-void stc::Asm::set_place_for_writing(stc::asm_place_for_writing place)
+void stc::Asm::setPlaceForWriting(stc::asm_place_for_writing place)
 {
     switch (place)
     {
@@ -1380,14 +1420,17 @@ void stc::Asm::global_variable(const stc::Variable* variable)
     string variableTypeString;
     string variableValueString;
 
-    auto varialeName = variable->nameWithPostfix();
+    auto variableName = variable->nameWithPostfix();
     auto variableType = variable->type();
 
     if (variableType.is(FundamentalType::SYMBOL, true))
     {
-        m_data.append(tab + varialeName + " dd 0 ; pointer to string\n");
+        m_data.append(tab + variableName + " dd 0 ; pointer to string\n");
         return;
     }
+
+    if (variableType.isArray())
+        return;
 
     switch (variable->type().fundamentalType())
     {
@@ -1417,7 +1460,7 @@ void stc::Asm::global_variable(const stc::Variable* variable)
             break;
     }
 
-    m_data.append(tab + varialeName + " " +
+    m_data.append(tab + variableName + " " +
                   variableTypeString + " " + variableValueString + "\n");
 }
 
@@ -1439,60 +1482,105 @@ void stc::Asm::global_array(const stc::Array& array)
     string arrayTypeString;
     string arrayValuesString;
 
+
+    setPlaceForWriting(asm_place_for_writing::MAIN);
+
+
     switch (arrayType.fundamentalType())
     {
         case FundamentalType::NUMBER:
         {
+            if (arraySize > 0)
+            {
+                raw(tab + "push eax\n");
+                raw(tab + "push ebx\n");
+                raw(tab + "push " + to_string(arraySize * 4) + "\n");
+                raw(tab + "call crt_malloc\n");
+                raw(tab + "mov " + arrayName + ", eax\n");
+            }
+
             arrayTypeString = "dd";
 
-            if (arrayValues.empty())
+            if (!arrayValues.empty())
             {
-                arrayValuesString = to_string(arraySize) + " dup (0)";
-            }
-            else
-            {
+                raw(tab + "mov ebx, eax\n");
+
+                auto values = array.values();
+                for (int i = values.size() - 1; i >= 0; --i)
+                {
+                    const auto& value = values[i];
+
+                    auto rawValue = (int)std::get<number>(value);
+
+                    raw(tab + "mov DWORD PTR [ebx], " + to_string(rawValue) + "\n");
+
+                    if (i != 0)
+                        raw(tab + "add ebx, 4\n");
+                }
+
                 arrayValuesString = array.valuesToString();
+            }
+
+            if (arraySize > 0)
+            {
+                raw(tab + "pop eax\n");
+                raw(tab + "pop ebx\n");
             }
             break;
         }
         case FundamentalType::BOOLEAN:
         {
-            arrayTypeString = "dd";
-
-            if (arrayValues.empty())
+            if (arraySize > 0)
             {
-                arrayValuesString = to_string(arraySize) + " dup (0)";
+                raw(tab + "push eax\n");
+                raw(tab + "push ebx\n");
+                raw(tab + "push " + to_string(arraySize) + "\n");
+                raw(tab + "call crt_malloc\n");
+                raw(tab + "mov " + arrayName + ", eax\n");
             }
-            else
+
+            arrayTypeString = "db";
+
+            if (!arrayValues.empty())
             {
+                raw(tab + "mov ebx, eax\n");
+
+                auto values = array.values();
+                for (int i = values.size() - 1; i >= 0; --i)
+                {
+                    const auto& value = values[i];
+
+                    auto rawValue = std::get<bool>(value);
+
+                    raw(tab + "mov BYTE PTR [ebx], " + to_string(rawValue) + "\n");
+
+                    if (i != 0)
+                        raw(tab + "add ebx, 1\n");
+                }
+
                 arrayValuesString = array.valuesToString();
+            }
+
+            if (arraySize > 0)
+            {
+                raw(tab + "pop eax\n");
+                raw(tab + "pop ebx\n");
             }
             break;
         }
         case FundamentalType::SYMBOL:
-        {
-            arrayTypeString = "db";
-
-            if (arrayValues.empty())
-            {
-                arrayTypeString = "dd";
-                arrayValuesString = to_string(arraySize) + " dup (0)";
-            }
-            else
-            {
-                arrayValuesString = array.valuesToString();
-            }
-            break;
-        }
-
         case FundamentalType::VOID:
         case FundamentalType::ANY:
             break;
     }
 
+    setPlaceForWriting(asm_place_for_writing::DATA);
+    raw(tab + arrayName + " " + arrayTypeString + " 0\n");
+    raw(tab + arrayName + "_len dd " + to_string(arraySize) + "\n");
+    setPlaceForWriting(asm_place_for_writing::DATA);
 
-    m_data.append(tab + arrayName + "_arr" + " " + arrayTypeString + " " + arrayValuesString + "\n");
-    m_data.append(tab + arrayName + " " + arrayTypeString + " offset " + arrayName + "_arr" + "\n");
+//    m_data.append(tab + arrayName + "_arr" + " " + arrayTypeString + " " + arrayValuesString + "\n");
+//    m_data.append(tab + arrayName + " " + arrayTypeString + " offset " + arrayName + "_arr" + "\n");
 
 }
 
@@ -1717,9 +1805,13 @@ void stc::Asm::initGlobalFunction(const std::string& name)
     }
     else if (name == "concat")
     {
-        set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
         raw("concat PROC\n"
-            "   enter 32, 0\n"
+            "   enter 0, 0\n"
+            "\n"
+            "   push ebx\n"
+            "   push ecx\n"
+            "   push edx"
             "\n"
             "   mov ecx, [ebp + 8] ; указатель на первую строку\n"
             "   mov edx, [ebp + 12] ; указатель на вторую строку\n"
@@ -1741,7 +1833,7 @@ void stc::Asm::initGlobalFunction(const std::string& name)
             "   push ecx\n"
             "\n"
             "\n"
-            "   call crt_calloc ; выделяем память под строку\n"
+            "   call crt_malloc ; выделяем память под строку\n"
             "   push eax ; сохраняем указатель на память в стеке\n"
             "\n"
             "\n"
@@ -1761,17 +1853,26 @@ void stc::Asm::initGlobalFunction(const std::string& name)
             "   ; теперь в ecx лежит строка содержащая объединенные две входные строки\n"
             "\n"
             "\n"
+
+            "   pop ebx\n"
+            "   pop ecx\n"
+            "   pop edx"
+            "\n"
             "   leave\n"
             "   ret 8\n"
             "concat ENDP\n");
 
-        set_place_for_writing(asm_place_for_writing::MAIN);
+        setPlaceForWriting(asm_place_for_writing::MAIN);
     }
     else if (name == "slice")
     {
-        set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
         raw("slice PROC\n"
             "   enter 0, 0\n"
+            "\n"
+            "   push ebx\n"
+            "   push ecx\n"
+            "   push edx"
             "\n"
             "   cmp DWORD PTR [ebp + 8], 0\n"
             "   je _error_end ; передан нулевой указатель\n"
@@ -1841,36 +1942,56 @@ void stc::Asm::initGlobalFunction(const std::string& name)
             "   mov DWORD PTR [eax], 0\n"
             "   pop eax\n"
             "\n"
+            "   pop ebx\n"
+            "   pop ecx\n"
+            "   pop edx"
+            "\n"
             "   leave\n"
             "   ret 12\n"
             "\n"
             "_error_end:\n"
             "   mov eax, 0\n"
             "\n"
+            "   pop ebx\n"
+            "   pop ecx\n"
+            "   pop edx"
+            "\n"
             "   leave\n"
             "   ret 12\n"
             "slice ENDP\n");
-        set_place_for_writing(asm_place_for_writing::MAIN);
+        setPlaceForWriting(asm_place_for_writing::MAIN);
     }
     else if (name == "strlen")
     {
-        set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
         raw("strlen PROC\n"
             "   enter 0, 0\n"
             "\n"
+            "   push ebx\n"
+            "   push ecx\n"
+            "   push edx"
+            "\n"
             "   push DWORD PTR [ebp + 8]\n"
             "   call crt_strlen\n"
-            "   \n"
+            "\n"
+            "   pop ebx\n"
+            "   pop ecx\n"
+            "   pop edx"
+            "\n"
             "   leave\n"
             "   ret 8\n"
             "strlen ENDP\n");
-        set_place_for_writing(asm_place_for_writing::MAIN);
+        setPlaceForWriting(asm_place_for_writing::MAIN);
     }
     else if (name == "at")
     {
-        set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
         raw("at PROC\n"
             "   enter 0, 0\n"
+            "\n"
+            "   push ebx\n"
+            "   push ecx\n"
+            "   push edx"
             "\n"
             "   cmp DWORD PTR [ebp + 8], 0\n"
             "   je _error_end ; передан нулевой указатель\n"
@@ -1908,7 +2029,9 @@ void stc::Asm::initGlobalFunction(const std::string& name)
             "\n"
             "   pop eax\n"
             "\n"
+            "   pop ebx\n"
             "   pop ecx\n"
+            "   pop edx"
             "\n"
             "   leave\n"
             "   ret 8\n"
@@ -1916,11 +2039,102 @@ void stc::Asm::initGlobalFunction(const std::string& name)
             "_error_end:\n"
             "   mov eax, 0\n"
             "\n"
+            "   pop ebx\n"
+            "   pop ecx\n"
+            "   pop edx"
+            "\n"
             "   leave\n"
             "   ret 8\n"
             "\n"
             "at ENDP\n");
-        set_place_for_writing(asm_place_for_writing::MAIN);
+        setPlaceForWriting(asm_place_for_writing::MAIN);
+    }
+    else if (name == "find")
+    {
+        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        raw("find PROC\n"
+            "   enter 0, 0\n"
+            "\n"
+            "   push ebx\n"
+            "   push ecx\n"
+            "   push edx"
+            "\n"
+            "   push [ebp + 8]\n"
+            "   push [ebp + 12]\n"
+            "   call crt_strstr\n"
+            "\n"
+            "   cmp eax, 0\n"
+            "   je _not_found\n"
+            "\n"
+            "   mov ebx, [ebp + 12]\n"
+            "   sub eax, ebx\n"
+            "\n"
+            "   pop eax\n"
+            "   pop ebx\n"
+            "   pop ecx\n"
+            "   pop edx"
+            "\n"
+            "   leave\n"
+            "   ret 8\n"
+            "\n"
+            "_not_found:\n"
+            "   mov eax, -1\n"
+            "\n"
+            "   pop ebx\n"
+            "   pop ecx\n"
+            "   pop edx"
+            "\n"
+            "   leave\n"
+            "   ret 8\n"
+            "find ENDP\n");
+        setPlaceForWriting(asm_place_for_writing::MAIN);
+    }
+    else if (name == "toString")
+    {
+        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        raw("toString PROC\n"
+            "   enter 0, 0\n"
+            "\n"
+            "   push ebx\n"
+            "   push ecx\n"
+            "   push edx"
+            "\n"
+            "   push 20\n"
+            "   call crt_malloc\n"
+            "   mov ebx, eax\n"
+            "    \n"
+            "   push [ebp + 12]\n"
+            "   push ebx\n"
+            "   push [ebp + 8]\n"
+            "   call crt__itoa\n"
+            "\n"
+            "   leave\n"
+            "   ret 8\n"
+            "toString ENDP\n");
+        setPlaceForWriting(asm_place_for_writing::MAIN);
+    }
+    else if (name == "toNumber")
+    {
+        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        raw("toNumber PROC\n"
+            "   enter 0, 0\n"
+            "\n"
+            "   push ebx\n"
+            "   push ecx\n"
+            "   push edx\n"
+            "\n"
+            "   push [ebp + 8]\n"
+            "   call crt_atoi\n"
+            "\n"
+            "\n"
+            "   pop ebx\n"
+            "   pop ecx\n"
+            "   pop edx\n"
+            "\n"
+            "   leave\n"
+            "   ret 4\n"
+            "toNumber ENDP\n");
+        setPlaceForWriting(asm_place_for_writing::MAIN);
     }
 }
 

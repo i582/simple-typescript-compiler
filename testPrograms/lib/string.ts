@@ -28,5 +28,26 @@ declare function concat(str1: string, str2: string): string;
  */
 declare function slice(str: string, start: number, end: number): string;
 
+/**
+ * The function returns the index of the first occurrence of the string.
+ * If the string is not found, then -1 will be returned.
+ * @param str Search string
+ * @param findStr String for find
+ */
+declare function find(str: string, findStr: string): number;
 
-export { concat, slice, strlen, at};
+/**
+ * The function returns a string representation of the number in the given number system.
+ * @param num Number
+ * @param radix Number system
+ */
+declare function toString(num: number, radix: number): string;
+
+/**
+ * The function returns the numeric representation of the string if the string represents a number.
+ * @param str
+ */
+declare function toNumber(str: string): number;
+
+
+export { concat, slice, strlen, at, find, toString, toNumber};

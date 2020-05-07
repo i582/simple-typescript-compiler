@@ -42,6 +42,15 @@ void stc::GlobalFunctions::init()
 
     newFunction = new Function("at", Type(FundamentalType::SYMBOL, true), { Type(FundamentalType::SYMBOL, true), Type(FundamentalType::NUMBER)});
     m_table.add(newFunction);
+
+    newFunction = new Function("find", Type(FundamentalType::NUMBER), { Type(FundamentalType::SYMBOL, true), Type(FundamentalType::SYMBOL, true)});
+    m_table.add(newFunction);
+
+    newFunction = new Function("toString", Type(FundamentalType::SYMBOL, true), { Type(FundamentalType::NUMBER), Type(FundamentalType::NUMBER)});
+    m_table.add(newFunction);
+
+    newFunction = new Function("toNumber",  Type(FundamentalType::NUMBER), { Type(FundamentalType::SYMBOL, true) });
+    m_table.add(newFunction);
 }
 
 stc::Function* stc::GlobalFunctions::get(const std::string& name,

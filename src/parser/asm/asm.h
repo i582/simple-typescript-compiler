@@ -91,7 +91,7 @@ namespace stc
 
         void write(const string& text);
 
-        void set_place_for_writing(asm_place_for_writing place);
+        void setPlaceForWriting(asm_place_for_writing place);
 
         // generic functions
         static string offset(const string& value);
