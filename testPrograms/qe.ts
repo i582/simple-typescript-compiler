@@ -29,11 +29,11 @@ if (D >= 0)
 {
     println("Answer: ");
 
-    x = (-1 * b + sqrt(D)) / (2 * a);
+    x = (-b + sqrt(D)) / (2 * a);
     print_n("x1 = ", x);
 
 
-    x = (-1 * b - sqrt(D)) / (2 * a);
+    x = (-b - sqrt(D)) / (2 * a);
     print_n("x2 = ", x);
 
 

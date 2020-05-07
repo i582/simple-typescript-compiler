@@ -38,22 +38,18 @@ private:
 
     FunctionTable m_functions;
     FunctionTable m_importFunctions;
-    GlobalFunctions m_globalFunctions;
 
     vector<Array> m_arrays;
 
-
     ExportTable m_exportTable;
 
-
     path m_filePath;
-    bool m_debugMode;
 
 public:
     Node* m_root;
 
 public:
-    Ast(const path& filePath, bool debugMode = false);
+    explicit Ast(const path& filePath);
 
 public:
     friend Asm;
@@ -85,7 +81,8 @@ public:
     void checkConstant();
     void checkArray();
     void checkFunctionsCall();
-    void checkExpression();
+    void checkAssignment();
+    void checkExpressions();
 
 
 
@@ -94,7 +91,7 @@ private:
     // mark functions
     void markAllScopesRecursive(Node* currentNode);
     void markBreakContinueOperatorsRecursive(Node* currentNode, size_t currentScopeId);
-    void markReturnOperatorRecursive(Node* currentNode, size_t currentScopeId, const string& currentFunctionName, const vector<VariableType>& arguments);
+    void markReturnOperatorRecursive(Node* currentNode, size_t currentScopeId, const string& currentFunctionName, const vector<Type>& arguments);
 
 
     // identify functions
@@ -104,25 +101,29 @@ private:
     void identifyGlobalVariablesRecursive(Node* currentNode, VariableTable& globalVariablesTable);
 
     void identifyFunctionsRecursive(Node* currentNode);
-    void identifyFunctionArgumentsRecursive(Node* currentNode, vector<VariableType>& argumentTypes, vector<Variable*>& arguments);
+    void identifyFunctionArgumentsRecursive(Node* currentNode, vector<Type>& argumentTypes, vector<Variable*>& arguments);
     void identifyFunctionLocalVariablesRecursive(Node* currentNode, size_t& size, vector<Variable*>& variables);
 
 
     void identifyArraysRecursive(Node* currentNode);
-    void identifyArrayInitializerListRecursive(Node* currentNode, vector<VariableValue>& list, VariableType arrayType);
+    void identifyArrayInitializerListRecursive(Node* currentNode, vector<VariableValue>& list, Type arrayType);
 
 
     // check functions
     void checkFunctionsCallRecursive(Node* currentNode);
-    void identifyFunctionCallArgumentsRecursive(Node* currentNode, vector<VariableType>& arguments);
-    void checkExpressionRecursive(Node* currentNode);
-
-    static void checkConstantsRecursive(Node* currentNode, Node* currentScopeNode);
-    void check_array_recursive(Node* currentNode);
-    void giveExpressionTypeRecursive(Node* currentNode, VariableType& type);
+    void identifyFunctionCallArgumentsRecursive(Node* currentNode, vector<Type>& arguments);
+    _NODISCARD vector<Type> getFunctionCallArguments(Node* currentNode);
 
 
-    VariableType variableTypeOfNode(Node* currentNode);
+    void checkExpressionsRecursive(Node* currentNode);
+    void checkAssignmentRecursive(Node* currentNode);
+
+    void checkConstantsRecursive(Node* currentNode);
+    void checkArrayRecursive(Node* currentNode);
+
+    _NODISCARD Type checkAndGiveExpressionType(Node* currentNode);
+
+    Type variableTypeOfNode(Node* currentNode);
 
 
 private:

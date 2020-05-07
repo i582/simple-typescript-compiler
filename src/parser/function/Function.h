@@ -9,8 +9,8 @@ namespace stc
 using std::string;
 using std::vector;
 
-using ReturnType = VariableType;
-using ArgumentType = VariableType;
+using ReturnType = Type;
+using ArgumentType = Type;
 
 class Function
 {
@@ -28,7 +28,7 @@ private:
     Node* m_node;
 
 public:
-    Function(const string& name, ReturnType returnType, const vector<ArgumentType>& arguments, Node* m_node = nullptr,
+    Function(const string& name, const ReturnType& returnType, const vector<ArgumentType>& argumentTypes, Node* m_node = nullptr,
              size_t sizeLocalVariable = 0, const vector<Variable*>& argumentVariables = {}, const vector<Variable*>& localVariables = {});
 
 
@@ -54,7 +54,7 @@ public:
     _NODISCARD Node* implementationNode() const;
 
 public:
-    _NODISCARD static string argumentsToString(const vector<ArgumentType>& arguments) noexcept;
+    _NODISCARD static string argumentsToString(const vector<ArgumentType>& argumentTypes) noexcept;
 
 };
 

@@ -1,76 +1,87 @@
 #include "GlobalFunctions.h"
 
+stc::GlobalFunctions* stc::GlobalFunctions::m_functions = nullptr;
+
 stc::GlobalFunctions::GlobalFunctions()
 {
-    this->m_table = nullptr;
+    this->m_table = FunctionTable();
 
     this->init();
 }
 
 stc::GlobalFunctions::~GlobalFunctions()
 {
-    delete m_table;
+    m_table.clear();
 }
 
 void stc::GlobalFunctions::init()
 {
-    m_table = new FunctionTable();
+    auto newFunction = new Function("Array", Type(FundamentalType::ANY), { Type(FundamentalType::NUMBER) });
+    m_table.add(newFunction);
 
-    auto newFunction = new Function("Array", ReturnType::ANY, {VariableType::NUMBER});
-    m_table->add(newFunction);
+    newFunction = new Function("input", Type(FundamentalType::NUMBER), {});
+    m_table.add(newFunction);
 
-    newFunction = new Function("input", ReturnType::NUMBER, {});
-    m_table->add(newFunction);
+    newFunction = new Function("print", Type(FundamentalType::VOID), { Type(FundamentalType::NUMBER) });
+    m_table.add(newFunction);
 
-    newFunction = new Function("print", ReturnType::VOID, {ReturnType::NUMBER});
-    m_table->add(newFunction);
+    newFunction = new Function("println", Type(FundamentalType::VOID), { Type(FundamentalType::SYMBOL, true) });
+    m_table.add(newFunction);
 
-    newFunction = new Function("println", ReturnType::VOID, {ReturnType::STRING});
-    m_table->add(newFunction);
+    newFunction = new Function("sqrt", Type(FundamentalType::NUMBER), { Type(FundamentalType::NUMBER) });
+    m_table.add(newFunction);
 
-    newFunction = new Function("sqrt", ReturnType::NUMBER, {ReturnType::NUMBER});
-    m_table->add(newFunction);
+    newFunction = new Function("concat", Type(FundamentalType::SYMBOL, true), { Type(FundamentalType::SYMBOL, true), Type(FundamentalType::SYMBOL, true) });
+    m_table.add(newFunction);
+
+    newFunction = new Function("slice", Type(FundamentalType::SYMBOL, true), { Type(FundamentalType::SYMBOL, true), Type(FundamentalType::NUMBER), Type(FundamentalType::NUMBER) });
+    m_table.add(newFunction);
+
+    newFunction = new Function("strlen", Type(FundamentalType::NUMBER), { Type(FundamentalType::SYMBOL, true)});
+    m_table.add(newFunction);
+
+    newFunction = new Function("at", Type(FundamentalType::SYMBOL, true), { Type(FundamentalType::SYMBOL, true), Type(FundamentalType::NUMBER)});
+    m_table.add(newFunction);
 }
 
 stc::Function* stc::GlobalFunctions::get(const std::string& name,
                                          const std::vector<stc::ArgumentType>& argumentsDescription)
 {
-    return m_table->get(name, argumentsDescription);
+    auto instance = i();
+    return instance.m_table.get(name, argumentsDescription);
+}
+
+
+stc::Function* stc::GlobalFunctions::get(const std::string& name)
+{
+    auto instance = i();
+    return instance.m_table.get(name);
 }
 
 bool stc::GlobalFunctions::contains(stc::Function* function)
 {
-    return m_table->contains(function);
+    auto instance = i();
+    return instance.m_table.contains(function);
 }
 
 bool stc::GlobalFunctions::contains(const std::string& name)
 {
-    Function* newFunction = nullptr;
+    auto instance = i();
 
-    if (name == "Array")
-    {
-        newFunction = new Function(name, ReturnType::ANY, {ReturnType::NUMBER });
-    }
-    else if (name == "input")
-    {
-        newFunction = new Function(name, ReturnType::NUMBER, {});
-    }
-    else if (name == "print")
-    {
-        newFunction = new Function(name, ReturnType::VOID, {ReturnType::NUMBER});
-    }
-    else if (name == "println")
-    {
-        newFunction = new Function(name, ReturnType::VOID, {ReturnType::STRING});
-    }
-    else if (name == "sqrt")
-    {
-        newFunction = new Function(name, ReturnType::NUMBER, {ReturnType::NUMBER});
-    }
-    else
-    {
-        return false;
-    }
-
-    return m_table->contains(newFunction);
+    return instance.m_table.contains(name);
 }
+
+stc::GlobalFunctions& stc::GlobalFunctions::i()
+{
+    if (m_functions == nullptr)
+        m_functions = new GlobalFunctions();
+
+    return *m_functions;
+}
+
+bool stc::GlobalFunctions::isGlobalFunction(const std::string& name)
+{
+    auto instance = i();
+    return instance.m_functions->contains(name);
+}
+

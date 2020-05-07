@@ -1,11 +1,10 @@
 #include "Parser.h"
 
-stc::Parser::Parser(Lexer* lexer, bool debugMode)
+stc::Parser::Parser(Lexer* lexer)
 {
     this->m_lexer = lexer;
-    this->m_tree = new Ast(m_lexer->filePath(), debugMode);
+    this->m_tree = new Ast(m_lexer->filePath());
 
-    this->m_debugMode = debugMode;
 }
 
 
@@ -74,9 +73,12 @@ void stc::Parser::check()
     Log::write("-- Functions call verification done\n");
 
     Log::write("-- Started expression verification\n");
-    m_tree->checkExpression();
+    m_tree->checkExpressions();
     Log::write("-- Expression verification done\n");
 
+    Log::write("-- Started assignment verification\n");
+    m_tree->checkAssignment();
+    Log::write("-- Expression assignment done\n");
 
     Log::write("-- Started export verification\n");
     m_tree->checkExports();
@@ -88,14 +90,13 @@ void stc::Parser::check()
 
 void stc::Parser::printTree()
 {
-    if (m_debugMode)
-    {
-        m_tree->print();
-        m_tree->printVariableTable();
-        m_tree->printFunctionsTable();
-        m_tree->printImportVariableTable();
-        m_tree->printImportFunctionsTable();
-    }
+
+    m_tree->print();
+    m_tree->printVariableTable();
+    m_tree->printFunctionsTable();
+    m_tree->printImportVariableTable();
+    m_tree->printImportFunctionsTable();
+
 }
 
 stc::Ast* stc::Parser::ast()
@@ -373,7 +374,7 @@ stc::Node* stc::Parser::logicalAndExpression()
 
 stc::Node* stc::Parser::logicalOrExpression()
 {
-    auto tempNode = equalityExpression();
+    auto tempNode = logicalAndExpression();
 
     if (tryEat(TokenType::OR))
     {
@@ -593,27 +594,24 @@ stc::Node* stc::Parser::declarationStatement()
         error("Expected variable type or assignment to expression.");
     }
 
-
-
     return new Node(isConst ? NodeType::CONSTANT_DECLARATION : NodeType::VARIABLE_DECLARATION, variableName, declarationTypeNode);
 }
 
 stc::Node* stc::Parser::declarationType()
 {
     eat(TokenType::COLON);
-    auto variableType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
+    auto variableTokenType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
 
-
+    bool isArray = false;
     if (tryEat(TokenType::LSQR))
     {
-        auto currentType = (int)variableType;
-        auto newArrayType = TokenType(currentType << 4);
+        isArray = true;
 
         skip();
         eat(TokenType::RSQR);
-
-        variableType = newArrayType;
     }
+
+    auto variableType = Type(variableTokenType, isArray);
 
     return new Node(NodeType::VARIABLE_TYPE, variableType);
 }
@@ -651,19 +649,17 @@ stc::Node* stc::Parser::functionStatement()
 {
     auto functionName = eat(TokenType::IDENTIFIER);
     auto functionArgsNode = functionArgumentList();
-
-    auto functionReturnType = TokenType::VOID;
+    auto functionReturnType = Type(FundamentalType::VOID);
 
     if (tryEat(TokenType::COLON))
     {
         eat(TokenType::COLON);
-        functionReturnType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
+        auto functionReturnTokenType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
+        functionReturnType = Type(functionReturnTokenType);
     }
-
-
-    auto functionBodyNode = statement();
     auto functionReturnTypeNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, functionReturnType);
 
+    auto functionBodyNode = statement();
 
     return new Node(NodeType::FUNCTION_IMPLEMENTATION, functionName, functionReturnTypeNode,
                         functionArgsNode, functionBodyNode);
@@ -820,16 +816,16 @@ stc::Node* stc::Parser::declareFunctionStatement()
     eat(TokenType::FUNCTION);
     auto functionName = eat(TokenType::IDENTIFIER);
     auto functionArgsNode = functionArgumentList();
-
-    auto functionReturnType = TokenType::VOID;
+    auto functionReturnType = Type(FundamentalType::VOID);
 
     if (tryEat(TokenType::COLON))
     {
         eat(TokenType::COLON);
-        functionReturnType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
+        auto functionReturnTokenType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
+        functionReturnType = Type(functionReturnTokenType);
     }
-
     auto functionReturnTypeNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, functionReturnType);
+
     auto functionBodyNode = new Node(NodeType::STATEMENT);
     eat(TokenType::SEMICOLON);
 

@@ -1,11 +1,10 @@
 #include "Ast.h"
 #include "../../ICM/icm.h"
 
-stc::Ast::Ast(const path& filePath, bool debugMode)
+stc::Ast::Ast(const path& filePath)
 {
     this->m_countScopes = 1;
     this->m_filePath = filePath;
-    this->m_debugMode = debugMode;
 }
 
 void stc::Ast::print(stc::Node* currentNode, size_t level)
@@ -25,7 +24,7 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
         case NodeType::VARIABLE_DECLARATION:
         {
             Log::write("new var '");
-            Log::write("" + std::any_cast<string>(currentNode->value) + "' ");
+            Log::write("" + any_cast<string>(currentNode->value) + "' ");
 
             auto scopeId = currentNode->scopeId();
             Log::write("(scope id: " + to_string(scopeId) + ")");
@@ -44,31 +43,31 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
         case NodeType::VARIABLE_TYPE:
         {
             Log::write("var type ");
-            Log::write("'" + Variable::variableTypeToString((VariableType)std::any_cast<TokenType>(currentNode->value)) + "'");
+            Log::write("'" + any_cast<Type>(currentNode->value).toString() + "'");
             break;
         }
         case NodeType::CONSTANT_DECLARATION:
         {
             Log::write("new const ");
-            Log::write(std::any_cast<string>(currentNode->value));
+            Log::write(any_cast<string>(currentNode->value));
             break;
         }
         case NodeType::USING_CONSTANT:
         {
             Log::write("use const ");
-            Log::write(std::any_cast<string>(currentNode->value));
+            Log::write(any_cast<string>(currentNode->value));
             break;
         }
         case NodeType::NUMBER_CONST:
         {
             Log::write("number const ");
-            Log::write(to_string(std::any_cast<number>(currentNode->value)));
+            Log::write(to_string(any_cast<number>(currentNode->value)));
             break;
         }
         case NodeType::BOOLEAN_CONST:
         {
             Log::write("boolean const ");
-            Log::write(to_string(std::any_cast<int>(currentNode->value)));
+            Log::write(to_string(any_cast<int>(currentNode->value)));
             break;
         }
         case NodeType::ADD:
@@ -155,7 +154,7 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
         {
             Log::write("identifier ");
 
-            Log::write(std::any_cast<string>(currentNode->value));
+            Log::write(any_cast<string>(currentNode->value));
             break;
         }
         case NodeType::BEFORE_INC:
@@ -216,7 +215,7 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
         case NodeType::FUNCTION_CALL:
         {
             Log::write("function call '");
-            Log::write(std::any_cast<string>(currentNode->value) + "' ");
+            Log::write(any_cast<string>(currentNode->value) + "' ");
             break;
         }
         case NodeType::FUNCTION_ARG:
@@ -277,7 +276,7 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
         case NodeType::FUNCTION_IMPLEMENTATION:
         {
             Log::write("function impl '");
-            Log::write("" + std::any_cast<string>(currentNode->value) + "' ");
+            Log::write("" + any_cast<string>(currentNode->value) + "' ");
             break;
         }
         case NodeType::FUNCTION_IMPLEMENTATION_ARG:
@@ -288,7 +287,7 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
         case NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE:
         {
             Log::write("function impl return type ");
-            Log::write("'" + Variable::variableTypeToString((VariableType)std::any_cast<TokenType>(currentNode->value)) + "'");
+            Log::write("'" + any_cast<Type>(currentNode->value).toString() + "'");
             break;
         }
         case NodeType::RETURN:
@@ -309,7 +308,7 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
         case NodeType::STRING_CONST:
         {
             Log::write("string const ");
-            Log::write(std::any_cast<string>(currentNode->value));
+            Log::write(any_cast<string>(currentNode->value));
             break;
         }
         case NodeType::IMPORT:
@@ -330,13 +329,13 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
         case NodeType::IMPORT_LIST_ELEMENT:
         {
             Log::write("Import List Element '");
-            Log::write(std::any_cast<string>(currentNode->value) + "'");
+            Log::write(any_cast<string>(currentNode->value) + "'");
             break;
         }
         case NodeType::IMPORT_FILE:
         {
             Log::write("Import File Path '");
-            Log::write(std::any_cast<string>(currentNode->value) + "'");
+            Log::write(any_cast<string>(currentNode->value) + "'");
             break;
         }
         case NodeType::EXPORT_LIST:
@@ -347,7 +346,7 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
         case NodeType::EXPORT_LIST_ELEMENT:
         {
             Log::write("Export List Element '");
-            Log::write(std::any_cast<string>(currentNode->value) + "'");
+            Log::write(any_cast<string>(currentNode->value) + "'");
             break;
         }
     }
@@ -440,7 +439,15 @@ void stc::Ast::markBreakContinueOperators()
              thisScopeNode->operand1->type == NodeType::WHILE ||
              thisScopeNode->operand1->type == NodeType::DO_WHILE))
         {
-            markBreakContinueOperatorsRecursive(thisScopeNode->operand1, thisScopeNode->scopeId());
+            if (thisScopeNode->operand1->type == NodeType::WHILE ||
+                thisScopeNode->operand1->type == NodeType::DO_WHILE)
+            {
+                markBreakContinueOperatorsRecursive(thisScopeNode->operand1->operand2, thisScopeNode->scopeId());
+            }
+            else if (thisScopeNode->operand1->type == NodeType::FOR)
+            {
+                markBreakContinueOperatorsRecursive(thisScopeNode->operand1->operand4, thisScopeNode->scopeId());
+            }
         }
     }
 }
@@ -457,6 +464,7 @@ void stc::Ast::markBreakContinueOperatorsRecursive(stc::Node* currentNode, size_
     {
         return;
     }
+
 
     if (currentNode->type == NodeType::BREAK ||
         currentNode->type == NodeType::CONTINUE)
@@ -479,7 +487,7 @@ void stc::Ast::markReturnOperator()
             stmt->operand1->type == NodeType::FUNCTION_IMPLEMENTATION)
         {
             auto function_name = any_cast<string>(stmt->operand1->value);
-            vector<VariableType> types;
+            vector<Type> types;
             vector<Variable*> variables;
             identifyFunctionArgumentsRecursive(stmt->operand1, types, variables);
 
@@ -489,7 +497,7 @@ void stc::Ast::markReturnOperator()
 }
 
 void stc::Ast::markReturnOperatorRecursive(stc::Node* currentNode, size_t currentScopeId,
-                                           const string& currentFunctionName, const vector<VariableType>& arguments)
+                                           const string& currentFunctionName, const vector<Type>& arguments)
 {
     if (currentNode == nullptr)
         return;
@@ -565,7 +573,7 @@ void stc::Ast::identifyVariablesRecursive(stc::Node* currentNode, stc::VariableT
     if (currentNode->type == NodeType::VARIABLE_DECLARATION || currentNode->type == NodeType::CONSTANT_DECLARATION ||
         currentNode->type == NodeType::FUNCTION_IMPLEMENTATION_ARG)
     {
-        auto variableName = std::any_cast<string>(currentNode->value);
+        auto variableName = any_cast<string>(currentNode->value);
 
 
         if (table->contains(variableName))
@@ -577,17 +585,18 @@ void stc::Ast::identifyVariablesRecursive(stc::Node* currentNode, stc::VariableT
         auto isConst = currentNode->type == NodeType::CONSTANT_DECLARATION;
 
 
-        auto variableType = VariableType::VOID;
+        auto variableType = Type();
 
         if (currentNode->operand1 == nullptr)
         {
-            giveExpressionTypeRecursive(forDeduceVariableType, variableType);
+            variableType = checkAndGiveExpressionType(forDeduceVariableType);
+
+            auto variableTypeNode = new Node(NodeType::VARIABLE_TYPE, variableType);
+            currentNode->operand1 = variableTypeNode;
         }
         else
         {
-            variableType = Variable::variableTypeFromTokenType(
-                    std::any_cast<TokenType>(currentNode->operand1->value)
-            );
+            variableType = Type(any_cast<Type>(currentNode->operand1->value));
         }
 
 
@@ -624,7 +633,7 @@ void stc::Ast::identifyVariablesRecursive(stc::Node* currentNode, stc::VariableT
     }
     else if (currentNode->type == NodeType::USING_VARIABLE)
     {
-        auto variableName = std::any_cast<string>(currentNode->value);
+        auto variableName = any_cast<string>(currentNode->value);
 
 
         if (!table->containsGlobally(variableName) && !m_importVariables.contains(variableName))
@@ -654,19 +663,14 @@ void stc::Ast::identifyVariablesRecursive(stc::Node* currentNode, stc::VariableT
 
 void stc::Ast::checkConstant()
 {
-    for (auto& [_, thisScopeNode] : m_allScopeNodes)
-    {
-        checkConstantsRecursive(thisScopeNode->operand1, thisScopeNode);
-    }
+    checkConstantsRecursive(m_root);
 }
 
-void stc::Ast::checkConstantsRecursive(stc::Node* currentNode, stc::Node* currentScopeNode)
+void stc::Ast::checkConstantsRecursive(stc::Node* currentNode)
 {
     if (currentNode == nullptr)
         return;
 
-    if (currentNode->type == NodeType::STATEMENT)
-        return;
 
     if (currentNode->type == NodeType::SET)
     {
@@ -675,39 +679,41 @@ void stc::Ast::checkConstantsRecursive(stc::Node* currentNode, stc::Node* curren
 
         if (op1->type == NodeType::USING_VARIABLE)
         {
-            auto variable_name = std::any_cast<string>(op1->value);
-            auto variable = currentScopeNode->variables->getByName(variable_name);
+            auto variableName = any_cast<string>(op1->value);
+            auto scopeId = op1->scopeId();
+            auto variable = m_allVariables.getByNameAndScopeId(variableName, scopeId);
 
             if (variable->isConst())
             {
-                error("Assignment to a constant '" + variable_name + "'!");
+                error("Assignment to constant '" + variableName + "' after declaration!");
             }
         }
     }
 
-    if (currentNode->type == NodeType::EXPRESSION && currentNode->operand1 != nullptr &&
+    if (currentNode->type == NodeType::EXPRESSION &&
+        currentNode->operand1 != nullptr &&
         currentNode->operand1->type == NodeType::CONSTANT_DECLARATION)
     {
-        error("The constant '" + std::any_cast<string>(currentNode->operand1->value) +
+        error("The constant '" + any_cast<string>(currentNode->operand1->value) +
               "' must be initialized when defining!");
     }
 
 
-    checkConstantsRecursive(currentNode->operand1, currentScopeNode);
-    checkConstantsRecursive(currentNode->operand2, currentScopeNode);
-    checkConstantsRecursive(currentNode->operand3, currentScopeNode);
-    checkConstantsRecursive(currentNode->operand4, currentScopeNode);
+    checkConstantsRecursive(currentNode->operand1);
+    checkConstantsRecursive(currentNode->operand2);
+    checkConstantsRecursive(currentNode->operand3);
+    checkConstantsRecursive(currentNode->operand4);
 }
 
 void stc::Ast::checkArray()
 {
     for (auto& [_, thisScopeNode] : m_allScopeNodes)
     {
-        check_array_recursive(thisScopeNode->operand1);
+        checkArrayRecursive(thisScopeNode->operand1);
     }
 }
 
-void stc::Ast::check_array_recursive(stc::Node* currentNode)
+void stc::Ast::checkArrayRecursive(stc::Node* currentNode)
 {
     if (currentNode == nullptr)
         return;
@@ -723,41 +729,32 @@ void stc::Ast::check_array_recursive(stc::Node* currentNode)
 
         if (op1->type == NodeType::VARIABLE_DECLARATION)
         {
-
-            auto op1_type = (int)VariableType::VOID;
-            if (currentNode->operand1->operand1 == nullptr)
-            {
-                auto type = VariableType::VOID;
-                giveExpressionTypeRecursive(currentNode->operand2, type);
-                op1_type = (int)type;
-            }
-            else
-            {
-                op1_type = (int)std::any_cast<TokenType>(op1->operand1->value);
-            }
+            auto op1Type = any_cast<Type>(op1->operand1->value);
 
 
-            if (op1_type > (int)TokenType::VOID)
+            if (op1Type.isArray() && !op1Type.is(FundamentalType::SYMBOL, true))
             {
-                bool is_initializer_list = op2->type == NodeType::INITIALIZER;
-                bool is_operator_new_array = op2->type == NodeType::NEW &&
+                bool isInitializerList = op2->type == NodeType::INITIALIZER;
+                bool isOperatorNewArray = op2->type == NodeType::NEW &&
                                              any_cast<string>(op2->operand1->value) == "Array";
 
-                if (!is_initializer_list && !is_operator_new_array)
+                if (!isInitializerList && !isOperatorNewArray)
                 {
                     error("Invalid assignment to '" + any_cast<string>(op1->value) +
                     "'! You can only assign a value of the form [...] or new Array(const_number) to an array!");
                 }
             }
+
         }
 
         if (op1->type == NodeType::USING_VARIABLE)
         {
-            auto variable_name = any_cast<string>(op1->value);
-            auto variable = m_allVariables.getByName(variable_name);
-            auto variable_type = variable->type();
+            auto variableName = any_cast<string>(op1->value);
+            auto variableScopeId = op1->scopeId();
+            auto variable = m_allVariables.getByNameAndScopeId(variableName, variableScopeId);
+            auto variableType = variable->type();
 
-            if (variable_type >= VariableType::NUMBER_ARRAY)
+            if (variableType.isArray() && !variableType.is(FundamentalType::SYMBOL, true))
             {
                 error("Explicit array assignment is prohibited!");
             }
@@ -765,13 +762,12 @@ void stc::Ast::check_array_recursive(stc::Node* currentNode)
     }
 
 
-
     if (currentNode->type == NodeType::EXPRESSION && currentNode->operand1 != nullptr &&
         currentNode->operand1->type == NodeType::VARIABLE_DECLARATION)
     {
-        bool is_array = (int)any_cast<TokenType>(currentNode->operand1->operand1->value) > (int)TokenType::VOID;
+        bool isArray = any_cast<Type>(currentNode->operand1->operand1->value).isArray();
 
-        if (is_array)
+        if (isArray)
         {
             error("ERROR: The array '" + any_cast<string>(currentNode->operand1->value) +
                   "' must be initialized when defining!");
@@ -779,10 +775,10 @@ void stc::Ast::check_array_recursive(stc::Node* currentNode)
     }
 
 
-    check_array_recursive(currentNode->operand1);
-    check_array_recursive(currentNode->operand2);
-    check_array_recursive(currentNode->operand3);
-    check_array_recursive(currentNode->operand4);
+    checkArrayRecursive(currentNode->operand1);
+    checkArrayRecursive(currentNode->operand2);
+    checkArrayRecursive(currentNode->operand3);
+    checkArrayRecursive(currentNode->operand4);
 }
 
 void stc::Ast::identifyFunctions()
@@ -799,19 +795,18 @@ void stc::Ast::identifyFunctionsRecursive(stc::Node* currentNode)
     if (currentNode->type == NodeType::FUNCTION_IMPLEMENTATION)
     {
         auto functionName = any_cast<string>(currentNode->value);
-        auto type = Variable::variableTypeFromTokenType(any_cast<TokenType>(currentNode->operand1->value));
+        auto returnType = any_cast<Type>(currentNode->operand1->value);
 
 
-        vector<VariableType> argumentTypes;
+        vector<Type> argumentTypes;
         vector<Variable*> arguments;
         identifyFunctionArgumentsRecursive(currentNode->operand2, argumentTypes, arguments);
-
 
         size_t localVariableSize = 0;
         vector<Variable*> variables;
         identifyFunctionLocalVariablesRecursive(currentNode->operand3, localVariableSize, variables);
 
-        auto newFunction = new Function(functionName, type, argumentTypes, currentNode, localVariableSize, arguments, variables);
+        auto newFunction = new Function(functionName, returnType, argumentTypes, currentNode, localVariableSize, arguments, variables);
 
         m_functions.add(newFunction);
     }
@@ -820,7 +815,7 @@ void stc::Ast::identifyFunctionsRecursive(stc::Node* currentNode)
     identifyFunctionsRecursive(currentNode->operand2);
 }
 
-void stc::Ast::identifyFunctionArgumentsRecursive(stc::Node* currentNode, vector<VariableType>& argumentTypes,
+void stc::Ast::identifyFunctionArgumentsRecursive(stc::Node* currentNode, vector<Type>& argumentTypes,
                                                   vector<Variable*>& arguments)
 {
     if (currentNode == nullptr)
@@ -869,21 +864,12 @@ void stc::Ast::identifyFunctionLocalVariablesRecursive(stc::Node* currentNode, s
         auto variable = m_allVariables.getByNameAndScopeId(variableName, scopeId);
 
 
-        auto type = VariableType::VOID;
-        if (currentNode->operand1 == nullptr)
-        {
-            giveExpressionTypeRecursive(forDeduceVariableType, type);
-        }
-        else
-        {
-            type = Variable::variableTypeFromTokenType(
-                    std::any_cast<TokenType>(currentNode->operand1->value)
-            );
-        }
+        auto variableType = any_cast<Type>(currentNode->operand1->value);
 
-        auto variableSize = Variable::typeSizeInByte(type);
 
-        if (!Variable::isArrayType(type))
+        auto variableSize = variableType.size();
+
+        if (!variableType.isArray())
         {
             size += variableSize;
         }
@@ -915,12 +901,14 @@ void stc::Ast::checkFunctionsCallRecursive(stc::Node* currentNode)
     if (currentNode->type == NodeType::FUNCTION_CALL)
     {
         auto functionName = any_cast<string>(currentNode->value);
-
-        vector<VariableType> types;
-        identifyFunctionCallArgumentsRecursive(currentNode->operand1, types);
+        auto types = getFunctionCallArguments(currentNode);
 
 
-        if (!m_globalFunctions.contains(functionName))
+        if (GlobalFunctions::contains(functionName))
+        {
+            GlobalFunctions::get(functionName, types);
+        }
+        else
         {
             m_functions.get(functionName, types);
         }
@@ -933,38 +921,17 @@ void stc::Ast::checkFunctionsCallRecursive(stc::Node* currentNode)
 }
 
 void stc::Ast::identifyFunctionCallArgumentsRecursive(stc::Node* currentNode,
-                                                      std::vector<stc::VariableType>& arguments)
+                                                      vector<stc::Type>& arguments)
 {
     if (currentNode == nullptr)
         return;
 
-
     if (currentNode->type == NodeType::FUNCTION_CALL)
         return;
 
-
     if (currentNode->type == NodeType::FUNCTION_ARGS)
     {
-        VariableType type;
-
-        if (currentNode->operand1->type == NodeType::NUMBER_CONST)
-        {
-            type = VariableType::NUMBER;
-        }
-        else if (currentNode->operand1->type == NodeType::BOOLEAN_CONST)
-        {
-            type = VariableType::BOOLEAN;
-        }
-        else if (currentNode->operand1->type == NodeType::STRING_CONST)
-        {
-            type = VariableType::STRING;
-        }
-        else
-        {
-            giveExpressionTypeRecursive(currentNode->operand1, type);
-        }
-
-
+        auto type = checkAndGiveExpressionType(currentNode->operand1);
         arguments.push_back(type);
     }
 
@@ -972,11 +939,20 @@ void stc::Ast::identifyFunctionCallArgumentsRecursive(stc::Node* currentNode,
     identifyFunctionCallArgumentsRecursive(currentNode->operand2, arguments);
 }
 
-void stc::Ast::giveExpressionTypeRecursive(stc::Node* currentNode, VariableType& type)
+stc::vector<stc::Type> stc::Ast::getFunctionCallArguments(stc::Node* currentNode)
 {
-    if (currentNode == nullptr)
-        return;
+    vector<Type> types;
 
+    if (currentNode->type == NodeType::FUNCTION_CALL)
+        currentNode = currentNode->operand1;
+
+    identifyFunctionCallArgumentsRecursive(currentNode, types);
+    return types;
+}
+
+
+stc::Type stc::Ast::checkAndGiveExpressionType(stc::Node* currentNode)
+{
     if (currentNode->type == NodeType::ADD ||
         currentNode->type == NodeType::SUB ||
         currentNode->type == NodeType::MUL ||
@@ -985,112 +961,105 @@ void stc::Ast::giveExpressionTypeRecursive(stc::Node* currentNode, VariableType&
         auto op1 = currentNode->operand1;
         auto op2 = currentNode->operand2;
 
-        VariableType op1_type = VariableType::UNDEFINED;
-        VariableType op2_type = VariableType::UNDEFINED;
+        auto op1Type = checkAndGiveExpressionType(op1);
+        auto op2Type = checkAndGiveExpressionType(op2);
 
-        giveExpressionTypeRecursive(op1, op1_type);
-        giveExpressionTypeRecursive(op2, op2_type);
-
-        auto is_reducible = Variable::isTypesReducible(op1_type, op2_type);
-
-        if (!is_reducible)
+        if (!op1Type.isReducibleWith(op2Type))
         {
-            string op1_type_str = Variable::variableTypeToString(op1_type);
-            string op2_type_str = Variable::variableTypeToString(op2_type);
+            auto op1TypeString = op1Type.toString();
+            auto op2TypeString = op2Type.toString();
 
             string action = Node::nodeTypeToString(currentNode->type);
 
-            error("Operator " + action + " cannot be applied to types '" + op1_type_str + "' and '" + op2_type_str + "'.");
+            error("Operator " + action + " cannot be applied to type '" + op1TypeString + "' and '" + op2TypeString + "'!");
         }
 
-        type = op1_type;
+        return op1Type;
     }
     else if (currentNode->type == NodeType::UNARY_MINUS ||
              currentNode->type == NodeType::UNARY_PLUS)
     {
         auto op1 = currentNode->operand1;
+        auto op1Type = checkAndGiveExpressionType(op1);
 
-        VariableType op1_type = VariableType::UNDEFINED;
-        giveExpressionTypeRecursive(op1, op1_type);
+        if (!op1Type.is(FundamentalType::NUMBER))
+        {
+            auto op1TypeString = op1Type.toString();
+            error("Unary plus and minus can only be used for type number, however, the type '" + op1TypeString + "' is passed");
+        }
 
-        type = VariableType::BOOLEAN;
+        return op1Type;
     }
     else if (currentNode->type == NodeType::USING_VARIABLE ||
              currentNode->type == NodeType::NUMBER_CONST ||
              currentNode->type == NodeType::BOOLEAN_CONST ||
              currentNode->type == NodeType::STRING_CONST)
     {
-        type = variableTypeOfNode(currentNode);
+        return variableTypeOfNode(currentNode);
     }
     else if (currentNode->type == NodeType::FUNCTION_CALL)
     {
         auto functionName = any_cast<string>(currentNode->value);
-
-        vector<VariableType> types;
-        identifyFunctionCallArgumentsRecursive(currentNode->operand1, types);
-
         Function* function = nullptr;
 
-        if (!m_globalFunctions.contains(new Function(functionName, VariableType::UNDEFINED, types)))
+        if (!GlobalFunctions::contains(functionName))
         {
-            function = m_functions.get(functionName, types);
+            function = m_functions.get(functionName);
         }
         else
         {
-            function = m_globalFunctions.get(functionName, types);
+            function = GlobalFunctions::get(functionName);
         }
 
-        type = function->returnType();
-        return;
+        return function->returnType();
     }
     else if (currentNode->type == NodeType::NEW)
     {
-        currentNode = currentNode->operand1;
-
-        auto functionName = any_cast<string>(currentNode->value);
-        vector<VariableType> types;
-
-        identifyFunctionCallArgumentsRecursive(currentNode, types);
-
+        auto functionForNewNode = currentNode->operand1;
+        auto functionName = any_cast<string>(functionForNewNode->value);
         Function* function = nullptr;
 
-        if (!m_globalFunctions.contains(new Function(functionName, VariableType::ANY, types, nullptr)))
+
+        if (!GlobalFunctions::contains(functionName))
         {
-            function = m_functions.get(functionName, types);
+            function = m_functions.get(functionName);
         }
         else
         {
-            function = m_globalFunctions.get(functionName, types);
+            function = GlobalFunctions::get(functionName);
         }
 
-        type = function->returnType();
-        return;
+        return function->returnType();
     }
     else if (currentNode->type == NodeType::INITIALIZER)
     {
-        type = VariableType::ANY;
-        return;
+        return Type(FundamentalType::ANY);
     }
     else if (currentNode->type == NodeType::INDEX_CAPTURE)
     {
         auto arrayName = any_cast<string>(currentNode->operand1->value);
         auto scopeId = currentNode->operand1->scopeId();
-        auto arrayType = m_allVariables.getByName(arrayName)->type();
+        auto arrayVariable = m_allVariables.getByNameAndScopeId(arrayName, scopeId);
+        auto arrayType = arrayVariable->type();
 
-        type = Variable::typeOfArrayType(arrayType);
-        return;
+        if (!arrayType.isArray())
+        {
+            error("Attempting to access an element of a variable '" + arrayName + "' that is not an array!");
+        }
+
+        if (arrayType.is(FundamentalType::SYMBOL, true))
+        {
+            return arrayType;
+        }
+
+        return arrayType.nonArrayType();
     }
     else if (Node::isComparisonOperator(currentNode->type))
     {
-        type = VariableType::BOOLEAN;
-        return;
+        return Type(FundamentalType::BOOLEAN);
     }
 
-
-    giveExpressionTypeRecursive(currentNode->operand1, type);
-    giveExpressionTypeRecursive(currentNode->operand2, type);
-    giveExpressionTypeRecursive(currentNode->operand3, type);
-    giveExpressionTypeRecursive(currentNode->operand4, type);
+    return Type();
 }
 
 void stc::Ast::error(const string& message)
@@ -1099,19 +1068,19 @@ void stc::Ast::error(const string& message)
 }
 
 
-stc::VariableType stc::Ast::variableTypeOfNode(stc::Node* currentNode)
+stc::Type stc::Ast::variableTypeOfNode(stc::Node* currentNode)
 {
     if (currentNode->type == NodeType::NUMBER_CONST)
     {
-        return VariableType::NUMBER;
+        return Type(FundamentalType::NUMBER);
     }
     else if (currentNode->type == NodeType::BOOLEAN_CONST)
     {
-        return VariableType::BOOLEAN;
+        return Type(FundamentalType::BOOLEAN);
     }
     else if (currentNode->type == NodeType::STRING_CONST)
     {
-        return VariableType::STRING;
+        return Type(FundamentalType::SYMBOL, true);
     }
     else if (currentNode->type == NodeType::USING_VARIABLE)
     {
@@ -1129,19 +1098,23 @@ stc::VariableType stc::Ast::variableTypeOfNode(stc::Node* currentNode)
 
         auto variable = m_allVariables.getByNameAndScopeId(variableName, variableScopeId);
 
-        return Variable::typeOfArrayType(variable->type());
+        return variable->type().nonArrayType();
+    }
+    else if (currentNode->type == NodeType::VARIABLE_DECLARATION ||
+            currentNode->type == NodeType::CONSTANT_DECLARATION)
+    {
+        return any_cast<Type>(currentNode->operand1->value);
     }
 
-
-    return VariableType::UNDEFINED;
+    return Type();
 }
 
-void stc::Ast::checkExpression()
+void stc::Ast::checkAssignment()
 {
-    checkExpressionRecursive(m_root);
+    checkAssignmentRecursive(m_root);
 }
 
-void stc::Ast::checkExpressionRecursive(stc::Node* currentNode)
+void stc::Ast::checkAssignmentRecursive(stc::Node* currentNode)
 {
     if (currentNode == nullptr)
         return;
@@ -1149,52 +1122,32 @@ void stc::Ast::checkExpressionRecursive(stc::Node* currentNode)
 
     if (currentNode->type == NodeType::EXPRESSION)
     {
-        if (currentNode->operand1 != nullptr && currentNode->operand1->type == NodeType::SET)
+        auto op1Node = currentNode->operand1;
+
+        if (op1Node != nullptr && op1Node->type == NodeType::SET)
         {
-            auto lvalue = currentNode->operand1->operand1;
-            if (lvalue->type != NodeType::USING_VARIABLE &&
-                lvalue->type != NodeType::VARIABLE_DECLARATION &&
-                lvalue->type != NodeType::CONSTANT_DECLARATION &&
-                lvalue->type != NodeType::INDEX_CAPTURE)
+            auto setNode = op1Node;
+            auto lvalueNode = setNode->operand1;
+
+            if (!Node::isLvalueNodeType(lvalueNode->type))
             {
-                error("Invalid assignment!");
+                error("Non-correct assignment, can only assign to variables, constants (only when declaring)"
+                      " and element of an array, however, the '" + Node::nodeTypeToString(lvalueNode->type) + "' is passed.");
             }
 
+            auto lvalueType = variableTypeOfNode(lvalueNode);
 
-            VariableType lvalue_type = variableTypeOfNode(lvalue);
 
-            auto variableType = VariableType::VOID;
+            auto rvalueNode = setNode->operand2;
+            auto rvalueType = checkAndGiveExpressionType(rvalueNode);
 
-            auto setNode = currentNode->operand1;
 
-            if (setNode->operand1->type == NodeType::VARIABLE_DECLARATION ||
-                setNode->operand1->type == NodeType::CONSTANT_DECLARATION)
+            if (!lvalueType.isReducibleWith(rvalueType))
             {
-                if (setNode->operand1->operand1 == nullptr)
-                {
-                    giveExpressionTypeRecursive(setNode->operand2, variableType);
-                }
-                else
-                {
-                    variableType = Variable::variableTypeFromTokenType(
-                            std::any_cast<TokenType>(setNode->operand1->operand1->value)
-                    );
-                }
+                auto lvalueTypeString = lvalueType.toString();
+                auto rvalueTypeString = rvalueType.toString();
 
-                lvalue_type = variableType;
-            }
-
-
-            auto start_node = currentNode->operand1->operand2;
-            VariableType expression_type;
-            giveExpressionTypeRecursive(start_node, expression_type);
-
-            if (!Variable::isTypesReducible(lvalue_type, expression_type))
-            {
-                string lvalue_type_str = Variable::variableTypeToString(lvalue_type);
-                string expression_type_str = Variable::variableTypeToString(expression_type);
-
-                error("Cannot assign a variable of type '" + lvalue_type_str + "' to '" + expression_type_str + "'!");
+                error("Cannot assign a variable of type '" + lvalueTypeString + "' to '" + rvalueTypeString + "'!");
             }
         }
 
@@ -1202,10 +1155,10 @@ void stc::Ast::checkExpressionRecursive(stc::Node* currentNode)
     }
 
 
-    checkExpressionRecursive(currentNode->operand1);
-    checkExpressionRecursive(currentNode->operand2);
-    checkExpressionRecursive(currentNode->operand3);
-    checkExpressionRecursive(currentNode->operand4);
+    checkAssignmentRecursive(currentNode->operand1);
+    checkAssignmentRecursive(currentNode->operand2);
+    checkAssignmentRecursive(currentNode->operand3);
+    checkAssignmentRecursive(currentNode->operand4);
 }
 
 void stc::Ast::printVariableTable()
@@ -1275,37 +1228,28 @@ void stc::Ast::identifyArraysRecursive(stc::Node* currentNode)
         currentNode->operand1 != nullptr &&
         currentNode->operand2 != nullptr)
     {
-        if (currentNode->operand1->type == NodeType::VARIABLE_DECLARATION)
+        auto op1Node = currentNode->operand1;
+        auto op2Node = currentNode->operand2;
+
+        if (op1Node->type == NodeType::VARIABLE_DECLARATION)
         {
-            auto arrayNode = currentNode->operand1;
+            auto arrayNode = op1Node;
             auto arrayTypeNode = arrayNode->operand1;
 
-            auto arrayType = VariableType::VOID;
-            if (currentNode->operand1->operand1 == nullptr)
-            {
-                giveExpressionTypeRecursive(currentNode->operand2, arrayType);
-            }
-            else
-            {
-                arrayType = Variable::variableTypeFromTokenType(
-                        std::any_cast<TokenType>(arrayTypeNode->value)
-                );
-            }
-
-            auto scopeId = arrayNode->scopeId();
+            auto arrayType = Type(any_cast<Type>(arrayTypeNode->value));
 
             auto arrayName = any_cast<string>(arrayNode->value);
+            auto scopeId = arrayNode->scopeId();
             auto variable = m_allVariables.getByNameAndScopeId(arrayName, scopeId);
 
             auto initializerNode = currentNode->operand2;
 
-            if (Variable::isArrayType(arrayType))
+            if (arrayType.isArray())
             {
                 if (initializerNode->type == NodeType::INITIALIZER)
                 {
-
                     vector<VariableValue> arrayValues;
-                    auto arrayValueType = Variable::typeOfArrayType(arrayType);
+                    auto arrayValueType = arrayType.nonArrayType();
                     identifyArrayInitializerListRecursive(initializerNode, arrayValues, arrayValueType);
 
 
@@ -1313,15 +1257,15 @@ void stc::Ast::identifyArraysRecursive(stc::Node* currentNode)
                 }
                 else if (initializerNode->type == NodeType::NEW)
                 {
-                    auto calling_function_node = initializerNode->operand1;
-                    auto calling_function_name = any_cast<string>(calling_function_node->value);
+                    auto callingFunctionNode = initializerNode->operand1;
+                    auto callingFunctionName = any_cast<string>(callingFunctionNode->value);
 
 
-                    if (calling_function_name == "Array")
+                    if (callingFunctionName == "Array")
                     {
-                        auto temp_array_size = (size_t)any_cast<number>(calling_function_node->operand1->operand1->value);
+                        auto arraySize = (size_t)any_cast<number>(callingFunctionNode->operand1->operand1->value);
 
-                        m_arrays.push_back(Array(arrayName, temp_array_size, {}, variable));
+                        m_arrays.push_back(Array(arrayName, arraySize, {}, variable));
                     }
                     else
                     {
@@ -1342,11 +1286,11 @@ void stc::Ast::identifyArraysRecursive(stc::Node* currentNode)
 
         auto variableNode = currentNode;
         auto variableTypeNode = variableNode->operand1;
-        auto variableType = (VariableType)any_cast<TokenType>(variableTypeNode->value);
+        auto variableType = any_cast<Type>(variableTypeNode->value);
 
         auto variableName = any_cast<string>(variableNode->value);
 
-        if (Variable::isArrayType(variableType))
+        if (variableType.isArray())
         {
             m_arrays.push_back(Array(variableName, 0, {}, variable));
         }
@@ -1359,18 +1303,17 @@ void stc::Ast::identifyArraysRecursive(stc::Node* currentNode)
     identifyArraysRecursive(currentNode->operand4);
 }
 
-void stc::Ast::identifyArrayInitializerListRecursive(Node* currentNode, vector<VariableValue>& list, VariableType arrayType)
+void stc::Ast::identifyArrayInitializerListRecursive(Node* currentNode, vector<VariableValue>& list, Type arrayType)
 {
     if (currentNode == nullptr)
         return;
 
     if (currentNode->type == NodeType::INITIALIZER_LIST)
     {
-        auto variableType = VariableType::UNDEFINED;
-        giveExpressionTypeRecursive(currentNode->operand2, variableType);
-
-
         auto valueNode = currentNode->operand2;
+        auto variableType = checkAndGiveExpressionType(valueNode);
+
+
 
         auto rawValueNode = valueNode;
         if (valueNode->type == NodeType::UNARY_MINUS ||
@@ -1381,19 +1324,19 @@ void stc::Ast::identifyArrayInitializerListRecursive(Node* currentNode, vector<V
         }
 
 
-        if (!Variable::isTypesReducible(variableType, arrayType))
+        if (!variableType.isReducibleWith(arrayType))
         {
-            string lvalue_type_str = Variable::variableTypeToString(variableType);
-            string expression_type_str = Variable::variableTypeToString(arrayType);
+            string lvalueTypeString = variableType.toString();
+            string rvalueTypeString = arrayType.toString();
 
-            error("Type '" + lvalue_type_str + "' is not assignable to type '" + expression_type_str + "'!");
+            error("Type '" + lvalueTypeString + "' is not assignable to type '" + rvalueTypeString + "'!");
         }
 
         VariableValue value;
 
-        switch (variableType)
+        switch (variableType.fundamentalType())
         {
-            case VariableType::NUMBER:
+            case FundamentalType::NUMBER:
             {
                 auto tempValue = any_cast<number>(valueNode->value);
 
@@ -1405,33 +1348,31 @@ void stc::Ast::identifyArrayInitializerListRecursive(Node* currentNode, vector<V
                 value = tempValue;
                 break;
             }
-            case VariableType::BOOLEAN:
+            case FundamentalType::BOOLEAN:
             {
                 value = (bool)any_cast<int>(valueNode->value);
 
-                auto temp_value = (bool)any_cast<int>(valueNode->value);
+                auto tempValue = (bool)any_cast<int>(valueNode->value);
 
                 if (rawValueNode->type == NodeType::UNARY_EXCLAMATION)
                 {
-                    temp_value = !temp_value;
+                    tempValue = !tempValue;
                 }
 
-                value = temp_value;
+                value = tempValue;
                 break;
             }
-            case VariableType::STRING:
+            case FundamentalType::SYMBOL:
             {
-                value = any_cast<string>(valueNode->value);
+                if (variableType.isArray())
+                {
+                    value = any_cast<string>(valueNode->value);
+                }
                 break;
             }
-            case VariableType::UNDEFINED:
-            case VariableType::VOID:
-            case VariableType::ANY:
-            case VariableType::NUMBER_ARRAY:
-            case VariableType::BOOLEAN_ARRAY:
-            case VariableType::STRING_ARRAY:
-            case VariableType::VOID_ARRAY:
-                error("Some not expected!");
+            case FundamentalType::VOID:
+            case FundamentalType::ANY:
+                break;
         }
 
         list.push_back(value);
@@ -1441,6 +1382,7 @@ void stc::Ast::identifyArrayInitializerListRecursive(Node* currentNode, vector<V
     identifyArrayInitializerListRecursive(currentNode->operand1, list, arrayType);
     identifyArrayInitializerListRecursive(currentNode->operand2, list, arrayType);
     identifyArrayInitializerListRecursive(currentNode->operand3, list, arrayType);
+    identifyArrayInitializerListRecursive(currentNode->operand4, list, arrayType);
 }
 
 void stc::Ast::print() const noexcept
@@ -1517,7 +1459,7 @@ void stc::Ast::handleImportsRecursive(stc::Node* currentNode)
         path.replace_extension(".ts");
 
 
-        auto icm = new ICM(path.string(), "", m_debugMode);
+        auto icm = new ICM(path.string(), "");
 
         icm->compile(false, false, false, true);
 
@@ -1537,7 +1479,7 @@ void stc::Ast::handleImportsRecursive(stc::Node* currentNode)
 
             if (typeOfExportElement == ExportValueType::FUNCTION)
             {
-                auto newFunction = new Function("", ReturnType::VOID, {}, nullptr);
+                auto newFunction = new Function("", ReturnType(FundamentalType::VOID), {}, nullptr);
                 *newFunction = *ast->m_functions.get(importName);
 
 
@@ -1549,7 +1491,7 @@ void stc::Ast::handleImportsRecursive(stc::Node* currentNode)
 
                 for (const auto& functionName : callFunctionNamesInFunction)
                 {
-                    if (std::find(extendedImportNames.begin(), extendedImportNames.end(), functionName)
+                    if (find(extendedImportNames.begin(), extendedImportNames.end(), functionName)
                         == extendedImportNames.end())
                     {
                         extendedImportNames.push_back(functionName);
@@ -1569,14 +1511,14 @@ void stc::Ast::handleImportsRecursive(stc::Node* currentNode)
 
             if (typeOfExportElement == ExportValueType::VARIABLE)
             {
-                auto newVariable = new Variable("", VariableType::VOID, -1);
+                auto newVariable = new Variable("", Type(FundamentalType::VOID), -1);
                 *newVariable = *ast->m_allVariables.getByName(importName);
 
                 m_importVariables.add(newVariable);
             }
             else if (typeOfExportElement == ExportValueType::FUNCTION)
             {
-                auto newFunction = new Function("", ReturnType::VOID, {}, nullptr);
+                auto newFunction = new Function("", ReturnType(FundamentalType::VOID), {}, nullptr);
                 *newFunction = *ast->m_functions.get(importName);
 
                 m_importFunctions.add(newFunction);
@@ -1594,7 +1536,7 @@ void stc::Ast::handleImportsRecursive(stc::Node* currentNode)
     handleImportsRecursive(currentNode->operand4);
 }
 
-void stc::Ast::identifyAllImportName(stc::Node* currentNode, std::vector<std::string>& importNames)
+void stc::Ast::identifyAllImportName(stc::Node* currentNode, vector<string>& importNames)
 {
     if (currentNode == nullptr)
         return;
@@ -1645,7 +1587,7 @@ void stc::Ast::checkExportsRecursive(stc::Node* currentNode)
     checkExportsRecursive(currentNode->operand4);
 }
 
-void stc::Ast::identifyAllExportName(stc::Node* currentNode, std::vector<std::string>& exportNames)
+void stc::Ast::identifyAllExportName(stc::Node* currentNode, vector<string>& exportNames)
 {
     if (currentNode == nullptr)
         return;
@@ -1694,7 +1636,7 @@ void stc::Ast::handleExportsRecursive(stc::Node* currentNode)
 
                 for (const auto& functionName : callFunctionNamesInFunction)
                 {
-                    if (std::find(extendedExportNames.begin(), extendedExportNames.end(), functionName)
+                    if (find(extendedExportNames.begin(), extendedExportNames.end(), functionName)
                                                                             == extendedExportNames.end())
                     {
                         extendedExportNames.push_back(functionName);
@@ -1796,7 +1738,7 @@ stc::Node* stc::Ast::copySubTreeRecursive(stc::Node* currentNode)
     return returnNode;
 }
 
-void stc::Ast::identifyAllCallFunctionsNameInFunction(stc::Node* currentNode, std::vector<std::string>& functions)
+void stc::Ast::identifyAllCallFunctionsNameInFunction(stc::Node* currentNode, vector<string>& functions)
 {
     if (currentNode == nullptr)
         return;
@@ -1839,4 +1781,26 @@ void stc::Ast::identifyGlobalVariablesRecursive(Node* currentNode, VariableTable
     identifyGlobalVariablesRecursive(currentNode->operand2, globalVariablesTable);
     identifyGlobalVariablesRecursive(currentNode->operand3, globalVariablesTable);
     identifyGlobalVariablesRecursive(currentNode->operand4, globalVariablesTable);
+}
+
+void stc::Ast::checkExpressions()
+{
+    checkExpressionsRecursive(m_root);
+}
+
+void stc::Ast::checkExpressionsRecursive(stc::Node* currentNode)
+{
+    if (currentNode == nullptr)
+        return;
+
+    if (currentNode->type == NodeType::EXPRESSION)
+    {
+        checkAndGiveExpressionType(currentNode);
+        return;
+    }
+
+    checkExpressionsRecursive(currentNode->operand1);
+    checkExpressionsRecursive(currentNode->operand2);
+    checkExpressionsRecursive(currentNode->operand3);
+    checkExpressionsRecursive(currentNode->operand4);
 }

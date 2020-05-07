@@ -1,13 +1,13 @@
 #include "Function.h"
 
-stc::Function::Function(const std::string& name, stc::ReturnType returnType,
-                        const std::vector<stc::ArgumentType>& arguments, Node* m_node,
+stc::Function::Function(const std::string& name, const ReturnType& returnType,
+                        const std::vector<stc::ArgumentType>& argumentTypes, Node* m_node,
                         size_t sizeLocalVariable, const vector<Variable*>& argumentVariables,
                         const vector<Variable*>& localVariables)
 {
     this->m_name = name;
     this->m_returnType = returnType;
-    this->m_arguments = arguments;
+    this->m_arguments = argumentTypes;
     this->m_argumentsSize = 0;
     this->m_localVariableSize = sizeLocalVariable;
 
@@ -16,9 +16,9 @@ stc::Function::Function(const std::string& name, stc::ReturnType returnType,
     this->m_argumentVariables = argumentVariables;
     this->m_localVariables = localVariables;
 
-    for (const auto& argument : arguments)
+    for (const auto& argumentType : argumentTypes)
     {
-        this->m_argumentsSize += Variable::typeSizeInByte(argument);
+        this->m_argumentsSize += argumentType.size();
     }
 }
 
@@ -29,7 +29,7 @@ void stc::Function::print() const noexcept
     Log::write("'" + m_name + "'");
 
     Log::write(". Return type: ");
-    Log::write("'" + Variable::variableTypeToString(m_returnType) + "'");
+    Log::write("'" + m_returnType.toString() + "'");
 
     Log::write(". Arguments:");
     Log::write(argumentsViewString() + "\n");
@@ -130,16 +130,16 @@ const std::vector<stc::Variable*>& stc::Function::argumentVariables() const
     return m_argumentVariables;
 }
 
-std::string stc::Function::argumentsToString(const std::vector<stc::ArgumentType>& arguments) noexcept
+std::string stc::Function::argumentsToString(const std::vector<stc::ArgumentType>& argumentTypes) noexcept
 {
     string result = "(";
 
-    for (const auto& argument : arguments)
+    for (const auto& argumentType : argumentTypes)
     {
-        result += Variable::variableTypeToString(argument) + ", ";
+        result += argumentType.toString() + ", ";
     }
 
-    if (arguments.empty())
+    if (argumentTypes.empty())
     {
         result += "void";
     }

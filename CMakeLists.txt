@@ -30,4 +30,4 @@ add_executable(stc
         src/errorHandle/errorHandle.h src/ICM/icm.h
         src/parser/ast/exportTable/ExportTable.h
         src/rang.hpp
-        src/clipp.h src/log/Log.h src/log/Log.cpp src/analyzer/Analyzer.h src/analyzer/baseBlock.h)
+        src/clipp.h src/log/Log.h src/log/Log.cpp src/analyzer/Analyzer.h src/analyzer/baseBlock.h src/parser/variable/type/Type.h)

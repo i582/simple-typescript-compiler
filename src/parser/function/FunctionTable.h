@@ -18,11 +18,11 @@ public:
 public:
     void add(Function* new_function);
     bool contains(Function* function);
-    bool contains(const string& function);
+    bool contains(const string& name);
 
 
-    Function* get(const string& function, const vector<ArgumentType>& argumentDescriptions);
-    Function* get(const string& function);
+    Function* get(const string& name, const vector<ArgumentType>& argumentDescriptions);
+    Function* get(const string& name);
 
 
     void clear();

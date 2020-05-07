@@ -1081,7 +1081,7 @@ set(T& target, V value) {
  * @brief makes parameter-less function object
  *        that assigns value(s) to a ref-captured object;
  *        value(s) are obtained by converting the const char* argument to
- *        the captured object types;
+ *        the captured object type;
  *        bools are always set to true if the argument is not nullptr
  *
  *****************************************************************************/

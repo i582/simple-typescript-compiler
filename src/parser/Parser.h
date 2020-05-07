@@ -15,10 +15,9 @@ private:
     Lexer* m_lexer;
     Ast* m_tree;
 
-    bool m_debugMode;
 
 public:
-    explicit Parser(Lexer* lexer, bool debugMode = false);
+    explicit Parser(Lexer* lexer);
 
 public:
     void parse();

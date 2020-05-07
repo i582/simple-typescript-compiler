@@ -261,3 +261,11 @@ bool stc::Node::isComparisonOperator(NodeType type)
            type == NodeType::LOGICAL_OR ||
            type == NodeType::UNARY_EXCLAMATION;
 }
+
+bool stc::Node::isLvalueNodeType(stc::NodeType type)
+{
+    return  type == NodeType::USING_VARIABLE ||
+            type == NodeType::VARIABLE_DECLARATION ||
+            type == NodeType::CONSTANT_DECLARATION ||
+            type == NodeType::INDEX_CAPTURE;
+}

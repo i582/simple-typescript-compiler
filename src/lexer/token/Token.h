@@ -26,7 +26,7 @@ enum class TokenType
     CONST = 0x0010,
 
 
-    // types
+    // type
     NUMBER          = 0x001000,
     BOOLEAN         = 0x002000,
     STRING          = 0x003000,

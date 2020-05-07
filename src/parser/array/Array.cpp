@@ -43,32 +43,30 @@ std::string stc::Array::valuesToString() const
 
         auto type = Variable::typeVariableValue(value);
 
-        switch (type)
+        switch (type.fundamentalType())
         {
-            case VariableType::NUMBER:
+            case FundamentalType::NUMBER:
             {
                 result += std::to_string((int)std::get<number>(value));
                 break;
             }
-            case VariableType::BOOLEAN:
+            case FundamentalType::BOOLEAN:
             {
                 result += std::to_string(std::get<bool>(value));
                 break;
             }
-            case VariableType::STRING:
+            case FundamentalType::SYMBOL:
             {
-                result += std::get<string>(value);
-                result += ",0";
+                if (type.isArray())
+                {
+                    result += std::get<string>(value);
+                    result += ",0";
+                }
                 break;
             }
 
-            case VariableType::UNDEFINED:
-            case VariableType::VOID:
-            case VariableType::ANY:
-            case VariableType::NUMBER_ARRAY:
-            case VariableType::BOOLEAN_ARRAY:
-            case VariableType::STRING_ARRAY:
-            case VariableType::VOID_ARRAY:
+            case FundamentalType::VOID:
+            case FundamentalType::ANY:
                 break;
         }
 

@@ -37,7 +37,7 @@ stc::TokenType stc::Token::typeByLexeme(const std::string& lexeme)
     if (lexeme == "const")
         return TokenType::CONST;
     
-    // types
+    // type
     if (lexeme == "number")
         return TokenType::NUMBER;
     if (lexeme == "boolean")

@@ -1,13 +1,12 @@
 #include "Lexer.h"
 
-stc::Lexer::Lexer(const std::string& filePath, bool debugNode)
+stc::Lexer::Lexer(const std::string& filePath)
 {
     this->m_currentTokenIndex = 0;
     this->m_state = LexerState::DEFAULT;
 
 
     this->m_filePath = fs::current_path() / filePath;
-    this->m_debugMode = debugNode;
 
     this->open(filePath);
 }

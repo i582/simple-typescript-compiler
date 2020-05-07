@@ -141,6 +141,7 @@ public:
 public:
     static string nodeTypeToString(NodeType type);
     static bool isComparisonOperator(NodeType type);
+    static bool isLvalueNodeType(NodeType type);
 };
 
 

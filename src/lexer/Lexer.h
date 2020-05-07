@@ -43,10 +43,8 @@ private:
 
     path m_filePath;
 
-    bool m_debugMode;
-
 public:
-    explicit Lexer(const string& filePath, bool debugNode = false);
+    explicit Lexer(const string& filePath);
     ~Lexer();
 
 public:

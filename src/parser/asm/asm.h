@@ -35,13 +35,12 @@ namespace stc
 
         string* m_current_place_for_writing;
 
-        bool m_debugMode;
 
     private:
-        size_t m_byte_on_stack;
+        size_t m_byteOnStack;
 
     public:
-        explicit Asm(const string& outputFilePath, Ast* tree, bool debugMode = false);
+        explicit Asm(const string& outputFilePath, Ast* tree);
         ~Asm();
 
 
@@ -59,6 +58,8 @@ namespace stc
         void init_function_arguments();
 
         void initGlobalFunctions();
+        void initGlobalFunction(const string& name);
+
         void init_string_constants();
 
         // global functions
@@ -66,6 +67,10 @@ namespace stc
         void init_print_function();
         void init_println_function();
         void init_sqrt_function();
+
+
+        void init_concat_function();
+
 
 
 
@@ -76,10 +81,10 @@ namespace stc
         void blockToAsmRecursive(Node* currentNode);
         void expressionToAsmRecursive(Node* currentNode);
         void relation_expression_recursive(Node* current_node);
-        void functionImplementationRecursive(Node* current_node);
+        void functionImplementationRecursive(Node* currentNode);
         void init_string_constants_recursive(Node* current_node, size_t& count_constant);
 
-        void init_arguments_on_stack_recursive(Node* current_node);
+        void initArgumentsOnStackRecursive(Node* currentNode);
         void initGlobalFunctionsRecursive(Node* currentNode);
 
 
@@ -99,11 +104,11 @@ namespace stc
 
 
 
-        void stack_variable(const Variable* var);
-        void stack_argument(const Variable* var);
+        void stack_variable(const Variable* variable);
+        void stack_argument(const Variable* variable);
 
-        void global_variable(const Variable* var);
-        void global_array(const Array& arr);
+        void global_variable(const Variable* variable);
+        void global_array(const Array& array);
 
         // stack
         void push(const string& value);

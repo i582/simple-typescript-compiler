@@ -1,14 +1,12 @@
 #include "Asm.h"
 
-stc::Asm::Asm(const std::string& outputFilePath, stc::Ast* tree, bool debugMode)
+stc::Asm::Asm(const std::string& outputFilePath, stc::Ast* tree)
 {
     this->m_file.open(outputFilePath);
     this->m_ast = tree;
     this->m_current_place_for_writing = &m_main;
 
-    this->m_byte_on_stack = 4;
-
-    this->m_debugMode = debugMode;
+    this->m_byteOnStack = 4;
 }
 
 stc::Asm::~Asm()
@@ -62,15 +60,15 @@ void stc::Asm::init_local_variables()
 {
     for (const auto& function : m_ast->m_functions.raw())
     {
-        for (const auto& local_variable : function->localVariables())
+        for (const auto& localVariable : function->localVariables())
         {
-            if (Variable::isArrayType(local_variable->type()))
+            if (localVariable->type().isArray())
                 continue;
 
-            stack_variable(local_variable);
+            stack_variable(localVariable);
         }
 
-        m_byte_on_stack = 4;
+        m_byteOnStack = 4;
     }
 
 }
@@ -96,7 +94,7 @@ void stc::Asm::init_function_arguments()
 {
     for (const auto& function : m_ast->m_functions.raw())
     {
-        m_byte_on_stack = 8;
+        m_byteOnStack = 8;
 
         for (const auto& argument_variable : function->argumentVariables())
         {
@@ -124,15 +122,15 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
             op1->type == NodeType::VARIABLE_DECLARATION ||
             op1->type == NodeType::CONSTANT_DECLARATION)
         {
-            auto variable_name = any_cast<string>(op1->value);
-            auto block_id = op1->scopeId();
-            auto variable = m_ast->m_allVariables.getByNameAndScopeId(variable_name, block_id);
-            auto is_array = variable->isArray();
+            auto variableName = any_cast<string>(op1->value);
+            auto scopeId = op1->scopeId();
+            auto variable = m_ast->m_allVariables.getByNameAndScopeId(variableName, scopeId);
+            auto isArray = variable->isArray();
 
-            variable_name += std::to_string(block_id);
+            variableName += to_string(scopeId);
 
 
-            if (is_array)
+            if (variable->isArray() && !variable->type().is(FundamentalType::SYMBOL, true))
                 return;
 
             expressionToAsmRecursive(op2);
@@ -143,78 +141,72 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
             if (variable->isGlobal())
             {
                 // mov variable, eax
-                mov(global_var(variable_name), eax);
+                mov(global_var(variableName), eax);
             }
             else if (variable->isArgument())
             {
                 // mov arg_variable, eax
-                mov(argument_var(variable_name), eax);
+                mov(argument_var(variableName), eax);
             }
             else
             {
                 // mov variable[ebp], eax
-                mov(local_var(variable_name), eax);
+                mov(local_var(variableName), eax);
             }
         }
         else if (op1->type == NodeType::INDEX_CAPTURE)
         {
-            auto variable_node = op1->operand1;
-            auto index_node = op1->operand2;
+            auto variableNode = op1->operand1;
+            auto indexNode = op1->operand2;
 
-            auto array_name = any_cast<string>(variable_node->value);
-            auto block_id = variable_node->scopeId();
+            auto arrayName = any_cast<string>(variableNode->value);
+            auto scopeId = variableNode->scopeId();
 
-            auto variable = m_ast->m_allVariables.getByNameAndScopeId(array_name, block_id);
+            auto variable = m_ast->m_allVariables.getByNameAndScopeId(arrayName, scopeId);
 
 
-            auto array_type = m_ast->m_allVariables.getByNameAndScopeId(array_name, block_id)->type();
-            string array_item_shift;
+            auto arrayType = m_ast->m_allVariables.getByNameAndScopeId(arrayName, scopeId)->type();
+            string arrayItemShift = "0";
 
-            array_name += to_string(block_id);
+            arrayName += to_string(scopeId);
 
-            switch (array_type)
+            switch (arrayType.fundamentalType())
             {
-                case VariableType::NUMBER_ARRAY:
+                case FundamentalType::NUMBER:
                 {
-                    array_item_shift = "4";
+                    arrayItemShift = "4";
                     break;
                 }
-                case VariableType::BOOLEAN_ARRAY:
+                case FundamentalType::BOOLEAN:
                 {
-                    array_item_shift = "1";
+                    arrayItemShift = "1";
                     break;
                 }
-                case VariableType::STRING_ARRAY:
+                case FundamentalType::SYMBOL:
                 {
-                    array_item_shift = "4";
+                    arrayItemShift = "1";
                     break;
                 }
-
-                case VariableType::UNDEFINED:
-                case VariableType::NUMBER:
-                case VariableType::BOOLEAN:
-                case VariableType::STRING:
-                case VariableType::VOID:
-                case VariableType::ANY:
-                case VariableType::VOID_ARRAY:
+                case FundamentalType::VOID:
+                case FundamentalType::ANY:
                     break;
             }
 
             expressionToAsmRecursive(op2);
             pop(edx);
 
-            expressionToAsmRecursive(index_node->operand1);
+            expressionToAsmRecursive(indexNode->operand1);
             pop(ecx);
-            imul(ecx, array_item_shift);
+            imul(ecx, arrayItemShift);
 
 
             if (variable->isArgument())
             {
-                mov(esi, argument_var(array_name));
+                mov(esi, argument_var(arrayName));
             }
             else
             {
-                mov(esi, global_var(array_name));
+                mov(esi, global_var(arrayName));
             }
 
 
@@ -383,18 +375,18 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
     }
     else if (currentNode->type == NodeType::BREAK)
     {
-        auto block_id = currentNode->scopeId() + 2;
-        string label_value = "_loop_end_" + to_string(block_id);
+        auto scopeId = currentNode->scopeId() + 2;
+        string labelValue = "_loop_end_" + to_string(scopeId);
 
-        jmp(label_value);
+        jmp(labelValue);
         return;
     }
     else if (currentNode->type == NodeType::CONTINUE)
     {
-        auto block_id = currentNode->scopeId() + 2;
-        string label_value = "_loop_aftereffects_" + std::to_string(block_id);
+        auto scopeId = currentNode->scopeId() + 2;
+        string labelValue = "_loop_aftereffects_" + std::to_string(scopeId);
 
-        jmp(label_value);
+        jmp(labelValue);
         return;
     }
 
@@ -549,7 +541,7 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
     else if (currentNode->type == NodeType::AFTER_INC ||
              currentNode->type == NodeType::AFTER_DEC)
     {
-        cout << "Current not supported a++ or a--!" << endl;
+        ErrorHandle::raise("Current not supported a++ or a--!");
     }
     else if (currentNode->type == NodeType::BEFORE_INC)
     {
@@ -582,7 +574,7 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
                 mov(argument_var(variable_name), eax);
                 push(argument_var(variable_name));
             }
-            else if (variable->isGlobal() || Variable::isArrayType(variable->type()))
+            else if (variable->isGlobal() || variable->type().isArray())
             {
                 // mov variable, eax
                 mov(global_var(variable_name), eax);
@@ -641,7 +633,7 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
                 mov(argument_var(variable_name), eax);
                 push(argument_var(variable_name));
             }
-            else if (variable->isGlobal() || Variable::isArrayType(variable->type()))
+            else if (variable->isGlobal() || variable->type().isArray())
             {
                 // mov variable, eax
                 mov(global_var(variable_name), eax);
@@ -686,33 +678,30 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
     else if (currentNode->type == NodeType::STRING_CONST)
     {
         // push const
-        auto value_id = currentNode->scopeId();
-        auto string_access = "string_const_" + to_string(value_id);
+        auto scopeId = currentNode->scopeId();
+        auto string_access = "string_const_" + to_string(scopeId);
         push(offset(string_access));
     }
     else if (currentNode->type == NodeType::USING_VARIABLE ||
              currentNode->type == NodeType::USING_CONSTANT)
     {
-        auto variable_name = any_cast<string>(currentNode->value);
-        auto block_id = currentNode->scopeId();
-        auto variable = m_ast->m_allVariables.getByNameAndScopeId(variable_name, block_id);
+        auto variableName = any_cast<string>(currentNode->value);
+        auto scopeId = currentNode->scopeId();
+        auto variable = m_ast->m_allVariables.getByNameAndScopeId(variableName, scopeId);
 
-        variable_name += to_string(block_id);
-
-
-
+        variableName += to_string(scopeId);
 
         if (variable->isArgument())
         {
-            push(argument_var(variable_name));
+            push(argument_var(variableName));
         }
-        else if (variable->isGlobal() || Variable::isArrayType(variable->type()))
+        else if (variable->isGlobal() || variable->type().isArray())
         {
-            push(variable_name);
+            push(variableName);
         }
         else
         {
-            push(local_var(variable_name));
+            push(local_var(variableName));
         }
 
     }
@@ -727,17 +716,17 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
         raw("\n");
         comment("init stack for " + functionName);
 
-        init_arguments_on_stack_recursive(currentNode->operand1);
+        initArgumentsOnStackRecursive(currentNode->operand1);
 
-        vector<VariableType> types;
+        vector<Type> types;
         m_ast->identifyFunctionCallArgumentsRecursive(currentNode->operand1, types);
 
 
-        Function* function;
+        Function* function = nullptr;
 
-        if (m_ast->m_globalFunctions.contains(functionName))
+        if (GlobalFunctions::contains(functionName))
         {
-            function = m_ast->m_globalFunctions.get(functionName, types);
+            function = GlobalFunctions::get(functionName, types);
         }
         else
         {
@@ -745,7 +734,7 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
         }
 
 
-        auto functionReturnVoid = function->returnType() == VariableType::VOID;
+        auto functionReturnVoid = function->returnType().is(FundamentalType::VOID);
 
 
         comment("call " + functionName);
@@ -764,62 +753,56 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
         auto op1 = currentNode->operand1;
         auto op2 = currentNode->operand2;
 
-        auto array_name = any_cast<string>(op1->value);
-        auto block_id = op1->scopeId();
+        auto arrayName = any_cast<string>(op1->value);
+        auto scopeId = op1->scopeId();
 
-        auto array_type = m_ast->m_allVariables.getByNameAndScopeId(array_name, block_id)->type();
-        string array_item_shift;
+        auto variable = m_ast->m_allVariables.getByNameAndScopeId(arrayName, scopeId);
+        auto arrayType = variable->type();
 
-        auto variable = m_ast->m_allVariables.getByNameAndScopeId(array_name, block_id);
+        string arrayItemShift;
 
 
-        array_name += to_string(block_id);
+        arrayName += to_string(scopeId);
 
-        switch (array_type)
+        switch (arrayType.fundamentalType())
         {
-            case VariableType::NUMBER_ARRAY:
+            case FundamentalType::NUMBER:
             {
-                array_item_shift = "4";
+                arrayItemShift = "4";
                 break;
             }
-            case VariableType::BOOLEAN_ARRAY:
+            case FundamentalType::BOOLEAN:
             {
-                array_item_shift = "1";
+                arrayItemShift = "1";
                 break;
             }
-            case VariableType::STRING_ARRAY:
+            case FundamentalType::SYMBOL:
             {
-                array_item_shift = "4";
+                arrayItemShift = "4";
                 break;
             }
-
-            case VariableType::UNDEFINED:
-            case VariableType::NUMBER:
-            case VariableType::BOOLEAN:
-            case VariableType::STRING:
-            case VariableType::VOID:
-            case VariableType::ANY:
-            case VariableType::VOID_ARRAY:
+            case FundamentalType::VOID:
+            case FundamentalType::ANY:
                 break;
         }
 
         expressionToAsmRecursive(op2->operand1);
         pop(edx);
-        imul(edx, array_item_shift);
+        imul(edx, arrayItemShift);
 
 
 
         if (variable->isArgument())
         {
-            mov(esi, argument_var(array_name));
+            mov(esi, argument_var(arrayName));
         }
-        else if (variable->isGlobal() || Variable::isArrayType(variable->type()))
+        else if (variable->isGlobal() || variable->type().isArray())
         {
-            mov(esi, global_var(array_name));
+            mov(esi, global_var(arrayName));
         }
         else
         {
-            mov(esi, local_var(array_name));
+            mov(esi, local_var(arrayName));
         }
 
         push("[esi[edx]]");
@@ -883,7 +866,7 @@ void stc::Asm::relation_expression_recursive(Node* current_node)
         {
             cmp(argument_var(variable_name), null);
         }
-        else if (variable->isGlobal() || Variable::isArrayType(variable->type()))
+        else if (variable->isGlobal() || variable->type().isArray())
         {
             cmp(global_var(variable_name), null);
         }
@@ -1044,69 +1027,69 @@ void stc::Asm::relation_expression_recursive(Node* current_node)
     }
 }
 
-void stc::Asm::functionImplementationRecursive(stc::Node* current_node)
+void stc::Asm::functionImplementationRecursive(stc::Node* currentNode)
 {
-    if (current_node == nullptr)
+    if (currentNode == nullptr)
         return;
 
 
     // if function body is empty
-    if (current_node->operand3->type == NodeType::EXPRESSION)
+    if (currentNode->operand3->type == NodeType::EXPRESSION)
         return;
 
-    auto function_name = any_cast<string>(current_node->value);
+    auto functionName = any_cast<string>(currentNode->value);
 
-    if (m_ast->m_globalFunctions.contains(function_name))
+    if (GlobalFunctions::contains(functionName))
         return;
 
-    vector<VariableType> types;
+    vector<Type> types;
     vector<Variable*> variables;
-    m_ast->identifyFunctionArgumentsRecursive(current_node->operand2, types, variables);
+    m_ast->identifyFunctionArgumentsRecursive(currentNode->operand2, types, variables);
 
-    vector<VariableType> typesTemp;
+    vector<Type> typesTemp;
 
     for (int i = types.size() - 1; i >= 0; --i)
     {
         typesTemp.push_back(types[i]);
     }
 
-    auto function = m_ast->m_functions.get(function_name, typesTemp);
-    auto local_variable_size = function->localVariableSize();
+    auto function = m_ast->m_functions.get(functionName, typesTemp);
+    auto localVariableSize = function->localVariableSize();
 
-    proc(function_name);
-    procedure_prolog(0, local_variable_size);
-
-
-
-    auto stack_size = function->argumentsSize();
+    proc(functionName);
+    procedure_prolog(0, localVariableSize);
 
 
-    blockToAsmRecursive(current_node->operand3);
+
+    auto stackSize = function->argumentsSize();
+
+
+    blockToAsmRecursive(currentNode->operand3);
 
     procedure_epilogue();
-    ret(to_string(stack_size));
-    endp(function_name);
+    ret(to_string(stackSize));
+    endp(functionName);
 
 }
 
-void stc::Asm::init_arguments_on_stack_recursive(stc::Node* current_node)
+void stc::Asm::initArgumentsOnStackRecursive(stc::Node* currentNode)
 {
-    if (current_node == nullptr)
+    if (currentNode == nullptr)
         return;
 
-    if (current_node->type == NodeType::FUNCTION_ARGS)
+    if (currentNode->type == NodeType::FUNCTION_ARGS)
     {
-        expressionToAsmRecursive(current_node->operand1);
+        expressionToAsmRecursive(currentNode->operand1);
     }
-    else if (current_node->type == NodeType::FUNCTION_CALL)
+    else if (currentNode->type == NodeType::FUNCTION_CALL)
     {
         return;
     }
 
-    init_arguments_on_stack_recursive(current_node->operand1);
-    init_arguments_on_stack_recursive(current_node->operand2);
-    init_arguments_on_stack_recursive(current_node->operand3);
-    init_arguments_on_stack_recursive(current_node->operand4);
+    initArgumentsOnStackRecursive(currentNode->operand1);
+    initArgumentsOnStackRecursive(currentNode->operand2);
+    initArgumentsOnStackRecursive(currentNode->operand3);
+    initArgumentsOnStackRecursive(currentNode->operand4);
 }
 
 void stc::Asm::initGlobalFunctions()
@@ -1123,22 +1106,7 @@ void stc::Asm::initGlobalFunctionsRecursive(stc::Node* currentNode)
     {
         auto functionName = any_cast<string>(currentNode->value);
 
-        if (functionName == "input")
-        {
-            init_input_function();
-        }
-        else if (functionName == "print")
-        {
-            init_print_function();
-        }
-        else if (functionName == "println")
-        {
-            init_println_function();
-        }
-        else if (functionName == "sqrt")
-        {
-            init_sqrt_function();
-        }
+        initGlobalFunction(functionName);
     }
 
     initGlobalFunctionsRecursive(currentNode->operand1);
@@ -1229,6 +1197,61 @@ void stc::Asm::init_sqrt_function()
 
     set_place_for_writing(asm_place_for_writing::MAIN);
 }
+
+
+void stc::Asm::init_concat_function()
+{
+    set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+    raw("concat PROC\n"
+        "   enter 32, 0\n"
+        "\n"
+        "   mov ecx, [ebp + 8] ; указатель на первую строку\n"
+        "   mov edx, [ebp + 12] ; указатель на вторую строку\n"
+        "\n"
+        "   push [ebp + 8]\n"
+        "   call crt_strlen\n"
+        "   push eax ; узнаем длину первой строки и помещаем ее в стек\n"
+        "\n"
+        "\n"
+        "   push [ebp + 12]\n"
+        "   call crt_strlen\n"
+        "   push eax ; узнаем длину второй строки и помещаем ее в стек\n"
+        "\n"
+        "\n"
+        "   pop ecx\n"
+        "   pop edx\n"
+        "   add ecx, edx ; узнаем общую длину строк\n"
+        "   add ecx, 1 ; добавляем место под нуль-терминатор\n"
+        "   push ecx\n"
+        "\n"
+        "\n"
+        "   call crt_calloc ; выделяем память под строку\n"
+        "   push eax ; сохраняем указатель на память в стеке\n"
+        "\n"
+        "\n"
+        "   pop eax\n"
+        "   push [ebp + 8] ; указатель на строку, которая копируется (1 строка)\n"
+        "   push eax ; указатель на начало выделенной памяти\n"
+        "   call crt_strcat ; копируем\n"
+        "   push eax\n"
+        "\n"
+        "   pop eax\n"
+        "   push [ebp + 12] ; указатель на строку, которая копируется (2 строка)\n"
+        "   push eax ; указатель на начало выделенной памяти\n"
+        "   call crt_strcat ; копируем\n"
+        "   push eax\n"
+        "   pop eax\n"
+        "\n"
+        "   ; теперь в ecx лежит строка содержащая объединенные две входные строки\n"
+        "\n"
+        "\n"
+        "   leave\n"
+        "   ret 8\n"
+        "concat ENDP\n");
+
+    set_place_for_writing(asm_place_for_writing::MAIN);
+}
+
 
 void stc::Asm::init_operands_for_division()
 {
@@ -1325,143 +1348,151 @@ void stc::Asm::raw(const string& value)
     m_current_place_for_writing->append(value);
 }
 
-void stc::Asm::stack_variable(const Variable* var)
+void stc::Asm::stack_variable(const Variable* variable)
 {
-    auto variable_name = var->nameWithPostfix();
-    auto variable_size = Variable::typeSizeInByte(var->type());
+    auto variableName = variable->nameWithPostfix();
+    auto variableSize = variable->type().size();
 
-    m_before_main.append(variable_name + " = " + "-" + to_string(m_byte_on_stack) + " ; size = " + to_string(variable_size) + "\n");
+    m_before_main.append(variableName + " = " + "-" + to_string(m_byteOnStack) + " ; size = " + to_string(variableSize) + "\n");
 
-    m_byte_on_stack += variable_size;
+    m_byteOnStack += variableSize;
 }
 
-void stc::Asm::stack_argument(const stc::Variable* var)
+void stc::Asm::stack_argument(const stc::Variable* variable)
 {
-    auto variable_name = var->nameWithPostfix();
-    auto variable_size = Variable::typeSizeInByte(var->type());
+    auto variableName = variable->nameWithPostfix();
+    auto variableSize = variable->type().size();
 
     string prefix;
 
-    if (var->isArgument())
+    if (variable->isArgument())
     {
         prefix = "arg_";
     }
 
-    m_before_main.append(prefix + variable_name + " = " + to_string(m_byte_on_stack) + " ; size = " + to_string(variable_size) + "\n");
+    m_before_main.append(prefix + variableName + " = " + to_string(m_byteOnStack) + " ; size = " + to_string(variableSize) + "\n");
 
-    m_byte_on_stack += variable_size;
+    m_byteOnStack += variableSize;
 }
 
-void stc::Asm::global_variable(const stc::Variable* var)
+void stc::Asm::global_variable(const stc::Variable* variable)
 {
-    string variable_type;
-    string variable_value;
+    string variableTypeString;
+    string variableValueString;
 
-    switch (var->type())
+    auto varialeName = variable->nameWithPostfix();
+    auto variableType = variable->type();
+
+    if (variableType.is(FundamentalType::SYMBOL, true))
     {
-        case VariableType::NUMBER:
-        {
-            variable_type = "dd";
-            variable_value = "0";
-            break;
-        }
-        case VariableType::BOOLEAN:
-        {
-            variable_type = "dd";
-            variable_value = "0";
-            break;
-        }
-        case VariableType::STRING:
-        {
-            variable_type = "db";
-            variable_value = "\" \",0";
-            break;
-        }
-
-        case VariableType::UNDEFINED:
-        case VariableType::VOID:
-        case VariableType::ANY:
-        case VariableType::NUMBER_ARRAY:
-        case VariableType::BOOLEAN_ARRAY:
-        case VariableType::STRING_ARRAY:
-        case VariableType::VOID_ARRAY:
-            return;
+        m_data.append(tab + varialeName + " dd 0 ; pointer to string\n");
+        return;
     }
 
-    m_data.append(tab + var->nameWithPostfix() + " " +
-                  variable_type + " " + variable_value + "\n");
+    switch (variable->type().fundamentalType())
+    {
+        case FundamentalType::NUMBER:
+        {
+            variableTypeString = "dd";
+            variableValueString = "0";
+            break;
+        }
+        case FundamentalType::BOOLEAN:
+        {
+            variableTypeString = "dd";
+            variableValueString = "0";
+            break;
+        }
+        case FundamentalType::SYMBOL:
+        {
+            if (variableType.isArray())
+            {
+                variableTypeString = "db";
+                variableValueString = "\" \",0";
+            }
+            break;
+        }
+        case FundamentalType::VOID:
+        case FundamentalType::ANY:
+            break;
+    }
+
+    m_data.append(tab + varialeName + " " +
+                  variableTypeString + " " + variableValueString + "\n");
 }
 
-void stc::Asm::global_array(const stc::Array& arr)
+void stc::Asm::global_array(const stc::Array& array)
 {
-    auto variable = arr.variable();
-    auto array_type = variable->type();
-    auto array_size = arr.size();
-    const auto& array_values = arr.values();
+    auto variable = array.variable();
+    auto arrayType = variable->type();
+    auto arrayName = variable->nameWithPostfix();
 
-    auto array_name = variable->nameWithPostfix();
+    if (arrayType.is(FundamentalType::SYMBOL, true))
+        return;
 
-    string array_type_str;
-    string array_values_str;
 
-    switch (array_type)
+    auto arraySize = array.size();
+    const auto& arrayValues = array.values();
+
+
+
+    string arrayTypeString;
+    string arrayValuesString;
+
+    switch (arrayType.fundamentalType())
     {
-        case VariableType::NUMBER_ARRAY:
+        case FundamentalType::NUMBER:
         {
-            array_type_str = "dd";
+            arrayTypeString = "dd";
 
-            if (array_values.empty())
+            if (arrayValues.empty())
             {
-                array_values_str = to_string(array_size) + " dup (0)";
+                arrayValuesString = to_string(arraySize) + " dup (0)";
             }
             else
             {
-                array_values_str = arr.valuesToString();
+                arrayValuesString = array.valuesToString();
             }
             break;
         }
-        case VariableType::BOOLEAN_ARRAY:
+        case FundamentalType::BOOLEAN:
         {
-            array_type_str = "dd";
+            arrayTypeString = "dd";
 
-            if (array_values.empty())
+            if (arrayValues.empty())
             {
-                array_values_str = to_string(array_size) + " dup (0)";
+                arrayValuesString = to_string(arraySize) + " dup (0)";
             }
             else
             {
-                array_values_str = arr.valuesToString();
+                arrayValuesString = array.valuesToString();
             }
             break;
         }
-        case VariableType::STRING_ARRAY:
+        case FundamentalType::SYMBOL:
         {
-            array_type_str = "db";
+            arrayTypeString = "db";
 
-            if (array_values.empty())
+            if (arrayValues.empty())
             {
-                array_values_str = to_string(array_size) + " dup (0)";
+                arrayTypeString = "dd";
+                arrayValuesString = to_string(arraySize) + " dup (0)";
             }
             else
             {
-                array_values_str = arr.valuesToString();
+                arrayValuesString = array.valuesToString();
             }
             break;
         }
 
-        case VariableType::NUMBER:
-        case VariableType::BOOLEAN:
-        case VariableType::STRING:
-        case VariableType::VOID_ARRAY:
-        case VariableType::UNDEFINED:
-        case VariableType::VOID:
-        case VariableType::ANY:
-            return;
+        case FundamentalType::VOID:
+        case FundamentalType::ANY:
+            break;
     }
 
 
-    m_data.append(tab + array_name + "_arr" + " " + array_type_str + " " + array_values_str + "\n");
-    m_data.append(tab + array_name + " " + array_type_str + " offset " + array_name + "_arr" + "\n");
+    m_data.append(tab + arrayName + "_arr" + " " + arrayTypeString + " " + arrayValuesString + "\n");
+    m_data.append(tab + arrayName + " " + arrayTypeString + " offset " + arrayName + "_arr" + "\n");
 
 }
 
@@ -1664,5 +1695,232 @@ void stc::Asm::init_string_constants_recursive(stc::Node* current_node, size_t& 
 void stc::Asm::comment(const std::string& value)
 {
     m_current_place_for_writing->append(tab + "; " + value + "\n");
+}
+
+void stc::Asm::initGlobalFunction(const std::string& name)
+{
+    if (name == "input")
+    {
+        init_input_function();
+    }
+    else if (name == "print")
+    {
+        init_print_function();
+    }
+    else if (name == "println")
+    {
+        init_println_function();
+    }
+    else if (name == "sqrt")
+    {
+        init_sqrt_function();
+    }
+    else if (name == "concat")
+    {
+        set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        raw("concat PROC\n"
+            "   enter 32, 0\n"
+            "\n"
+            "   mov ecx, [ebp + 8] ; указатель на первую строку\n"
+            "   mov edx, [ebp + 12] ; указатель на вторую строку\n"
+            "\n"
+            "   push [ebp + 8]\n"
+            "   call crt_strlen\n"
+            "   push eax ; узнаем длину первой строки и помещаем ее в стек\n"
+            "\n"
+            "\n"
+            "   push [ebp + 12]\n"
+            "   call crt_strlen\n"
+            "   push eax ; узнаем длину второй строки и помещаем ее в стек\n"
+            "\n"
+            "\n"
+            "   pop ecx\n"
+            "   pop edx\n"
+            "   add ecx, edx ; узнаем общую длину строк\n"
+            "   add ecx, 1 ; добавляем место под нуль-терминатор\n"
+            "   push ecx\n"
+            "\n"
+            "\n"
+            "   call crt_calloc ; выделяем память под строку\n"
+            "   push eax ; сохраняем указатель на память в стеке\n"
+            "\n"
+            "\n"
+            "   pop eax\n"
+            "   push [ebp + 8] ; указатель на строку, которая копируется (1 строка)\n"
+            "   push eax ; указатель на начало выделенной памяти\n"
+            "   call crt_strcat ; копируем\n"
+            "   push eax\n"
+            "\n"
+            "   pop eax\n"
+            "   push [ebp + 12] ; указатель на строку, которая копируется (2 строка)\n"
+            "   push eax ; указатель на начало выделенной памяти\n"
+            "   call crt_strcat ; копируем\n"
+            "   push eax\n"
+            "   pop eax\n"
+            "\n"
+            "   ; теперь в ecx лежит строка содержащая объединенные две входные строки\n"
+            "\n"
+            "\n"
+            "   leave\n"
+            "   ret 8\n"
+            "concat ENDP\n");
+
+        set_place_for_writing(asm_place_for_writing::MAIN);
+    }
+    else if (name == "slice")
+    {
+        set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        raw("slice PROC\n"
+            "   enter 0, 0\n"
+            "\n"
+            "   cmp DWORD PTR [ebp + 8], 0\n"
+            "   je _error_end ; передан нулевой указатель\n"
+            "\n"
+            "   push [ebp + 8]\n"
+            "   call crt_strlen\n"
+            "   mov edx, eax ; в edx теперь хранится длина строки\n"
+            "\n"
+            "   mov eax, DWORD PTR [ebp + 12]\n"
+            "   mov ebx, DWORD PTR [ebp + 16]\n"
+            "   cmp eax, ebx\n"
+            "   jg _swap_start_and_end\n"
+            "   jl _no_swap_start_and_end\n"
+            "\n"
+            "_swap_start_and_end:\n"
+            "   mov eax, DWORD PTR [ebp + 12]\n"
+            "   mov ebx, DWORD PTR [ebp + 16]\n"
+            "   \n"
+            "   mov DWORD PTR [ebp + 12], ebx\n"
+            "   mov DWORD PTR [ebp + 16], eax\n"
+            "\n"
+            "\n"
+            "_no_swap_start_and_end:\n"
+            "   mov eax, DWORD PTR [ebp + 12]\n"
+            "   cmp eax, 0\n"
+            "   jl _error_end ; если начало меньше ноля\n"
+            "\n"
+            "   mov eax, DWORD PTR [ebp + 12]\n"
+            "   cmp eax, edx\n"
+            "   jg _error_end ; если начало больше или равен длине строки\n"
+            "\n"
+            "   mov eax, DWORD PTR [ebp + 12]\n"
+            "   cmp eax, 0\n"
+            "   jl _error_end ; если конец меньше ноля\n"
+            "\n"
+            "   cmp [ebp + 16], edx\n"
+            "   jg _error_end ; если конец больше или равен длине строки\n"
+            "\n"
+            "   push edx\n"
+            "\n"
+            "   mov ebx, [ebp + 16]\n"
+            "   sub ebx, [ebp + 12] ; находим длину среза\n"
+            "   add ebx, 1 ; добавляем место для нуля-терминатора\n"
+            "\n"
+            "   push ebx\n"
+            "\n"
+            "   push ebx\n"
+            "   call crt_calloc ; выделяем память под срех\n"
+            "   push eax ; сохраняем указатель на память в стеке\n"
+            "   \n"
+            "   pop ecx ; указатель на память\n"
+            "   pop ebx ; длина среза\n"
+            "   \n"
+            " \n"
+            "   mov edx, DWORD PTR [ebp + 8]\n"
+            "   add edx, DWORD PTR [ebp + 12]\n"
+            "   sub edx, 1 ; вычитаем 1, чтобы начать с нужного символа\n"
+            "\n"
+            "   push ebx\n"
+            "   push edx\n"
+            "   push ecx\n"
+            "   call crt_strncpy\n"
+            "   push eax\n"
+            "\n"
+            "\n"
+            "   add eax, ebx\n"
+            "   mov DWORD PTR [eax], 0\n"
+            "   pop eax\n"
+            "\n"
+            "   leave\n"
+            "   ret 12\n"
+            "\n"
+            "_error_end:\n"
+            "   mov eax, 0\n"
+            "\n"
+            "   leave\n"
+            "   ret 12\n"
+            "slice ENDP\n");
+        set_place_for_writing(asm_place_for_writing::MAIN);
+    }
+    else if (name == "strlen")
+    {
+        set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        raw("strlen PROC\n"
+            "   enter 0, 0\n"
+            "\n"
+            "   push DWORD PTR [ebp + 8]\n"
+            "   call crt_strlen\n"
+            "   \n"
+            "   leave\n"
+            "   ret 8\n"
+            "strlen ENDP\n");
+        set_place_for_writing(asm_place_for_writing::MAIN);
+    }
+    else if (name == "at")
+    {
+        set_place_for_writing(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        raw("at PROC\n"
+            "   enter 0, 0\n"
+            "\n"
+            "   cmp DWORD PTR [ebp + 8], 0\n"
+            "   je _error_end ; передан нулевой указатель\n"
+            "\n"
+            "   push DWORD PTR [ebp + 8]\n"
+            "   call crt_strlen\n"
+            "   mov edx, eax ; в edx теперь хранится длина строки\n"
+            "\n"
+            "   mov eax, DWORD PTR [ebp + 12]\n"
+            "   cmp eax, 0\n"
+            "   jl _error_end ; если индекс меньше ноля\n"
+            "\n"
+            "   mov eax, DWORD PTR [ebp + 12]\n"
+            "   cmp eax, edx\n"
+            "   jge _error_end ; если индекс больше или равен длине строки\n"
+            "   \n"
+            "\n"
+            "   push 2\n"
+            "   call crt_calloc ; выделяем память под символ с нулем терминатором\n"
+            "   push eax ; сохраняем указатель на память в стеке\n"
+            "\n"
+            "\n"
+            "   mov edx, DWORD PTR [ebp + 8]\n"
+            "   add edx, DWORD PTR [ebp + 12]\n"
+            "\n"
+            "   mov ecx, DWORD PTR [edx]\n"
+            "   mov DWORD PTR [eax], ecx\n"
+            "\n"
+            "\n"
+            "   push eax\n"
+            "\n"
+            "   mov ebx, 0\n"
+            "   add eax, 1\n"
+            "   mov DWORD PTR [eax], ebx\n"
+            "\n"
+            "   pop eax\n"
+            "\n"
+            "   pop ecx\n"
+            "\n"
+            "   leave\n"
+            "   ret 8\n"
+            "\n"
+            "_error_end:\n"
+            "   mov eax, 0\n"
+            "\n"
+            "   leave\n"
+            "   ret 8\n"
+            "\n"
+            "at ENDP\n");
+        set_place_for_writing(asm_place_for_writing::MAIN);
+    }
 }
 
