@@ -1,358 +1,385 @@
-# 	Simple compailer from TypeScript to Assembler
-
-![](https://img.shields.io/badge/language-c%2B%2B-brightgreen)
+# stc — simple typescript compiler
 
 ![](docs/ts.png)
 
-## Description
+## Описание
 
-Term paper of the 3rd semester. Simple translator from TypeScript to ASM. TypeScript has been changed and now this language is fully statically typed. With support for a minimum number of parts of the language. 
+Курсовая работа по предмету Системное программное обеспечение. 
 
-## Lexer
+Язык был сделан статически типизированным для простоты реализации.
 
-* [x] `Integer numbers`
-    * [ ] `binary`
-    * [ ] `hexadecimal`
-    * [ ] `_ separator`
-* [x] `Double numbers`
-    * [ ] `exponential form`
-* [x] `String const`
+Ниже идет описание каждой из частей компилятора.
 
-* [x] Validation of identifiers.
+## Лексический анализатор:
 
-## Syntax parser
+1. Поддержка целочисленных, логических и строковых констант;
 
-### Operators
+2. Поддержка комментариев (строчные и блочные(без вложенности));
 
-* [x] `+`
-* [x] `-`
-* [x] `/`
-* [x] `*`
-* [x] `**`
-* [x] `() <- Expressions in brackets`
-* [x] `++a` 
-* [x] `--a`
-* [x] `a++` 
-* [x] `a--`
-* [x] `+a` 
-* [x] `-a`
-* [x] `!a`
-* [x] `+=`
-* [x] `-=`
-* [x] `/=`
-* [x] `*=`
-* [x] `&&` 
-* [x] `||`
-* [x] `<` 
-* [x] `>`
-* [x] `>=` 
-* [x] `<=`
-* [x] `==` 
-* [x] `!=`
-* [x] `[]`
-* [x] `? : `
-* [x] `new` (only for arrays)
+3. Хранение строки и позиции в строке для каждого токена и их вывод при ошибке;
 
-### Blocks
+4. Поддержка следующих типов:
 
-* [x] `if`
-* [x] `else`
-* [x] `else if`
-* [x] `for`
-    * [x] `break`
-    * [x] `continue`
-* [x] `while`
-    * [x] `break`
-    * [x] `continue`
-* [x] `do while` 
-    * [x] `break`
-    * [x] `continue`
+   <details>
+       <summary>Список</summary>
+       IDENTIFIER,
+       LET,
+       CONST,
+       NUMBER,
+       BOOLEAN,
+       STRING,
+       VOID,
+       ANY,
+       DO_WHILE,
+       WHILE,
+       FOR,
+       BREAK,
+       CONTINUE,
+       IF,
+       ELSE,
+       LESS,
+       GREATER,
+       LESS_EQUAL,
+       GREATER_EQUAL,
+       EQUAL,
+       NOT_EQUAL,
+       AND,
+       OR,
+       PLUS,
+       MINUS,
+       STAR,
+       SLASH,
+       INC,
+       DEC,
+       LBRA,
+       RBRA,
+       LPAR,
+       RPAR,
+       LSQR,
+       RSQR,
+       ASSIGN,
+       ADD_ASSIGN,
+       SUB_ASSIGN,
+       MUL_ASSIGN,
+       DIV_ASSIGN,
+       NUMBER_CONST,
+       STRING_CONST,
+       TRUE,
+       FALSE,
+       FUNCTION,
+       RETURN,
+       SEMICOLON,
+       COLON,
+       COMMA,
+       POINT,
+       QUESTION,
+       EXCLAMATION,
+       LINE_COMMENT,
+       BLOCK_COMMENT_START,
+       BLOCK_COMMENT_END,
+       NEW,
+       DECLARE,
+       IMPORT,
+       EXPORT,
+       FROM,
+   </details>
+   
+5. Проверка корректности идентификаторов.
 
-* [x] `functions`    
-    * [x] `return`
+## Синтаксический анализ
 
+1. Поддерживаются следующие конструкции (значение в `[]` является опциональным):
 
-### Types
+   1. Блоки объявляются с помощью фигурных скобок `{ }`
 
-* [x] `number`
-* [x] `boolean`
-* [x] `string`
-* [x] `void`
-* [x] `number[]`
-* [x] `boolean[]`
-* [x] `string[]`
+   2. Для циклов и условий, если в теле одна инструкция, скобки можно не ставить
 
-### Other
+   3. Объявление переменных и констант
 
-* [x] Initialization lists for arrays.
+      1. `let` для переменных;
 
-## Semantic analysis
+      2. `const` для констант;
 
-#### Variables
+         Объявление переменных и констант имеет следующий вид:
 
-* [x] The absence of a variable with this name in the current program scope.
+         `let|const <name>: <type>;`
 
-#### Constants
+         Однако тип можно не задавать явно, но тогда обязательно присваивание переменной некоторого значения (поддерживается только для типов `number` и `boolean`):
 
-* [x] Assignment to constants.
-* [x] Uninitialized constants.
+         `let|const <name> = <expression>;`
 
-#### Functions
+         Объявление типа в виде: `: <type>`, встречается повсюду, где используется объявления типа.
 
-* [x] A function call with the wrong type or number of parameters.
+   4. Поддерживаются следующие виды присваивания:
 
-#### Array
+      1. `=`
+      2. `+=`
+      3. `-=`
+      4. `*=`
+      5. `/=`
 
-* [x] Uninitialized arrays.
-* [x] Incorrect assignment to an array.
-* [x] Checking the types of initialization list for an array.
+   5. Поддерживаются следующие логические операторы:
 
-#### Other
+      1. `&&`
+      2. `||`
+      3. `!`
+      4. `==`
+      5. `!=`
+      6. `<`
+      7. `>`
+      8. `<=`
+      9. `>=`
 
-* [x] Validation of assignments.
-* [x] Type checking for operands.
+   6. Поддерживаются следующие унарные операторы:
 
-## Code generation
+      1. `-`
+      2. `!`
 
-* [x] Assignment expressions.
-* [x] Arithmetic expressions.
-  * [x] `+`
-  * [x] `-`
-  * [x] `/`
-  * [x] `*`
-  * [ ] `**`
-  * [x] `++a` 
-  * [x] `--a`
-  * [ ] `a++` 
-  * [ ] `a--`
-  * [x] `-a`
-  * [x] `!a`
-  * [x] `+=`
-  * [x] `-=`
-  * [ ] `/=`
-  * [x] `*=`
-  * [x] `[]`
-  * [x] `? : `
-  * [x] `new` (only for arrays)
-* [ ] Conditional expressions.
-  * [x] `&&` 
-  * [x] `||`
-  * [x] `<` 
-  * [x] `>`
-  * [x] `>=` 
-  * [x] `<=`
-  * [x] `==` 
-  * [x] `!=`
-  * [ ] `!`
-* [x] `if`
-* [x] `else`
-* [x] `else if`
-* [x] `while`
-  * [x] `break`
-  * [x] `continue`
-* [x] `for`
-  * [x] `break`
-  * [x] `continue`
-* [ ] `functions`
-  * [x] `arguments`
-    * [x] `number`
-    * [x] `boolean`
-    * [x] `string`
-    * [x] `arrays`
-  * [ ] `return`
-    * [x] `number`
-    * [x] `boolean`
-    * [ ] `string`
-    * [ ] `arrays`
-* [x] `std functions`
-  * [x] `std input` (only for number)
-  * [x] `std print`(only for number)
-  * [x] `std sqrt`
-  * [x] `std println`(only for const string)
-* [x] `arrays`
-  * [x] `number`
-  * [x] `boolean`
-  * [x] `string`
-  * [x] `new initializing`
-  * [x] `initializer list`
-* [ ] Access to an array element
-  * [x] `number`
-  * [x] `boolean`
-  * [ ] `string`
-* [x] Assigning an array element.
+   7. Поддерживаются следующие арифметические операторы
 
-### Optimizations
+      1. `+`
+      2. `-`
+      3. `*`
+      4. `/`
 
-* [ ] Replacing an arithmetic action with constants with a constant with the result of this action.
+   8. Поддерживаются следующие типы:
 
+      1. `number`
+      2. `boolean`
+      3. `string`
+      4. `number[]`
+      5. `boolean[]`
+      6. `void` (только для возвращаемого значения функций)
 
+   9. Поддерживается обращение к элементам массива по индексу
 
+   10. Поддерживается два вида инициализации массивов:
 
+       1. С помощью списка инициализаторов:
 
-## Testing
+          `let array: number[] = [10, 5, 2];`
 
-* [x] Assigment 
-  * [x] to variable
-  * [x] to array element
-    * [x] number
-    * [x] boolean
-* [x] Arithmetic 
-  * [x] `+`
-  * [x] `-`
-  * [x] `/`
-  * [x] `*`
-  * [x] `++a` 
-  * [x] `--a`
-  * [x] `-a`
-  * [x] `+=`
-  * [x] `-=`
-  * [x] `/=`
-  * [x] `*=`
-  * [ ] `? : `
-* [x] Conditional
-  * [x] ==
-  * [x] !=
-  * [x] <
-  * [x] \>
-  * [x] <=
-  * [x] \>=
-  * [x] !
-* [x] if
-* [x] else
-* [x] while
-  * [x] break
-  * [x] continue
-* [x] for
-  * [x] break
-  * [x] continue
-* [x] functions
-  * [x] arguments
-    * [x] number
-    * [x] boolean
-    * [ ] string
-    * [x] number[]
-    * [x] boolean[]
-  * [x] return
-    * [x] number
-    * [x] boolean
-    * [ ] number[]
-    * [ ] boolean[]
-* [x] arrays
-  * [x] number
-  * [x] boolean
-  * [x] init with initializer list
-  * [x] init with new Array() construction
-  * [x] access by index
-    * [x] number
-    * [x] boolean
-* [x] std functions
-  * [x] print — only for number
-  * [x] println — only for constant string
-  * [x] input — only for number
-  * [x] sqrt
+       2. С помощью оператора `new`:
+
+          `let array: number[] = new Array(10)`
+
+   11. Циклы (с поддержкой операторов `break` и `return`)
+
+       1. `for`, в виде: `for (let i = 0; i < 10; i += 1)`;
+       2. `while`;
+       3. `do while`;
+
+   12. Условная конструкция `if else`
+
+   13. Функции
+
+       1. Определение функции с помощью ключевого слова `function`. Определение функции имеет следующий вид:
+
+          `function <name>(<arguments>)[: return_type] { <statements> }`, где аргументы имеют следующий вид:
+
+          `<name> : <type>, ...`.
+
+          Определение типа возвращаемого значения может быть опущено, по-умолчанию. устанавливается `void`
+
+       2. Объявление функции с помощью ключевого слова `declare`, объявление не может иметь реализации. Имеет следующий вид:
+
+          `declare function <name>(<arguments>)[: return_type];`
+
+          Тип возвращаемого значения также может быть опущен.
+
+       3. Поддерживается оператор `return`.
+
+   14. Модули:
+
+       1. Поддерживается экспорт и импорт функций и переменных из других файлов с исходным кодом
+
+          1. Импорт имеет следующий вид:
+
+             `import { <import list> } from "<relative path>";`, где список импорта — это список идентификаторов. Расширение у файла для импорта не должно иметь расширений.
+
+          2. Экспорт имеет следующий вид:
+
+             `export { <export list> };`, где список экспорта — это список идентификаторов
 
 
 
-## Testing blocks
+## Семантический анализ
 
-* [ ] ```typescript
-  for (let i: number; i < 10; ++i)
-  {
-  	print(i);
-  }
-  
-// 0 1 2 3 4 5 6 7 8 9
-  ```
-  
-* [x] ```typescript
-  let i: number = 100;
-  while (i > 0)
-  {
-  	i -= 10;
-      print(i);
-  }
-  
-  // 90 80 70 60 50 40 30 20 10 0
-  ```
+Проверяются следующие правила:
 
-* [x] ```typescript
-  let a: number = 50;
-  let b: boolean = a < 10;
-  if (b && a > 10)
-  {
-      println("Yes");
-  }
-  else
-  {
-     println("No");
-  }
-  
-  // No
-  ```
+1. Переменная должна быть объявлена до ее использования
+2. Присвоить переменной можно только значение того же типа
+3. Константа должна быть инициализирована при объявлении
+4. Константе не может быть присвоено значение после ее объявления
+5. Массивы должны быть явно инициализированы
+6. В списке инициализаторов для массива все элементы должны иметь тип, как у объявляемого массива
+7. Присваивать массивам другие массивы нельзя
+8. Функции должны вызываться с правильным количеством и типами переменных
+9. В выражении операторы должны иметь операнды одного типа
+10. При экспорте, все элементы списка экспорта должны быть объявлены в файле или быть импортированными из другого модуля
+11. При импорте, все элементы списка импорта должны быть объявлены в файле, из которого импортируются элементы.
+12. Файл для импорта должен существовать
 
-* [ ] ```typescript
-  let arr: number[] = [100, 200, 300];
-  
-  print(array[0]);
-  
-  arr[0] += array[1] + array[2];
-  print(array[0]);
-  
-  // 100 600
-  ```
-
-* [ ] ```typescript
-  function foo(array: number[], size: number): void
-  {
-      for (let i: number; i < size; ++i)
-  	{
-  		print(array[i]);
-  	}
-  }
-  
-  let a: number[] = [100, 200, 300];
-  
-  foo(a, 3);
-  
-  // 100, 200, 300
-  ```
-
-* [ ] ```typescript
-  function foo(a: number, b: number): number
-  {
-      return a + b;
-  }
-  
-  print(foo(100, 200));
-  
-  // 300
-  ```
-
-* [x] ```typescript
-  let a: number = input();
-  
-  print(sqrt(a));
-  
-  // 25
-  // 5
-  ```
-
-* [ ] ```typescript
-  let b: number[] = [100, 200];
-  
-  
-  let a: number = b[0];
-  
-  print(++a);
-  
-  ++a;
-  
-  b[0] = a;
-  
-  // this is error 
-  ```
-
-* [ ] 
+Для каждой ошибки, при ее возникновении, в консоль выдается ошибка, а компиляция заканчивается.
 
 
 
+## Генерация кода
+
+1. Все выше сказанное
+2. Набор стандартных функций
+   1. Модуль `io`:
+      1. `print` — функция для распечатки целочисленных значений
+      2. `println` — функция для распечатки константных строк (из специальных символов поддерживается только `\n`)
+      3. `input` — функция для ввода целочисленных значений
+   2. Модуль `math`:
+      1. `sqrt` — функция для расчета квадратного корня.
+   3. Модуль `string`:
+      1. `at` — функция для получения символа по индексу;
+      2. `strlen` — функция для получения длины строки;
+      3. `concat` — функция для склейки двух строк;
+      4. `slice` — функция для получения подстроки;
+      5. `find` — функция для поиска первого вхождения подстроки в строке;
+      6. `toString` — функция для конвертации числа в строку;
+      7. `toNumber` — функция для конвертации строки в число.
+
+
+
+
+
+
+
+## Начало работы
+
+Для того, чтобы скомпилировать файл, необходимо прописать путь к файлу с исходным кодом:
+
+```bash
+stc <input file>
+```
+
+По-умолчанию, выходной файл будет иметь такое же имя с расширением `.asm`. Для того, чтобы явно указать выходной файл нужно добавить флаг `-o` после которого прописать путь к файлу:
+
+```bash
+stc <input file> -o <output file>
+```
+
+## Система логирования
+
+В компиляторе предусмотрена возможность вывода всей информации, полученной на стадии компиляции (таблица токенов, AST, таблица функций и переменных). Для вывода используется поток вывода, а также вывод в файл. Для того, чтобы включить логирование, нужно добавить флаг `-d` или `--debug` . По-умолчанию, логирование идет в файл `log.txt`, но при необходимости его можно поменять, для этого нужно после флага написать путь к файлу для логов.
+
+## Время компиляции
+
+Для того, чтобы вывести время компиляции, необходимо добавить флаг `-t`, `--time`.
+
+## Справка
+
+В компиляторе предусмотрена справка, для ее вызова используется флаг `-h`, `--help`, сразу после `stc`:
+
+```bash
+stc -h
+```
+
+
+
+
+
+
+
+## Примеры кода
+
+```typescript
+import {print, println, input} from "./lib/io";
+
+print(5); // --> 5
+println("Hello\nWorld"); // --> Hello
+                         //     World
+
+let b: number = input(); // <-- 10
+print(b + 4);            // --> 14
+
+// можно не указывать тип, он выведется самостоятельно
+let c = 100; // тип number
+let val = c == 100 && b == 10; // тип boolean
+
+
+function factorial(num: number): number
+{
+    if (num < 2)
+        return 1; // если у блока одна инструкция, 
+                  // то ставить скобки не обязательно
+
+    return num * factorial(num - 1);
+}
+
+print(factorial(5)); // --> 120
+
+let array: number[] = [5, 2, 1, 4, 1];
+
+for (let i = 0; i < 5; i += 1)
+{
+    print(array[i]);
+}
+// 5 2 1 4 1
+```
+
+Файл `io.ts`:
+
+```typescript
+/**
+ * Function print number to console.
+ * @param n The number to print.
+ */
+declare function print(n: number): void;
+
+/**
+ * Function print constant string to console.
+ * @param n The string to print.
+ */
+declare function println(n: string): void;
+
+/**
+ * Function for reading a number from user input.
+ */
+declare function input(): number;
+
+
+export { print, println, input };
+```
+
+
+
+
+
+
+
+
+
+## Особенности экспорта и импорта
+
+Предположим у нас есть файл `printArray.ts`:
+
+```typescript
+import {print} from "./lib/io";
+
+function printArray(array: number[], size: number)
+{
+    for (let i = 0; i < 5; i += 1)
+	{
+    	print(array[i]);
+	}
+}
+
+export { printArray };
+```
+
+В нем мы экспортируем функцию. Теперь в файле `main.ts` импортируем эту функцию и используем:
+
+```typescript
+import {printArray} from "./printArray";
+
+let array: number[] = [5, 2, 1, 4, 1];
+
+printArray(array, 5);
+```
+
+Мы экспортировали только функцию `printArray`, но в ней используется функция `print`, поэтому при каждом импорте и экспорте производится анализ используемых функций, которые также добавляются в список экспортируемых, поэтому теперь вполне можно использовать функцию `print`, хотя она явно не импортирована и не экспортирована.
