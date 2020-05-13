@@ -44,6 +44,19 @@ bool stc::Lexer::nextToken()
     }
 }
 
+bool stc::Lexer::prevToken()
+{
+    if (m_currentTokenIndex > 0)
+    {
+        --m_currentTokenIndex;
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 
 stc::Token& stc::Lexer::currentToken()
 {
@@ -150,15 +163,6 @@ void stc::Lexer::split()
             ++current_pos;
 
 
-            if (m_state == LexerState::IN_NUMBER)
-            {
-                if (symbol == '.' || symbol == 'e')
-                {
-                    temp_token += symbol;
-                    continue;
-                }
-            }
-
             if (!temp_token.empty())
             {
                 m_tokens.push_back(Token(temp_token, current_line, current_pos));
@@ -189,28 +193,6 @@ void stc::Lexer::split()
         else
         {
             ++current_pos;
-
-            if (m_state != LexerState::IN_STRING)
-            {
-                if (m_state == LexerState::IN_NUMBER)
-                {
-                    if (symbol != '.' && symbol != 'e' && symbol != '-' && symbol != '+')
-                    {
-                        m_state = LexerState::DEFAULT;
-                    }
-                }
-                else
-                {
-                    if (symbol >= '0' && symbol <= '9')
-                    {
-                        m_state = LexerState::IN_NUMBER;
-                    }
-                    else
-                    {
-                        m_state = LexerState::DEFAULT;
-                    }
-                }
-            }
 
             temp_token += symbol;
         }

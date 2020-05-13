@@ -58,6 +58,16 @@ void stc::Parser::check()
     m_tree->identifyFunctions();
     m_tree->markBreakContinueOperators();
     m_tree->markReturnOperator();
+
+
+    m_tree->identifyClasses();
+
+    m_tree->checkClassAccessInImplementation();
+    m_tree->addPointerToClassForThisInClassImplementation();
+    m_tree->transformStaticFunctionCallInClassImplementation();
+
+
+
     Log::write("-- Analysis preparation done\n");
 
     Log::write("-- Started constant verification\n");
@@ -96,6 +106,8 @@ void stc::Parser::printTree()
     m_tree->printFunctionsTable();
     m_tree->printImportVariableTable();
     m_tree->printImportFunctionsTable();
+
+    m_tree->printClassesTable();
 
 }
 
@@ -153,6 +165,11 @@ stc::Node* stc::Parser::primaryExpression()
     {
         return operatorStatement();
     }
+    else if (tryEat(TokenType::THIS))
+    {
+        skip();
+        return new Node(NodeType::CLASS_THIS);
+    }
 
 
     return nullptr;
@@ -193,6 +210,13 @@ stc::Node* stc::Parser::postfixExpression()
         eat(TokenType::RPAR);
 
         return new Node(NodeType::FUNCTION_CALL, functionName, argumentExpressionListNode);
+    }
+    else if (tryEat(TokenType::POINT))
+    {
+        skip();
+        auto postfixExpressionNode = postfixExpression();
+
+        return new Node(NodeType::CLASS_ACCESS_TO_FIELD, 0, tempNode, postfixExpressionNode);
     }
 
     return tempNode;
@@ -473,6 +497,10 @@ stc::Node* stc::Parser::statement()
     {
         return exportStatement();
     }
+    else if (tryEat(TokenType::CLASS))
+    {
+        return classStatement();
+    }
     else
     {
         return expressionStatement();
@@ -647,7 +675,7 @@ stc::Node* stc::Parser::initializerList()
 
 stc::Node* stc::Parser::functionStatement()
 {
-    auto functionName = eat(TokenType::IDENTIFIER);
+    auto functionName = eat([](TokenType type){ return type == TokenType::IDENTIFIER || type == TokenType::CONSTRUCTOR; });
     auto functionArgsNode = functionArgumentList();
     auto functionReturnType = Type(FundamentalType::VOID);
 
@@ -692,9 +720,17 @@ stc::Node* stc::Parser::functionArgument()
     auto variableName = eat(TokenType::IDENTIFIER);
     auto declarationTypeNode = declarationType();
 
-    tempNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_ARG, variableName, declarationTypeNode);
+    if (tryEat(TokenType::ASSIGN))
+    {
+        skip();
 
-    return tempNode;
+        auto defaultValueExpressionNode = primaryExpression();
+        auto defaultValueNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_DEFAULT_ARG_VALUE, 0, defaultValueExpressionNode);
+
+        return new Node(NodeType::FUNCTION_IMPLEMENTATION_ARG, variableName, declarationTypeNode, defaultValueNode);
+    }
+
+    return new Node(NodeType::FUNCTION_IMPLEMENTATION_ARG, variableName, declarationTypeNode);
 }
 
 stc::Node* stc::Parser::operatorStatement()
@@ -785,6 +821,11 @@ std::string stc::Parser::eat()
 void stc::Parser::skip()
 {
     m_lexer->nextToken();
+}
+
+void stc::Parser::unEat()
+{
+    m_lexer->prevToken();
 }
 
 stc::TokenType stc::Parser::eatType()

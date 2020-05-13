@@ -181,6 +181,26 @@ stc::TokenType stc::Token::typeByLexeme(const std::string& lexeme)
         return TokenType::FROM;
 
 
+    // classes
+    if (lexeme == "class")
+        return TokenType::CLASS;
+    if (lexeme == "constructor")
+        return TokenType::CONSTRUCTOR;
+    if (lexeme == "private")
+        return TokenType::PRIVATE;
+    if (lexeme == "public")
+        return TokenType::PUBLIC;
+    if (lexeme == "protected")
+        return TokenType::PROTECTED;
+    if (lexeme == "static")
+        return TokenType::STATIC;
+    if (lexeme == "this")
+        return TokenType::THIS;
+
+    if (lexeme == "interface")
+        return TokenType::INTERFACE;
+
+
     if (isNumber(lexeme))
         return TokenType::NUMBER_CONST;
 
@@ -305,6 +325,13 @@ bool stc::Token::isCorrectIdentifier(const std::string& lexeme)
             return false;
 
     return true;
+}
+
+bool stc::Token::isVisibilityModifier(stc::TokenType type)
+{
+    return type == TokenType::PUBLIC ||
+           type == TokenType::PRIVATE ||
+           type == TokenType::PROTECTED;
 }
 
 stc::string stc::Token::tokenTypeToString(stc::TokenType type)
@@ -432,6 +459,23 @@ stc::string stc::Token::tokenTypeToString(stc::TokenType type)
             return "Export";
         case TokenType::FROM:
             return "From";
+
+        case TokenType::CLASS:
+            return "Class";
+        case TokenType::CONSTRUCTOR:
+            return "Constructor";
+        case TokenType::PRIVATE:
+            return "Private";
+        case TokenType::PUBLIC:
+            return "Public";
+        case TokenType::PROTECTED:
+            return "Protected";
+        case TokenType::STATIC:
+            return "Static";
+        case TokenType::THIS:
+            return "This";
+        case TokenType::INTERFACE:
+            return "Interface";
 
         default:
             return "";

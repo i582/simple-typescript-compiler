@@ -51,6 +51,11 @@ void stc::GlobalFunctions::init()
 
     newFunction = new Function("toNumber",  Type(FundamentalType::NUMBER), { Type(FundamentalType::SYMBOL, true) });
     m_table.add(newFunction);
+
+
+    newFunction = new Function("crt_cos", Type(FundamentalType::NUMBER), { Type(FundamentalType::NUMBER) });
+    m_table.add(newFunction);
+
 }
 
 stc::Function* stc::GlobalFunctions::get(const std::string& name,

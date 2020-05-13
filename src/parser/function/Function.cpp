@@ -1,4 +1,5 @@
 #include "Function.h"
+#include "../class/Class.h"
 
 stc::Function::Function(const std::string& name, const ReturnType& returnType,
                         const std::vector<stc::ArgumentType>& argumentTypes, Node* m_node,
@@ -16,6 +17,10 @@ stc::Function::Function(const std::string& name, const ReturnType& returnType,
     this->m_argumentVariables = argumentVariables;
     this->m_localVariables = localVariables;
 
+    this->m_visibilityModifier = ClassVisibilityModifier::PUBLIC;
+    this->m_isStatic = false;
+
+
     for (const auto& argumentType : argumentTypes)
     {
         this->m_argumentsSize += argumentType.size();
@@ -31,8 +36,15 @@ void stc::Function::print() const noexcept
     Log::write(". Return type: ");
     Log::write("'" + m_returnType.toString() + "'");
 
-    Log::write(". Arguments:");
-    Log::write(argumentsViewString() + "\n");
+    Log::write(". Arguments: ");
+    Log::write(argumentsViewString() + "'");
+
+    Log::write(". Visibility Modifier: '");
+    Log::write(Class::modifierToString(m_visibilityModifier) + "'");
+
+    Log::write(". Is static: ");
+    Log::write((m_isStatic ? "true" : "false"));
+    Log::write("\n");
 
     Log::write("   {\n");
 
@@ -156,4 +168,24 @@ std::string stc::Function::argumentsToString(const std::vector<stc::ArgumentType
 stc::Node* stc::Function::implementationNode() const
 {
     return m_node;
+}
+
+void stc::Function::setVisibilityModifier(stc::ClassVisibilityModifier value) noexcept
+{
+    this->m_visibilityModifier = value;
+}
+
+stc::ClassVisibilityModifier stc::Function::visibilityModifier() const
+{
+    return m_visibilityModifier;
+}
+
+bool stc::Function::isStatic() const
+{
+    return m_isStatic;
+}
+
+void stc::Function::setIsStatic(bool value)
+{
+    m_isStatic = value;
 }

@@ -3,6 +3,7 @@
 #include <functional>
 #include "asm/Asm.h"
 #include "../log/Log.h"
+#include "class/Class.h"
 
 namespace stc
 {
@@ -37,6 +38,7 @@ private:
 
     string eat();
     void skip();
+    void unEat();
 
     TokenType eatType();
     TokenType eatType(const function<bool(TokenType)>& predicate);
@@ -89,6 +91,154 @@ private:
 
     Node* exportList();
     Node* exportStatement();
+
+
+
+    Node* classStatement()
+    {
+        eat(TokenType::CLASS);
+
+        auto className = eat(TokenType::IDENTIFIER);
+
+        auto bodyNode = classCompoundStatement();
+
+        return new Node(NodeType::CLASS_IMPLEMENTATION, className, bodyNode);
+    }
+
+    Node* classCompoundStatement()
+    {
+        eat(TokenType::LBRA);
+
+        Node* tempNode = nullptr;
+
+        while (!tryEat(TokenType::RBRA))
+        {
+            auto classBodyStatementNode = classBodyStatement();
+            tempNode = new Node(NodeType::STATEMENT_LIST, "", tempNode, classBodyStatementNode);
+        }
+        skip();
+
+        tempNode = new Node(NodeType::STATEMENT, 0, tempNode);
+
+        return tempNode;
+    }
+
+    Node* classBodyStatement()
+    {
+        if (tryEat(TokenType::CONSTRUCTOR))
+        {
+            auto constructorStatementNode = functionStatement();
+            auto visibilityModifierNode = new Node(NodeType::CLASS_FIELD_VISIBILITY, ClassVisibilityModifier::PUBLIC);
+
+            return new Node(NodeType::CLASS_IMPLEMENTATION_FUNCTION, 0, constructorStatementNode, visibilityModifierNode);
+        }
+        else
+        {
+            Node* blockNode = nullptr;
+
+            auto hasStaticModifier = tryEat(TokenType::STATIC);
+
+            if (hasStaticModifier)
+                skip();
+
+            auto hasVisibilityModifier = tryEat([](TokenType type){ return Token::isVisibilityModifier(type); });
+
+            if (hasVisibilityModifier)
+                skip();
+
+
+            if (hasStaticModifier && hasVisibilityModifier)
+                error("Visibility modifier must precede 'static' modifier");
+
+
+            if (!hasStaticModifier && hasVisibilityModifier)
+            {
+                hasStaticModifier = tryEat(TokenType::STATIC);
+
+                if (hasStaticModifier)
+                    skip();
+            }
+
+
+            auto identifier = eat(TokenType::IDENTIFIER);
+
+
+            if (tryEat(TokenType::COLON))
+            {
+                unEat();
+                if (hasVisibilityModifier)
+                    unEat();
+                if (hasStaticModifier)
+                    unEat();
+
+                return classBodyFieldDeclarationStatement();
+            }
+            else if (tryEat(TokenType::LPAR))
+            {
+                unEat();
+                if (hasVisibilityModifier)
+                    unEat();
+                if (hasStaticModifier)
+                    unEat();
+
+                return classBodyFunctionDeclarationStatement();
+            }
+
+            return blockNode;
+        }
+    }
+
+    Node* classBodyStaticModifierStatement()
+    {
+        if (tryEat(TokenType::STATIC))
+        {
+            skip();
+            return new Node(NodeType::CLASS_FIELD_STATIC);
+        }
+
+        return nullptr;
+    }
+
+    Node* classBodyFieldVisibilityModifierStatement()
+    {
+        auto visibilityModifier = ClassVisibilityModifier::PUBLIC;
+
+        if (tryEat([](TokenType type){ return Token::isVisibilityModifier(type); }))
+        {
+            auto visibilityModifierString = eat();
+            skip();
+            visibilityModifier = Class::modifierFromString(visibilityModifierString);
+        }
+
+        return new Node(NodeType::CLASS_FIELD_VISIBILITY, visibilityModifier);
+    }
+
+    Node* classBodyFieldDeclarationStatement()
+    {
+        auto visibilityModifierNode = classBodyFieldVisibilityModifierStatement();
+        auto staticModifierNode = classBodyStaticModifierStatement();
+
+
+        auto fieldName = eat(TokenType::IDENTIFIER);
+
+        auto declarationTypeNode = declarationType();
+
+        eat(TokenType::SEMICOLON);
+
+        return new Node(NodeType::CLASS_IMPLEMENTATION_FIELD, fieldName, declarationTypeNode, visibilityModifierNode, staticModifierNode);
+    }
+
+    Node* classBodyFunctionDeclarationStatement()
+    {
+        auto visibilityModifierNode = classBodyFieldVisibilityModifierStatement();
+        auto staticModifierNode = classBodyStaticModifierStatement();
+
+        auto functionDeclarationNode = functionStatement();
+
+        return new Node(NodeType::CLASS_IMPLEMENTATION_FUNCTION, 0, functionDeclarationNode, visibilityModifierNode, staticModifierNode);
+    }
+
+
 };
 
 

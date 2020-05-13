@@ -26,6 +26,7 @@ using number = long double;
 
 using VariableValue = std::variant<number, bool, string>;
 
+enum class ClassVisibilityModifier;
 
 class Variable
 {
@@ -39,6 +40,8 @@ private:
     bool m_isGlobal;
     bool m_isArgument;
 
+    ClassVisibilityModifier m_visibilityModifier;
+    bool m_isStatic;
 
 public:
     Variable(const string& name, const Type& type, size_t scopeId, bool isConst = false);
@@ -65,6 +68,11 @@ public:
     _NODISCARD bool isArgument() const;
 
 
+    _NODISCARD ClassVisibilityModifier visibilityModifier() const;
+    void setVisibilityModifier(ClassVisibilityModifier value);
+
+    _NODISCARD bool isStatic() const;
+    void setIsStatic(bool value);
 
 public:
     static Type typeVariableValue(VariableValue value);

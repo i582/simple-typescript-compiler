@@ -1,5 +1,6 @@
 #include "../../lexer/token/Token.h"
 #include "Variable.h"
+#include "../class/Class.h"
 
 stc::Variable::Variable(const std::string& name, const Type& type, size_t scopeId,
                         bool isConst)
@@ -12,6 +13,9 @@ stc::Variable::Variable(const std::string& name, const Type& type, size_t scopeI
     this->m_isConst = isConst;
     this->m_isGlobal = scopeId == 1;
     this->m_isArgument = false;
+
+    this->m_visibilityModifier = ClassVisibilityModifier::PUBLIC;
+    this->m_isStatic = false;
 }
 
 void stc::Variable::print() const
@@ -25,7 +29,14 @@ void stc::Variable::print() const
     Log::write("'" + m_variableType.toString() + "', ");
 
     Log::write("Scope ID: ");
-    Log::write(std::to_string(m_scopeId));
+    Log::write(std::to_string(m_scopeId) + "', ");
+
+    Log::write("Visibility Modifier: ");
+    Log::write(Class::modifierToString(m_visibilityModifier) + "', ");
+
+    Log::write("Is static: ");
+    Log::write(m_isStatic ? "true" : "false");
+
 
     Log::write(" }\n");
 }
@@ -102,3 +113,24 @@ stc::Type stc::Variable::typeVariableValue(VariableValue value)
 
     return type;
 }
+
+stc::ClassVisibilityModifier stc::Variable::visibilityModifier() const
+{
+    return m_visibilityModifier;
+}
+
+void stc::Variable::setVisibilityModifier(stc::ClassVisibilityModifier value)
+{
+    m_visibilityModifier = value;
+}
+
+bool stc::Variable::isStatic() const
+{
+    return m_isStatic;
+}
+
+void stc::Variable::setIsStatic(bool value)
+{
+    m_isStatic = value;
+}
+

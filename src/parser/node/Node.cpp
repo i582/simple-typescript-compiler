@@ -245,6 +245,9 @@ std::string stc::Node::nodeTypeToString(stc::NodeType type)
         {
             return "string const";
         }
+
+        default:
+            return "";
     }
 }
 
@@ -267,5 +270,7 @@ bool stc::Node::isLvalueNodeType(stc::NodeType type)
     return  type == NodeType::USING_VARIABLE ||
             type == NodeType::VARIABLE_DECLARATION ||
             type == NodeType::CONSTANT_DECLARATION ||
-            type == NodeType::INDEX_CAPTURE;
+            type == NodeType::INDEX_CAPTURE ||
+            type == NodeType::CLASS_ACCESS_TO_FIELD ||
+            type == NodeType::CLASS_ACCESS_TO_STATIC_FIELD;
 }

@@ -9,6 +9,7 @@
 #include "../array/Array.h"
 #include "exportTable/ExportTable.h"
 #include "../../log/Log.h"
+#include "../class/ClassTable.h"
 
 
 namespace stc
@@ -27,6 +28,8 @@ class Ast
 private:
     vector<std::pair<Node*, Node*>> m_allScopeNodes;
 
+    vector<Node*> m_allClassImplementationNodes;
+
 private:
     size_t m_countScopes;
 
@@ -42,6 +45,8 @@ private:
     vector<Array> m_arrays;
 
     ExportTable m_exportTable;
+
+    ClassTable m_classTable;
 
     path m_filePath;
 
@@ -60,6 +65,9 @@ public:
 
     void printImportVariableTable();
     void printImportFunctionsTable();
+
+
+    void printClassesTable();
 
 public:
 
@@ -166,6 +174,22 @@ public:
     Node* copySubTree(Node* currentNode);
     static Node* copySubTreeRecursive(Node* currentNode);
 
+// classes
+public:
+    void identifyClasses();
+    void identifyClassesRecursive(Node* currentNode);
+    void identifyClassFieldsRecursive(Node* currentNode, size_t scopeId, VariableTable& table);
+    void identifyClassFunctionsRecursive(Node* currentNode, size_t scopeId, FunctionTable& table);
+
+
+    void transformStaticFunctionCallInClassImplementation();
+    void transformStaticFunctionCallInClassImplementationRecursive(Node* currentNode, Class& a_class);
+
+    void addPointerToClassForThisInClassImplementation();
+    void addPointerToClassForThisInClassImplementationRecursive(Node* currentNode, Class& a_class);
+
+    void checkClassAccessInImplementation();
+    void checkClassAccessInImplementationRecursive(Node* currentNode, Class& a_class);
 };
 
 }

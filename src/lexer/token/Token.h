@@ -121,6 +121,18 @@ enum class TokenType
     IMPORT,
     EXPORT,
     FROM,
+
+
+    // classes
+    CLASS,
+    CONSTRUCTOR,
+    PRIVATE,
+    PUBLIC,
+    PROTECTED,
+    STATIC,
+    THIS,
+
+    INTERFACE,
 };
 
 class Token
@@ -157,6 +169,7 @@ public:
     _NODISCARD static string tokenTypeToString(TokenType type);
 
     static bool isCorrectIdentifier(const string& lexeme);
+    static bool isVisibilityModifier(stc::TokenType type);
 };
 
 

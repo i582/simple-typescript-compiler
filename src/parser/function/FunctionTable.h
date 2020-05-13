@@ -16,13 +16,13 @@ public:
     ~FunctionTable();
 
 public:
-    void add(Function* new_function);
-    bool contains(Function* function);
-    bool contains(const string& name);
+    void add(Function* function);
+    bool contains(Function* function) const;
+    bool contains(const string& name) const;
 
 
-    Function* get(const string& name, const vector<ArgumentType>& argumentDescriptions);
-    Function* get(const string& name);
+    Function* get(const string& name, const vector<ArgumentType>& argumentDescriptions) const;
+    Function* get(const string& name) const;
 
 
     void clear();

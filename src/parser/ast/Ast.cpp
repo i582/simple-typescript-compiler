@@ -305,6 +305,11 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
             Log::write("function args ");
             break;
         }
+        case NodeType::FUNCTION_IMPLEMENTATION_DEFAULT_ARG_VALUE:
+        {
+            Log::write("function impl default arg value ");
+            break;
+        }
         case NodeType::STRING_CONST:
         {
             Log::write("string const ");
@@ -349,6 +354,72 @@ void stc::Ast::print(stc::Node* currentNode, size_t level)
             Log::write(any_cast<string>(currentNode->value) + "'");
             break;
         }
+
+        case NodeType::CLASS_IMPLEMENTATION:
+        {
+             Log::write("Class Definition '");
+             Log::write(std::any_cast<string>(currentNode->value) + "'");
+            break;
+        }
+        case NodeType::CLASS_IMPLEMENTATION_FIELD:
+        {
+             Log::write("Class Definition Field '");
+             Log::write(std::any_cast<string>(currentNode->value) + "'");
+            break;
+        }
+        case NodeType::CLASS_IMPLEMENTATION_FUNCTION:
+        {
+             Log::write("Class Definition Function");
+            break;
+        }
+        case NodeType::CLASS_THIS:
+        {
+            Log::write("Class Definition This. ");
+            Log::write("Class name '" + std::any_cast<Class*>(currentNode->value)->name() + "'");
+            break;
+        }
+        case NodeType::CLASS_FIELD_VISIBILITY:
+        {
+             Log::write("Class Field Visibility '");
+             Log::write(Class::modifierToString(std::any_cast<ClassVisibilityModifier>(currentNode->value)) + "'");
+            break;
+        }
+        case NodeType::CLASS_FIELD_STATIC:
+        {
+            Log::write("Class Field is Static ");
+            break;
+        }
+        case NodeType::CLASS_ACCESS_TO_FIELD:
+        {
+             Log::write("Class Access To Field");
+            break;
+        }
+        case NodeType::CLASS_ACCESS_TO_STATIC_FIELD:
+        {
+            Log::write("Class Access To Static Field. ");
+            Log::write("Class name '" + std::any_cast<Class*>(currentNode->value)->name() + "'");
+            break;
+        }
+        case NodeType::INTERFACE_IMPLEMENTATION:
+        {
+             Log::write("Interface Implementation '");
+             Log::write(std::any_cast<string>(currentNode->value) + "'");
+            break;
+        }
+        case NodeType::INTERFACE_FIELD_DEFINITION:
+        {
+             Log::write("Interface Field Implementation '");
+             Log::write(std::any_cast<string>(currentNode->value) + "'");
+            break;
+        }
+        case NodeType::INTERFACE_FUNCTION_DEFINITION:
+        {
+             Log::write("Interface Function Definition '");
+             Log::write(std::any_cast<string>(currentNode->value) + "'");
+            break;
+        }
+
+
     }
 
     if (currentNode->scopeId() != 4294967295)
@@ -562,6 +633,8 @@ void stc::Ast::identifyVariablesRecursive(stc::Node* currentNode, stc::VariableT
     if (currentNode->type == NodeType::STATEMENT)
         return;
 
+
+
     auto forDeduceVariableType = currentNode;
     if (currentNode->type == NodeType::SET)
     {
@@ -652,6 +725,10 @@ void stc::Ast::identifyVariablesRecursive(stc::Node* currentNode, stc::VariableT
          * переменных будет описан идентифкатор блока, в которой она впервые объявлена
          */
         currentNode->scopeId(scopeId);
+    }
+    else if (currentNode->type == NodeType::CLASS_ACCESS_TO_FIELD)
+    {
+        return;
     }
 
 
@@ -1206,6 +1283,19 @@ void stc::Ast::printImportFunctionsTable()
     Log::write("{\n");
     m_importFunctions.print();
     if (m_importFunctions.raw().empty())
+    {
+        Log::write("   empty\n");
+    }
+    Log::write("}");
+    Log::write("\n");
+}
+
+void stc::Ast::printClassesTable()
+{
+    Log::write("-- Started print classes table\n");
+    Log::write("{\n");
+    m_classTable.print();
+    if (m_classTable.raw().empty())
     {
         Log::write("   empty\n");
     }
@@ -1803,4 +1893,283 @@ void stc::Ast::checkExpressionsRecursive(stc::Node* currentNode)
     checkExpressionsRecursive(currentNode->operand2);
     checkExpressionsRecursive(currentNode->operand3);
     checkExpressionsRecursive(currentNode->operand4);
+}
+
+
+
+
+
+
+
+
+void stc::Ast::identifyClasses()
+{
+    identifyClassesRecursive(m_allScopeNodes[0].second);
+}
+
+void stc::Ast::identifyClassesRecursive(Node* currentNode)
+{
+    if (currentNode == nullptr)
+        return;
+
+
+    if (currentNode->type == NodeType::CLASS_IMPLEMENTATION)
+    {
+        auto className = any_cast<string>(currentNode->value);
+        auto scopeId = currentNode->operand1->scopeId();
+        auto newClass = Class(className);
+
+        VariableTable variables;
+        identifyClassFieldsRecursive(currentNode, scopeId, variables);
+        newClass.fields(variables);
+
+        FunctionTable functions;
+        identifyClassFunctionsRecursive(currentNode, scopeId, functions);
+        newClass.functions(functions);
+
+        m_classTable.add(newClass);
+
+        m_allClassImplementationNodes.push_back(currentNode);
+        return;
+    }
+
+    identifyClassesRecursive(currentNode->operand1);
+    identifyClassesRecursive(currentNode->operand2);
+}
+
+void stc::Ast::identifyClassFieldsRecursive(stc::Node* currentNode, size_t scopeId, VariableTable& table)
+{
+    if (currentNode == nullptr)
+        return;
+
+
+    if (currentNode->type == NodeType::CLASS_IMPLEMENTATION_FIELD)
+    {
+        auto fieldName = any_cast<string>(currentNode->value);
+        auto fieldType = any_cast<Type>(currentNode->operand1->value);
+        auto visibilityModifier = any_cast<ClassVisibilityModifier>(currentNode->operand2->value);
+        auto isStatic = currentNode->operand3 != nullptr;
+
+        auto newField = new Variable(fieldName, fieldType, scopeId);
+
+        newField->setVisibilityModifier(visibilityModifier);
+        newField->setIsStatic(isStatic);
+
+        table.add(newField);
+        return;
+    }
+
+    identifyClassFieldsRecursive(currentNode->operand1, scopeId, table);
+    identifyClassFieldsRecursive(currentNode->operand2, scopeId, table);
+    identifyClassFieldsRecursive(currentNode->operand3, scopeId, table);
+    identifyClassFieldsRecursive(currentNode->operand4, scopeId, table);
+}
+
+void stc::Ast::identifyClassFunctionsRecursive(stc::Node* currentNode, size_t scopeId, stc::FunctionTable& table)
+{
+    if (currentNode == nullptr)
+        return;
+
+    if (currentNode->type == NodeType::CLASS_IMPLEMENTATION_FUNCTION)
+    {
+        auto functionNode = currentNode->operand1;
+
+        auto functionName = any_cast<string>(functionNode->value);
+        auto functionReturnType = any_cast<Type>(functionNode->operand1->value);
+
+
+        vector<Type> argumentTypes;
+        vector<Variable*> arguments;
+        identifyFunctionArgumentsRecursive(functionNode->operand2, argumentTypes, arguments);
+
+
+        size_t localVariableSize = 0;
+        vector<Variable*> localVariables;
+        identifyFunctionLocalVariablesRecursive(functionNode->operand3, localVariableSize, localVariables);
+
+
+        auto visibilityModifier = any_cast<ClassVisibilityModifier>(currentNode->operand2->value);
+        auto isStatic = currentNode->operand3 != nullptr;
+
+
+        auto newFunction = new Function(functionName, functionReturnType, argumentTypes, functionNode, localVariableSize, arguments, localVariables);
+
+        newFunction->setVisibilityModifier(visibilityModifier);
+        newFunction->setIsStatic(isStatic);
+
+
+        table.add(newFunction);
+        return;
+    }
+
+
+    identifyClassFunctionsRecursive(currentNode->operand1, scopeId, table);
+    identifyClassFunctionsRecursive(currentNode->operand2, scopeId, table);
+    identifyClassFunctionsRecursive(currentNode->operand3, scopeId, table);
+    identifyClassFunctionsRecursive(currentNode->operand4, scopeId, table);
+}
+
+
+
+
+
+void stc::Ast::checkClassAccessInImplementation()
+{
+    for (const auto& classImplementationNode : m_allClassImplementationNodes)
+    {
+        auto className = any_cast<string>(classImplementationNode->value);
+
+        auto& a_class = *m_classTable.get(className);
+
+        checkClassAccessInImplementationRecursive(classImplementationNode, a_class);
+    }
+}
+
+void stc::Ast::checkClassAccessInImplementationRecursive(Node* currentNode, Class& a_class)
+{
+    if (currentNode == nullptr)
+        return;
+
+
+    if (currentNode->type == NodeType::CLASS_ACCESS_TO_FIELD)
+    {
+        auto subjectNode = currentNode->operand2;
+        auto subjectNodeIsSelfClass = (currentNode->operand1->type == NodeType::USING_VARIABLE) ? any_cast<string>(currentNode->operand1->value) == a_class.name() : false;
+
+
+        if (subjectNode->type == NodeType::USING_VARIABLE)
+        {
+            auto fieldName = any_cast<string>(subjectNode->value);
+            auto contains = a_class.fields().contains(fieldName);
+            auto isStatic = a_class.fields().getByName(fieldName)->isStatic();
+
+
+            if (!contains)
+            {
+                error("Class '" + a_class.name() + "' does not contain a field named '" + fieldName + "'.");
+            }
+
+            if (!isStatic && subjectNodeIsSelfClass)
+            {
+                error("Access to non-static field '" + fieldName + "' at class '" + a_class.name() + "'.");
+            }
+
+            if (isStatic && !subjectNodeIsSelfClass)
+            {
+                error("Field '" + fieldName + "' is a static member of class '" + a_class.name() + "'");
+            }
+        }
+        else if (subjectNode->type == NodeType::FUNCTION_CALL)
+        {
+            auto functionName = any_cast<string>(subjectNode->value);
+            auto types = getFunctionCallArguments(subjectNode);
+
+            auto function = new Function(functionName, Type("void"), types);
+            auto contains = a_class.functions().contains(function);
+            auto isStatic = a_class.functions().get(functionName, types)->isStatic();
+            delete function;
+
+            if (!contains)
+            {
+                error("Class '" + a_class.name() + "' does not contain a function named '" + functionName + "' with " + Function::argumentsToString(types) +  " argument list.");
+            }
+
+            if (!isStatic && subjectNodeIsSelfClass)
+            {
+                error("Access to non-static function '" + functionName + "' at class '" + a_class.name() + "'.");
+            }
+
+            if (isStatic && !subjectNodeIsSelfClass)
+            {
+                error("Function '" + functionName + "' is a static member of class '" + a_class.name() + "'");
+            }
+        }
+
+        return;
+    }
+
+    checkClassAccessInImplementationRecursive(currentNode->operand1, a_class);
+    checkClassAccessInImplementationRecursive(currentNode->operand2, a_class);
+    checkClassAccessInImplementationRecursive(currentNode->operand3, a_class);
+    checkClassAccessInImplementationRecursive(currentNode->operand4, a_class);
+}
+
+void stc::Ast::transformStaticFunctionCallInClassImplementation()
+{
+    for (const auto& classImplementationNode : m_allClassImplementationNodes)
+    {
+        auto className = any_cast<string>(classImplementationNode->value);
+
+        auto& a_class = *m_classTable.get(className);
+
+        transformStaticFunctionCallInClassImplementationRecursive(classImplementationNode, a_class);
+    }
+}
+
+void stc::Ast::transformStaticFunctionCallInClassImplementationRecursive(stc::Node* currentNode, stc::Class& a_class)
+{
+    if (currentNode == nullptr)
+        return;
+
+
+    if (currentNode->type == NodeType::CLASS_ACCESS_TO_FIELD)
+    {
+
+        if (currentNode->operand1->type == NodeType::USING_VARIABLE)
+        {
+            auto name = any_cast<string>(currentNode->operand1->value);
+            auto isClassName = a_class.name() == name;
+
+            auto subjectNode = currentNode->operand2;
+
+
+            if (isClassName)
+            {
+                currentNode->value = &a_class;
+                currentNode->type = NodeType::CLASS_ACCESS_TO_STATIC_FIELD;
+
+                delete currentNode->operand1;
+                currentNode->operand1 = subjectNode;
+                currentNode->operand2 = nullptr;
+            }
+
+
+        }
+        return;
+    }
+
+    transformStaticFunctionCallInClassImplementationRecursive(currentNode->operand1, a_class);
+    transformStaticFunctionCallInClassImplementationRecursive(currentNode->operand2, a_class);
+    transformStaticFunctionCallInClassImplementationRecursive(currentNode->operand3, a_class);
+    transformStaticFunctionCallInClassImplementationRecursive(currentNode->operand4, a_class);
+}
+
+void stc::Ast::addPointerToClassForThisInClassImplementation()
+{
+    for (const auto& classImplementationNode : m_allClassImplementationNodes)
+    {
+        auto className = any_cast<string>(classImplementationNode->value);
+
+        auto& a_class = *m_classTable.get(className);
+
+        addPointerToClassForThisInClassImplementationRecursive(classImplementationNode, a_class);
+    }
+}
+
+void stc::Ast::addPointerToClassForThisInClassImplementationRecursive(stc::Node* currentNode, stc::Class& a_class)
+{
+    if (currentNode == nullptr)
+        return;
+
+
+    if (currentNode->type == NodeType::CLASS_THIS)
+    {
+        currentNode->value = &a_class;
+        return;
+    }
+
+    addPointerToClassForThisInClassImplementationRecursive(currentNode->operand1, a_class);
+    addPointerToClassForThisInClassImplementationRecursive(currentNode->operand2, a_class);
+    addPointerToClassForThisInClassImplementationRecursive(currentNode->operand3, a_class);
+    addPointerToClassForThisInClassImplementationRecursive(currentNode->operand4, a_class);
 }

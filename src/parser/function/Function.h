@@ -12,6 +12,8 @@ using std::vector;
 using ReturnType = Type;
 using ArgumentType = Type;
 
+enum class ClassVisibilityModifier;
+
 class Function
 {
 private:
@@ -24,6 +26,9 @@ private:
 
     vector<Variable*> m_argumentVariables;
     vector<Variable*> m_localVariables;
+
+    ClassVisibilityModifier m_visibilityModifier;
+    bool m_isStatic;
 
     Node* m_node;
 
@@ -52,6 +57,12 @@ public:
     _NODISCARD const vector<Variable*>& argumentVariables() const;
 
     _NODISCARD Node* implementationNode() const;
+
+    _NODISCARD ClassVisibilityModifier visibilityModifier() const;
+    void setVisibilityModifier(ClassVisibilityModifier value) noexcept;
+
+    _NODISCARD bool isStatic() const;
+    void setIsStatic(bool value);
 
 public:
     _NODISCARD static string argumentsToString(const vector<ArgumentType>& argumentTypes) noexcept;

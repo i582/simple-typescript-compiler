@@ -56,6 +56,7 @@ public:
 
 public:
     bool nextToken();
+    bool prevToken();
 
 public:
     _NODISCARD Token& currentToken();
