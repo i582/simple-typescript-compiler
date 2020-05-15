@@ -85,7 +85,7 @@ void stc::Lexer::open(const std::string& filePath)
 
     in.close();
 
-    m_code = "{" + m_code + "}";
+    m_code = "{\n" + m_code + "\n}";
 }
 
 void stc::Lexer::split()
@@ -102,6 +102,7 @@ void stc::Lexer::split()
     {
         if (m_code[i] == '\n' && m_state == LexerState::IN_LINE_COMMENT)
         {
+
             m_state = LexerState::DEFAULT;
             continue;
         }
@@ -109,6 +110,8 @@ void stc::Lexer::split()
         skipExcessSymbols(i, current_line, current_pos);
 
         const auto& symbol = m_code[i];
+
+
 
         if (symbol == '/' && i + 1 < m_code.size() && m_code[i + 1] == '/')
         {
@@ -124,8 +127,11 @@ void stc::Lexer::split()
         {
             m_state = LexerState::DEFAULT;
             ++i;
+
+
             continue;
         }
+
 
         if (m_state == LexerState::IN_LINE_COMMENT ||
                 m_state == LexerState::IN_BLOCK_COMMENT)
@@ -158,6 +164,7 @@ void stc::Lexer::split()
         }
 
 
+
         if (isSplitSymbol(symbol))
         {
             ++current_pos;
@@ -184,6 +191,9 @@ void stc::Lexer::split()
                 else
                 {
                     const string symbol_token(1, symbol);
+
+
+
                     m_tokens.push_back(Token(symbol_token, current_line, current_pos));
                 }
 

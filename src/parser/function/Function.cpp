@@ -37,7 +37,7 @@ void stc::Function::print() const noexcept
     Log::write("'" + m_returnType.toString() + "'");
 
     Log::write(". Arguments: ");
-    Log::write(argumentsViewString() + "'");
+    Log::write(argumentsViewString());
 
     Log::write(". Visibility Modifier: '");
     Log::write(Class::modifierToString(m_visibilityModifier) + "'");
@@ -188,4 +188,15 @@ bool stc::Function::isStatic() const
 void stc::Function::setIsStatic(bool value)
 {
     m_isStatic = value;
+}
+
+stc::string stc::Function::toString() const
+{
+    return  "{ Function name: '" + m_name +
+            "'. Return type: '" + m_returnType.toString() +
+            "'. Arguments: " + argumentsViewString() +
+            ". Visibility Modifier: '" + Class::modifierToString(m_visibilityModifier) +
+            "'. Is static: " + (m_isStatic ? "true" : "false") +
+            ". Address: 0x" + to_string((int)this) +
+            " }";
 }

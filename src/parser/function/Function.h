@@ -64,6 +64,9 @@ public:
     _NODISCARD bool isStatic() const;
     void setIsStatic(bool value);
 
+
+    _NODISCARD string toString() const;
+
 public:
     _NODISCARD static string argumentsToString(const vector<ArgumentType>& argumentTypes) noexcept;
 

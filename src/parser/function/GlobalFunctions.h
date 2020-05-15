@@ -21,7 +21,7 @@ private:
 
 
 public:
-    bool isGlobalFunction(const string& name);
+    static bool isGlobalFunction(const string& name);
 
 public:
     static Function* get(const string& name, const vector<ArgumentType>& argumentsDescription);

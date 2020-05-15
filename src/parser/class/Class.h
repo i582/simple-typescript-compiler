@@ -95,6 +95,13 @@ public:
         Log::write("\n");
     }
 
+    _NODISCARD string toString() const
+    {
+        return  "{ Classname: '" + m_name +
+                "'. Address: 0x" + to_string((int)this) +
+                " }";
+    }
+
 public:
     _NODISCARD const string& name() const
     {
@@ -109,6 +116,11 @@ public:
     _NODISCARD const VariableTable& fields() const
     {
         return m_fields;
+    }
+
+    _NODISCARD size_t fieldsSize() const
+    {
+        return 0;
     }
 
 public:

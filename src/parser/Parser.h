@@ -2,12 +2,15 @@
 
 #include <functional>
 #include "asm/Asm.h"
+#include "ast/Ast.h"
 #include "../log/Log.h"
 #include "class/Class.h"
+
 
 namespace stc
 {
 using std::function;
+using std::to_string;
 
 class Parser
 {
@@ -92,6 +95,19 @@ private:
     Node* exportList();
     Node* exportStatement();
 
+
+    Node* functionCall()
+    {
+        auto functionName = eat(TokenType::IDENTIFIER);
+
+        eat(TokenType::LPAR);
+
+        auto argumentExpressionListNode = argumentExpressionList();
+
+        eat(TokenType::RPAR);
+
+        return new Node(NodeType::FUNCTION_CALL, functionName, argumentExpressionListNode);
+    }
 
 
     Node* classStatement()

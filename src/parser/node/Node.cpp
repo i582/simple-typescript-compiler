@@ -37,7 +37,7 @@ std::string stc::Node::nodeTypeToString(stc::NodeType type)
         {
             return "var use";
         }
-        case NodeType::VARIABLE_TYPE:
+        case NodeType::DECLARATION_TYPE:
         {
             return "var type";
         }

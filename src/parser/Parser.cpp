@@ -51,21 +51,29 @@ void stc::Parser::check()
     m_tree->identifyVariables();
     m_tree->identifyGlobalVariables();
 
-    m_tree->identifyArrays();
-
     m_tree->addImportVariables();
+
 
     m_tree->identifyFunctions();
     m_tree->markBreakContinueOperators();
-    m_tree->markReturnOperator();
 
 
     m_tree->identifyClasses();
 
     m_tree->checkClassAccessInImplementation();
+    m_tree->addPointerToClassForAccessNodesInImplementation();
     m_tree->addPointerToClassForThisInClassImplementation();
     m_tree->transformStaticFunctionCallInClassImplementation();
 
+    m_tree->checkOperatorNew();
+    m_tree->transformOperatorNewToConstructorCall();
+
+
+    m_tree->addPointerToClassForAccessNodesOutImplementation();
+    m_tree->checkClassAccessOutImplementation();
+
+
+    m_tree->markReturnOperator();
 
 
     Log::write("-- Analysis preparation done\n");
@@ -628,20 +636,27 @@ stc::Node* stc::Parser::declarationStatement()
 stc::Node* stc::Parser::declarationType()
 {
     eat(TokenType::COLON);
-    auto variableTokenType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
 
-    bool isArray = false;
+    auto fieldTypeString = eat([](TokenType type)
+    {
+        return type == TokenType::IDENTIFIER || type == TokenType::NUMBER ||
+               type == TokenType::BOOLEAN || type == TokenType::STRING ||
+               type == TokenType::VOID || type == TokenType::ANY;
+    });
+    auto isArray = false;
+
     if (tryEat(TokenType::LSQR))
     {
+        eat(TokenType::LSQR);
+
         isArray = true;
 
-        skip();
         eat(TokenType::RSQR);
     }
 
-    auto variableType = Type(variableTokenType, isArray);
+    auto declarationType = GenericType(fieldTypeString);
 
-    return new Node(NodeType::VARIABLE_TYPE, variableType);
+    return new Node(NodeType::DECLARATION_TYPE, declarationType);
 }
 
 stc::Node* stc::Parser::initializer()
@@ -677,15 +692,17 @@ stc::Node* stc::Parser::functionStatement()
 {
     auto functionName = eat([](TokenType type){ return type == TokenType::IDENTIFIER || type == TokenType::CONSTRUCTOR; });
     auto functionArgsNode = functionArgumentList();
-    auto functionReturnType = Type(FundamentalType::VOID);
+    auto functionReturnType = Type("void");
 
     if (tryEat(TokenType::COLON))
     {
-        eat(TokenType::COLON);
-        auto functionReturnTokenType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
-        functionReturnType = Type(functionReturnTokenType);
+        auto declarationNode = declarationType();
+
+        functionReturnType = any_cast<Type>(declarationNode->value);
     }
+
     auto functionReturnTypeNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, functionReturnType);
+
 
     auto functionBodyNode = statement();
 
@@ -759,8 +776,9 @@ stc::Node* stc::Parser::operatorStatement()
     else if (tryEat(TokenType::NEW))
     {
         skip();
-        auto postfixExpressionNode = postfixExpression();
-        return new Node(NodeType::NEW, 0, postfixExpressionNode);
+
+        auto functionCallNode = functionCall();
+        return new Node(NodeType::NEW, 0, functionCallNode);
     }
 
     return nullptr;
@@ -857,14 +875,16 @@ stc::Node* stc::Parser::declareFunctionStatement()
     eat(TokenType::FUNCTION);
     auto functionName = eat(TokenType::IDENTIFIER);
     auto functionArgsNode = functionArgumentList();
-    auto functionReturnType = Type(FundamentalType::VOID);
+    auto functionReturnType = Type("void");
 
     if (tryEat(TokenType::COLON))
     {
-        eat(TokenType::COLON);
-        auto functionReturnTokenType = eatType([](TokenType type){ return Token::isThisTypeIsVariableType(type); });
-        functionReturnType = Type(functionReturnTokenType);
+        auto declarationNode = declarationType();
+
+        functionReturnType = any_cast<Type>(declarationNode->value);
     }
+
+
     auto functionReturnTypeNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, functionReturnType);
 
     auto functionBodyNode = new Node(NodeType::STATEMENT);

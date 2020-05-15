@@ -82,7 +82,7 @@ public:
     void identifyVariables();
     void identifyGlobalVariables();
     void identifyFunctions();
-    void identifyArrays();
+
 
 
     // check functions
@@ -99,28 +99,25 @@ private:
     // mark functions
     void markAllScopesRecursive(Node* currentNode);
     void markBreakContinueOperatorsRecursive(Node* currentNode, size_t currentScopeId);
-    void markReturnOperatorRecursive(Node* currentNode, size_t currentScopeId, const string& currentFunctionName, const vector<Type>& arguments);
+    void markReturnOperatorRecursive(Node* currentNode, size_t functionSizeOfArguments);
 
 
     // identify functions
     void identifyBlocksRecursive(Node* currentNode, Node* currentScopeNode);
-    void identifyVariablesRecursive(Node* currentNode, VariableTable* table);
+    void identifyVariablesRecursive(Node* currentNode, VariableTable* table, const string& className);
 
     void identifyGlobalVariablesRecursive(Node* currentNode, VariableTable& globalVariablesTable);
 
     void identifyFunctionsRecursive(Node* currentNode);
-    void identifyFunctionArgumentsRecursive(Node* currentNode, vector<Type>& argumentTypes, vector<Variable*>& arguments);
+    void identifyFunctionArgumentsRecursive(Node* currentNode, vector<GenericType>& argumentTypes, vector<Variable*>& arguments);
     void identifyFunctionLocalVariablesRecursive(Node* currentNode, size_t& size, vector<Variable*>& variables);
 
-
-    void identifyArraysRecursive(Node* currentNode);
-    void identifyArrayInitializerListRecursive(Node* currentNode, vector<VariableValue>& list, Type arrayType);
 
 
     // check functions
     void checkFunctionsCallRecursive(Node* currentNode);
-    void identifyFunctionCallArgumentsRecursive(Node* currentNode, vector<Type>& arguments);
-    _NODISCARD vector<Type> getFunctionCallArguments(Node* currentNode);
+    void identifyFunctionCallArgumentsRecursive(Node* currentNode, vector<GenericType>& arguments);
+    _NODISCARD vector<GenericType> getFunctionCallArguments(Node* currentNode);
 
 
     void checkExpressionsRecursive(Node* currentNode);
@@ -129,9 +126,9 @@ private:
     void checkConstantsRecursive(Node* currentNode);
     void checkArrayRecursive(Node* currentNode);
 
-    _NODISCARD Type checkAndGiveExpressionType(Node* currentNode);
+    _NODISCARD GenericType checkAndGiveExpressionType(Node* currentNode);
 
-    Type variableTypeOfNode(Node* currentNode);
+    GenericType variableTypeOfNode(Node* currentNode);
 
 
 private:
@@ -171,7 +168,7 @@ public:
     void addImportVariables();
     void addImportFunctionsInTree();
 
-    Node* copySubTree(Node* currentNode);
+    static Node* copySubTree(Node* currentNode);
     static Node* copySubTreeRecursive(Node* currentNode);
 
 // classes
@@ -183,13 +180,34 @@ public:
 
 
     void transformStaticFunctionCallInClassImplementation();
-    void transformStaticFunctionCallInClassImplementationRecursive(Node* currentNode, Class& a_class);
+    void transformStaticFunctionCallInClassImplementationRecursive(Node* currentNode, Class* a_class);
 
     void addPointerToClassForThisInClassImplementation();
-    void addPointerToClassForThisInClassImplementationRecursive(Node* currentNode, Class& a_class);
+    void addPointerToClassForThisInClassImplementationRecursive(Node* currentNode, Class* a_class);
+
+    void addPointerToClassForAccessNodesInImplementation();
+    void addPointerToClassForAccessNodesInImplementationRecursive(Node* currentNode, Class* a_class);
 
     void checkClassAccessInImplementation();
-    void checkClassAccessInImplementationRecursive(Node* currentNode, Class& a_class);
+    void checkClassAccessInImplementationRecursive(Node* currentNode, Class* a_class);
+
+
+
+    void identifyVariablesOfClasses();
+    void identifyVariablesOfClassesRecursive(Node* currentNode, VariableTable* table);
+
+    void checkOperatorNew();
+    void checkOperatorNewRecursive(Node* currentNode);
+
+    void transformOperatorNewToConstructorCall();
+    void transformOperatorNewToConstructorCallRecursive(Node* currentNode);
+
+
+    void addPointerToClassForAccessNodesOutImplementation();
+    void addPointerToClassForAccessNodesOutImplementationRecursive(Node* currentNode);
+
+    void checkClassAccessOutImplementation();
+    void checkClassAccessOutImplementationRecursive(Node* currentNode);
 };
 
 }

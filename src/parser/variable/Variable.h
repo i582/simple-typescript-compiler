@@ -6,11 +6,14 @@
 #include "../../lexer/token/Token.h"
 #include "../../log/Log.h"
 
-#include "type/Type.h"
+
+#include "type/GenericType.h"
+
 
 namespace stc
 {
 using std::string;
+using std::to_string;
 using std::cout;
 using std::endl;
 
@@ -28,11 +31,13 @@ using VariableValue = std::variant<number, bool, string>;
 
 enum class ClassVisibilityModifier;
 
+using Type = GenericType;
+
 class Variable
 {
 private:
-    string m_variableName;
-    Type m_variableType;
+    string m_name;
+    Type m_type;
 
     bool m_isConst;
     size_t m_scopeId;
@@ -58,7 +63,6 @@ public:
     _NODISCARD size_t scopeId() const;
 
     _NODISCARD bool isConst() const;
-    _NODISCARD bool isArray() const;
 
 
     void isGlobal(bool value);
@@ -73,6 +77,9 @@ public:
 
     _NODISCARD bool isStatic() const;
     void setIsStatic(bool value);
+
+
+    string toString() const;
 
 public:
     static Type typeVariableValue(VariableValue value);

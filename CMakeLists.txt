@@ -14,8 +14,8 @@ add_executable(stc
         src/parser/Parser.h src/parser/ast/Ast.cpp
         src/parser/ast/Ast.h src/parser/variable/Variable.cpp
         src/parser/variable/Variable.h
-        src/parser/array/Array.cpp
-        src/parser/array/Array.h
+        #src/parser/array/Array.cpp
+        #src/parser/array/Array.h
         src/parser/variable/VariableTable.cpp
         src/parser/variable/VariableTable.h
         src/parser/function/Function.cpp
@@ -40,4 +40,4 @@ add_executable(stc
         src/parser/class/ClassTable.h
         src/parser/class/ClassTable.cpp
 
-        )
+        src/parser/variable/type/GenericType.h src/parser/variable/type/GenericType.cpp)

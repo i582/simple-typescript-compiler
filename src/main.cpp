@@ -68,7 +68,7 @@ int main(int argc, char** argv)
         auto begin = chrono::steady_clock::now();
 
 
-        bool result = icm.compile(false, false, false, true);
+        bool result = icm.compile(false, false, false, false);
 
 
         auto end = chrono::steady_clock::now();

@@ -5,8 +5,8 @@
 stc::Variable::Variable(const std::string& name, const Type& type, size_t scopeId,
                         bool isConst)
 {
-    this->m_variableName = name;
-    this->m_variableType = type;
+    this->m_name = name;
+    this->m_type = type;
 
 
     this->m_scopeId = scopeId;
@@ -23,10 +23,10 @@ void stc::Variable::print() const
     Log::write("{ ");
 
     Log::write("Variable name: ");
-    Log::write("'" + m_variableName + "', ");
+    Log::write("'" + m_name + "', ");
 
     Log::write("Type: ");
-    Log::write("'" + m_variableType.toString() + "', ");
+    Log::write("'" + m_type.toString() + "', ");
 
     Log::write("Scope ID: ");
     Log::write(std::to_string(m_scopeId) + "', ");
@@ -43,7 +43,7 @@ void stc::Variable::print() const
 
 std::string stc::Variable::name() const
 {
-    return m_variableName;
+    return m_name;
 }
 
 bool stc::Variable::isConst() const
@@ -53,12 +53,12 @@ bool stc::Variable::isConst() const
 
 const stc::Type& stc::Variable::type() const
 {
-    return m_variableType;
+    return m_type;
 }
 
 std::string stc::Variable::nameWithPostfix() const
 {
-    return m_variableName + std::to_string(m_scopeId);
+    return m_name + std::to_string(m_scopeId);
 }
 
 
@@ -87,11 +87,6 @@ size_t stc::Variable::scopeId() const
     return m_scopeId;
 }
 
-bool stc::Variable::isArray() const
-{
-    return m_variableType.isArray();
-}
-
 stc::Type stc::Variable::typeVariableValue(VariableValue value)
 {
     Type type{};
@@ -99,15 +94,15 @@ stc::Type stc::Variable::typeVariableValue(VariableValue value)
     std::visit(overload {
         [&](const number& n)
         {
-            type = Type(FundamentalType::NUMBER);
+            type = Type("number");
         },
         [&](const string& s)
         {
-            type = Type(FundamentalType::SYMBOL, true);
+            type = Type("string");
         },
         [&](const bool b)
         {
-            type = Type(FundamentalType::BOOLEAN);
+            type = Type("boolean");
         }
     }, value);
 
@@ -134,3 +129,13 @@ void stc::Variable::setIsStatic(bool value)
     m_isStatic = value;
 }
 
+stc::string stc::Variable::toString() const
+{
+    return "{ Variable name: '" + m_name +
+           "'. Type: '" + m_type.toString() +
+           "'. Scope ID: '" + to_string(m_scopeId) +
+           "'. Visibility Modifier: '" + Class::modifierToString(m_visibilityModifier) +
+           "'. Is static: " + (m_isStatic ? "true" : "false") +
+           ". Address: 0x" + to_string((int)this) +
+           " }";
+}

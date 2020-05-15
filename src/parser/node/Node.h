@@ -16,7 +16,7 @@ enum class NodeType
     // variables
     VARIABLE_DECLARATION,
     USING_VARIABLE,
-    VARIABLE_TYPE,
+    DECLARATION_TYPE,
 
     // const
     CONSTANT_DECLARATION,
