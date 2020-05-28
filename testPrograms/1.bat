@@ -1,5 +1,5 @@
-ml /c /coff test.asm
+ml /c /coff /nologo test.asm
 
-link /subsystem:console test.obj
+link /nologo /subsystem:console test.obj
 
 .\test.exe

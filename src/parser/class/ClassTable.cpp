@@ -32,7 +32,7 @@ stc::Class* stc::ClassTable::get(const std::string& name)
 {
     auto it = std::find_if(m_classes.begin(), m_classes.end(), [&](Class* t_class)
     {
-        return t_class->name() == name;
+    return t_class->name() == name;
     });
 
     if (it == m_classes.end())

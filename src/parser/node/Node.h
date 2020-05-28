@@ -148,10 +148,11 @@ public:
 private:
     size_t m_scopeId;
 
+    size_t m_tokenIndex;
 
 public:
     explicit Node(NodeType type_, const any& value_ = 0, Node* operand1_ = nullptr, Node* operand2_ = nullptr,
-                  Node* operand3_ = nullptr, Node* operand4_ = nullptr, VariableTable* vars_ = nullptr);
+                  Node* operand3_ = nullptr, Node* operand4_ = nullptr, VariableTable* vars_ = nullptr, size_t tokenIndex = 0);
 
 public:
     void scopeId(size_t id);

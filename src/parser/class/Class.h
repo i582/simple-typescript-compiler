@@ -9,6 +9,7 @@
 namespace stc
 {
 using std::string;
+using std::to_string;
 
 enum class ClassVisibilityModifier
 {
@@ -24,11 +25,21 @@ private:
     FunctionTable m_functions;
     VariableTable m_fields;
 
+    FunctionTable m_requiredFunctions;
+    VariableTable m_requiredFields;
+
+
+    Node* m_node;
+    bool m_isInterface;
+
+    size_t m_size;
 
 public:
-    explicit Class(const string& name)
+    explicit Class(const string& name, bool isInterface = false)
     {
-        this->m_name = name;
+        this->m_name = predefinedClassName(name);
+        this->m_isInterface = isInterface;
+        this->m_size = getDefaultSize(name);
     }
 
 public:
@@ -59,14 +70,90 @@ public:
     void fields(const VariableTable& fields)
     {
         m_fields = fields;
+
+        //calculateSize();
     }
+
+    void requiredFunctions(const FunctionTable& requiredFunctions)
+    {
+        m_requiredFunctions = requiredFunctions;
+    }
+
+    void requiredFields(const VariableTable& requiredFields)
+    {
+        m_requiredFields = requiredFields;
+    }
+
+
+public:
+    static string predefinedClassName(const string& name)
+    {
+        if (name == "number")
+        {
+            return "__number";
+        }
+
+        if (name == "string")
+        {
+            return "__string";
+        }
+
+        return name;
+    }
+
+
+    bool isInterface() const
+    {
+        return m_isInterface;
+    }
+
+
+    _NODISCARD Node* node() const
+    {
+        return m_node;
+    }
+
+    void node(Node* node)
+    {
+        m_node = node;
+    }
+
+
+    size_t size() const
+    {
+        return m_size;
+    }
+
+    void calculateSize()
+    {
+        for (const auto& field : m_fields.raw())
+        {
+
+        }
+    }
+
+
+private:
+    static size_t getDefaultSize(const string& name)
+    {
+        if (name == "__builtin_integer" || name == "__builtin_string")
+        {
+            return 4;
+        }
+
+        return 0;
+    }
+
 
 public:
     void print() const noexcept
     {
         Log::write("\n");
         Log::write("Class: ");
-        Log::write("'" + m_name + "'\n");
+        Log::write("'" + m_name + "'");
+        Log::write(" size: '" + to_string(m_size) + "'\n");
+
+
         Log::write("{\n");
 
 
@@ -116,6 +203,16 @@ public:
     _NODISCARD const VariableTable& fields() const
     {
         return m_fields;
+    }
+
+    _NODISCARD const FunctionTable& requiredFunctions() const
+    {
+        return m_requiredFunctions;
+    }
+
+    _NODISCARD const VariableTable& requiredFields() const
+    {
+        return m_requiredFields;
     }
 
     _NODISCARD size_t fieldsSize() const

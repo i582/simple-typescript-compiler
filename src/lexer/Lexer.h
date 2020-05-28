@@ -63,6 +63,8 @@ public:
     _NODISCARD TokenType currentTokenType();
     _NODISCARD const path& filePath() const;
 
+    _NODISCARD size_t currentTokenIndex() const;
+
 private:
     void open(const string& filePath);
 

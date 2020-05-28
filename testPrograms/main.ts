@@ -1,114 +1,47 @@
-// class Class1
-// {
-//     constructor(value: number)
-//     {
-//
-//     }
-//
-//     static qw: number;
-//
-//     value: number;
-//
-//     foo()
-//     {
-//         this.value = 100;
-//         this.d(100);
-//
-//         Class1.f();
-//
-//         Class1.qw = 100;
-//
-//         let b: number = Class1.f();
-//     }
-//
-//     protected d(qwery: number)
-//     {
-//         this.foo();
-//     }
-//
-//     private static f(): number
-//     {
-//         return 0;
-//     }
-//
-// }
-//
-// let test: Class1 = new Class1(100);
-//
-//
-// test.foo();
-//
-//
-// let b: number = 100;
-//
-// b = 100;
+import {concat, strlen, toNumber, slice, toString} from "./lib/string";
+import { print, println } from "./lib/io";
 
-//
-// class Class extends Class1 implements Main
-// {
-//
-//     f()
-//     {
-//
-//     }
-// }
-//
-// let b: Class = new Class1();
-//
-// b.f();
+let age = 5 + 7;
 
-function isEven(value: number): boolean
-{
-    return false;
-}
+let string1 = "Hello";
 
-let b: number = 100;
+print(100);
 
-let c: boolean = isEven(b);
+let str = "101";
+
+print(toNumber(str));
+
+println(concat(toString(strlen(slice(string1, 0, 4)), 10), "\n"));
 
 
-//
-// class Class1
-// {
-//     constructor(value: number)
-//     {
-//
-//     }
-//
-//     static qw: number;
-//
-//     protected value: number;
-//
-//     foo()
-//     {
-//         this.value = 100;
-//         this.d(100);
-//
-//
-//
-//         Class1.qw = 100;
-//
-//
-//     }
-//
-//     protected d(qwery: number)
-//     {
-//         this.foo();
-//     }
-//
-//     public f(): number
-//     {
-//         return 0;
-//     }
-//
-// }
-//
-//
-// let test: Class1 = new Class1(100);
-// let test2: Class1 = new Class1(100);
-//
-// test.foo();
-//
-// test = test2;
-//
-// let b: number = test.f() + 100;
+
+println(concat(string1, "\n"));
+
+print(age);
+
+
+println("\n");
+println(string1);
+println(" has length equal ");
+print(strlen(string1));
+
+
+
+// let age = 75;
+
+// print(age);
+
+// let str: string = "Hello";
+
+// println("\n");
+// println(str);
+// println(" has length equal ");
+// print(strlen(str));
+
+// println("\n");
+
+
+
+
+// println(slice(concat("Hello ", "World!"), 3, 10));
+

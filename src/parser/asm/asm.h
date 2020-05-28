@@ -43,7 +43,7 @@ private:
 
 public:
     explicit Asm(const string& outputFilePath, Ast* tree);
-    ~Asm();
+
 
 
 public:
@@ -55,6 +55,7 @@ private:
 
 
     void initLocalVariables();
+    void initGlobalVariables();
     void initFunctionArguments();
 
     void initGlobalFunctions();
@@ -63,16 +64,20 @@ private:
     void initStringConstants();
 
     // global functions
-    void init_input_function();
-    void init_print_function();
-    void init_println_function();
-    void init_sqrt_function();
-
-
-
+    void initInputFunction();
+    void initPrintFunction();
+    void initPrintlnFunction();
+    void initSqrtFunction();
 
     void initOperandsForDivision();
 
+
+
+    void initInterfaces();
+
+    void initClassFunctionOrField(Node* currentNode, Class* aClass);
+
+    void initClassFunctionCall(Node* currentNode, Class* aClass);
 
 private:
     void blockToAsmRecursive(Node* currentNode);
@@ -83,6 +88,21 @@ private:
 
     void initArgumentsOnStackRecursive(Node* currentNode);
     void initGlobalFunctionsRecursive(Node* currentNode);
+
+
+    void initInterfacesRecursive(Node* currentNode, Class* interface);
+    void initInterfaceFunctionRecursive(Node* currentNode, Class* interface);
+
+    void initNumberToString();
+
+
+
+
+
+
+
+
+
 
 
 
@@ -103,6 +123,10 @@ private:
 
     void stack_variable(const Variable* variable);
     void stack_argument(const Variable* variable);
+
+
+    void global_array(const Array& array);
+
 
     // stack
     void push(const string& value);

@@ -16,8 +16,6 @@ data segment
 
 ; Global variable START
    num1 dd 0
-   n5_arr dd 0 dup (0)
-   n5 dd offset n5_arr
 ; Global variable END
 
    input_format db "%d", 0
@@ -29,28 +27,52 @@ data ends
 
 text segment
 
-arg_n5 = 8 ; size = 1
+arg_n5 = 8 ; size = 4
 arg_n8 = 8 ; size = 4
 arg_a11 = 8 ; size = 4
 
 input PROC
    enter 0, 0
+   push eax
+   push ebx
+   push ecx
+   push edx
    invoke crt_scanf, offset input_format, offset input_result
    mov eax, input_result
+   pop eax
+   pop ebx
+   pop ecx
+   pop edx
    leave
    ret 
 input ENDP
 println PROC
    enter 0, 0
+   push eax
+   push ebx
+   push ecx
+   push edx
    mov eax, [ebp + 8]
    invoke crt_printf, offset println_format, eax
+   pop eax
+   pop ebx
+   pop ecx
+   pop edx
    leave
    ret 4
 println ENDP
 print PROC
    enter 0, 0
+   push eax
+   push ebx
+   push ecx
+   push edx
    mov eax, [ebp + 8]
    invoke crt_printf, offset print_format, eax
+   pop eax
+   pop ebx
+   pop ecx
+   pop edx
    leave
    ret 4
 print ENDP
@@ -61,12 +83,12 @@ factorial PROC
    push 2
    pop edx
    cmp ecx, edx
-   jge _compare_not_equal1050917071765317
+   jge _compare_not_equal146409374434802
    push 1
-   jmp _compare_end1050917071765317
-_compare_not_equal1050917071765317:
+   jmp _compare_end146409374434802
+_compare_not_equal146409374434802:
    push 0
-_compare_end1050917071765317:
+_compare_end146409374434802:
    pop eax
    cmp eax, 0
    je _if_end_15
@@ -124,12 +146,12 @@ _loop_aftereffects_18:
    push 10
    pop edx
    cmp ecx, edx
-   jle _compare_not_equal1050917071796536
+   jle _compare_not_equal146409375683550
    push 1
-   jmp _compare_end1050917071796536
-_compare_not_equal1050917071796536:
+   jmp _compare_end146409375683550
+_compare_not_equal146409375683550:
    push 0
-_compare_end1050917071796536:
+_compare_end146409375683550:
    pop eax
    cmp eax, 0
    je _if_else_21
@@ -167,12 +189,12 @@ _if_end_21:
    push 10
    pop edx
    cmp ecx, edx
-   jle _compare_not_equal1050917071814497
+   jle _compare_not_equal146409376649618
    push 1
-   jmp _compare_end1050917071814497
-_compare_not_equal1050917071814497:
+   jmp _compare_end146409376649618
+_compare_not_equal146409376649618:
    push 0
-_compare_end1050917071814497:
+_compare_end146409376649618:
    pop eax
    cmp eax, 0
    je _loop_end_18

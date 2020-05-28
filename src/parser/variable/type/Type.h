@@ -33,7 +33,7 @@ public:
     explicit Type(const string& value, bool isArray = false)
     {
         this->m_fundamentalType = typeFromString(value);
-        this->m_isArray = isArray;
+        this->m_isArray = isArray || value == "string";
     }
 
     explicit Type(TokenType type, bool isArray = false)
@@ -53,7 +53,7 @@ public:
             case TokenType::STRING:
             {
                 this->m_fundamentalType = FundamentalType::SYMBOL;
-                isArray = true;
+                this->m_isArray = true;
                 break;
             }
             case TokenType::VOID:
@@ -155,6 +155,8 @@ public:
         if (value == "boolean")
             return FundamentalType::BOOLEAN;
         if (value == "symbol")
+            return FundamentalType::SYMBOL;
+        if (value == "string")
             return FundamentalType::SYMBOL;
         if (value == "void")
             return FundamentalType::VOID;

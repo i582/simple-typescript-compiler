@@ -80,9 +80,8 @@ public:
     // identify functions
     void identifyBlocks();
     void identifyVariables();
-    void identifyGlobalVariables();
     void identifyFunctions();
-
+    void identifyArrays();
 
 
     // check functions
@@ -106,18 +105,20 @@ private:
     void identifyBlocksRecursive(Node* currentNode, Node* currentScopeNode);
     void identifyVariablesRecursive(Node* currentNode, VariableTable* table, const string& className);
 
-    void identifyGlobalVariablesRecursive(Node* currentNode, VariableTable& globalVariablesTable);
 
     void identifyFunctionsRecursive(Node* currentNode);
-    void identifyFunctionArgumentsRecursive(Node* currentNode, vector<GenericType>& argumentTypes, vector<Variable*>& arguments);
+    void identifyFunctionArgumentsRecursive(Node* currentNode, vector<Type>& argumentTypes, vector<Variable*>& arguments);
     void identifyFunctionLocalVariablesRecursive(Node* currentNode, size_t& size, vector<Variable*>& variables);
 
+
+    void identifyArraysRecursive(Node* currentNode);
+    void identifyArrayInitializerListRecursive(Node* currentNode, vector<VariableValue>& list, Type arrayType);
 
 
     // check functions
     void checkFunctionsCallRecursive(Node* currentNode);
-    void identifyFunctionCallArgumentsRecursive(Node* currentNode, vector<GenericType>& arguments);
-    _NODISCARD vector<GenericType> getFunctionCallArguments(Node* currentNode);
+    void identifyFunctionCallArgumentsRecursive(Node* currentNode, vector<Type>& arguments);
+    _NODISCARD vector<Type> getFunctionCallArguments(Node* currentNode);
 
 
     void checkExpressionsRecursive(Node* currentNode);
@@ -126,9 +127,9 @@ private:
     void checkConstantsRecursive(Node* currentNode);
     void checkArrayRecursive(Node* currentNode);
 
-    _NODISCARD GenericType checkAndGiveExpressionType(Node* currentNode);
+    _NODISCARD Type checkAndGiveExpressionType(Node* currentNode);
 
-    GenericType variableTypeOfNode(Node* currentNode);
+    Type variableTypeOfNode(Node* currentNode);
 
 
 private:
@@ -208,6 +209,16 @@ public:
 
     void checkClassAccessOutImplementation();
     void checkClassAccessOutImplementationRecursive(Node* currentNode);
+
+
+
+// interfaces
+public:
+    void identifyInterfaces();
+    void identifyInterfacesRecursive(Node* currentNode);
+    void identifyInterfaceFieldsRecursive(Node* currentNode, size_t scopeId, VariableTable& table);
+    void identifyInterfaceFunctionsRecursive(Node* currentNode, size_t scopeId, FunctionTable& table);
+
 };
 
 }

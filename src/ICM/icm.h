@@ -25,10 +25,9 @@ private:
     string m_inputFilePath;
     string m_outputFilePath;
 
-    bool m_debugMode;
 
 public:
-    ICM(const string& inputFilePath, const string& outputFilePath, bool debugMode = false)
+    ICM(const string& inputFilePath, const string& outputFilePath)
     {
         this->m_lexer = nullptr;
         this->m_parser = nullptr;
@@ -38,7 +37,6 @@ public:
 
         this->m_inputFilePath = inputFilePath;
         this->m_outputFilePath = outputFilePath;
-        this->m_debugMode = debugMode;
     }
 
     ~ICM()
@@ -52,12 +50,12 @@ public:
 
 public:
     bool compile(bool withoutLexer = false, bool withoutParser = false,
-                 bool withoutSymantic = false, bool withoutGenerate = false)
+                 bool withoutSemantic = false, bool withoutGenerate = false)
     {
         Log::write("-- Started compilation of the file \"" + m_inputFilePath + "\'\n");
-//
-//        try
-//        {
+
+        try
+        {
             this->m_lexer = new Lexer(m_inputFilePath);
             this->m_parser = new Parser(m_lexer);
             this->m_ast = m_parser->ast();
@@ -75,7 +73,7 @@ public:
             {
                 m_parser->parse();
 
-                if (!withoutSymantic)
+                if (!withoutSemantic)
                 {
                     m_parser->check();
                 }
@@ -92,28 +90,28 @@ public:
             }
 
             return true;
-//        }
-//        catch (const std::logic_error& error)
-//        {
-//            rang::setControlMode(rang::control::Force);
-//            rang::setWinTermMode(rang::winTerm::Auto);
-//
-//            std::cout << "\n";
-//            std::cout << rang::fgB::red << rang::style::bold <<
-//            "An error occurred while compiling file "
-//            << rang::fg::reset << rang::style::reset <<
-//
-//            rang::fg::gray << rang::style::italic <<
-//            m_inputFilePath
-//            << rang::fg::reset << rang::style::reset <<
-//            ":" << std::endl;
-//
-//            std::cout << rang::fgB::red << rang::style::bold <<
-//            error.what()
-//            << rang::fg::reset << rang::style::reset << std::endl;
-//
-//            return false;
-//        }
+        }
+        catch (const std::logic_error& error)
+        {
+            rang::setControlMode(rang::control::Force);
+            rang::setWinTermMode(rang::winTerm::Auto);
+
+            std::cout << "\n";
+            std::cout << rang::fgB::red << rang::style::bold <<
+            "An error occurred while compiling file "
+            << rang::fg::reset << rang::style::reset <<
+
+            rang::fg::gray << rang::style::italic <<
+            m_inputFilePath
+            << rang::fg::reset << rang::style::reset <<
+            ":" << std::endl;
+
+            std::cout << rang::fgB::red << rang::style::bold <<
+            error.what()
+            << rang::fg::reset << rang::style::reset << std::endl;
+
+            return false;
+        }
     }
 
 public:

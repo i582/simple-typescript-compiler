@@ -255,6 +255,84 @@ private:
     }
 
 
+
+
+    Node* interfaceStatement()
+    {
+        eat(TokenType::INTERFACE);
+
+        const auto interfaceName = eat(TokenType::IDENTIFIER);
+
+        const auto bodyNode = interfaceCompoundStatement();
+
+        return new Node(NodeType::INTERFACE_IMPLEMENTATION, interfaceName, bodyNode);
+    }
+
+    Node* interfaceCompoundStatement()
+    {
+        eat(TokenType::LBRA);
+
+        auto tempNode = (Node*)nullptr;
+
+        while (!tryEat(TokenType::RBRA))
+        {
+            const auto interfaceBodyStatementNode = interfaceBodyStatement();
+            tempNode = new Node(NodeType::STATEMENT_LIST, "", tempNode, interfaceBodyStatementNode);
+        }
+        skip();
+
+        return new Node(NodeType::STATEMENT, 0, tempNode);
+    }
+
+    Node* interfaceBodyStatement()
+    {
+        const auto identifier = eat(TokenType::IDENTIFIER);
+
+
+        if (tryEat(TokenType::COLON))
+        {
+            unEat();
+
+            return interfaceBodyFieldDeclarationStatement();
+        }
+        else if (tryEat(TokenType::LPAR))
+        {
+            unEat();
+
+            return interfaceBodyFunctionDeclarationStatement();
+        }
+
+        return nullptr;
+    }
+
+    Node* interfaceBodyFieldDeclarationStatement()
+    {
+        const auto fieldName = eat(TokenType::IDENTIFIER);
+
+        const auto declarationTypeNode = declarationType();
+
+        eat(TokenType::SEMICOLON);
+
+        return new Node(NodeType::INTERFACE_FIELD_DEFINITION, fieldName, declarationTypeNode);
+    }
+
+    Node* interfaceBodyFunctionDeclarationStatement()
+    {
+        const auto functionName = eat(TokenType::IDENTIFIER);
+        const auto functionArgumentsNode = functionArgumentList();
+
+        auto returnTypeNode = new Node(NodeType::DECLARATION_TYPE, Type("void"));
+
+        if (tryEat(TokenType::COLON))
+        {
+            returnTypeNode = declarationType();
+        }
+        eat(TokenType::SEMICOLON);
+
+
+        return new Node(NodeType::INTERFACE_FUNCTION_DEFINITION, functionName, returnTypeNode, functionArgumentsNode);
+    }
+
 };
 
 

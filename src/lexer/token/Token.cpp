@@ -36,7 +36,7 @@ stc::TokenType stc::Token::typeByLexeme(const std::string& lexeme)
         return TokenType::LET;
     if (lexeme == "const")
         return TokenType::CONST;
-    
+
     // type
     if (lexeme == "number")
         return TokenType::NUMBER;
@@ -62,13 +62,13 @@ stc::TokenType stc::Token::typeByLexeme(const std::string& lexeme)
         return TokenType::BREAK;
     if (lexeme == "continue")
         return TokenType::CONTINUE;
-    
+
     // conditions
     if (lexeme == "if")
         return TokenType::IF;
     if (lexeme == "else")
         return TokenType::ELSE;
-    
+
     // relationship operators
     if (lexeme == ">")
         return TokenType::GREATER;
@@ -78,13 +78,13 @@ stc::TokenType stc::Token::typeByLexeme(const std::string& lexeme)
         return TokenType::LESS_EQUAL;
     if (lexeme == ">=")
         return TokenType::GREATER_EQUAL;
-    
+
     // equal operators
     if (lexeme == "==")
         return TokenType::EQUAL;
     if (lexeme == "!=")
         return TokenType::NOT_EQUAL;
-    
+
     // logical operators
     if (lexeme == "&&")
         return TokenType::AND;
@@ -242,7 +242,9 @@ bool stc::Token::isNumber(const std::string& lexeme)
 
 bool stc::Token::isString(const std::string& lexeme)
 {
-    return lexeme.front() == '"' && lexeme.back() == '"';
+    return lexeme.front() == '"' && lexeme.back() == '"' ||
+           lexeme.front() == '\'' && lexeme.back() == '\'' ||
+           lexeme.front() == '`' && lexeme.back() == '`';
 }
 
 bool stc::Token::isThisTypeIsVariableType(stc::TokenType type)
@@ -310,7 +312,7 @@ void stc::Token::print() const
 
     logInOutputStream = Log::loggedInOutputStream();
     Log::setLogInOutputStream(false);
-    Log::write("'" +  std::to_string(m_pos) + "'");
+    Log::write("'" + std::to_string(m_pos) + "'");
     Log::setLogInOutputStream(logInOutputStream);
     Log::write("\n");
 }

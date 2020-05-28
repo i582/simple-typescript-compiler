@@ -9,11 +9,6 @@ stc::Asm::Asm(const string& outputFilePath, stc::Ast* tree)
     this->m_byteOnStack = 4;
 }
 
-stc::Asm::~Asm()
-{
-    m_file.close();
-}
-
 void stc::Asm::generate()
 {
     Log::write("-- Started preparation for code generation\n");
@@ -21,14 +16,19 @@ void stc::Asm::generate()
     initStringConstants();
     initOperandsForDivision();
     initLocalVariables();
+    initGlobalVariables();
 
     initFunctionArguments();
     initGlobalFunctions();
+
+    initInterfaces();
 
     Log::write("-- Preparation for code generation done\n");
 
     Log::write("-- Started code generation\n");
     blocksToAsm();
+
+
 
     write(asm_header);
 
@@ -43,24 +43,36 @@ void stc::Asm::generate()
 
 
     write(label_start);
-    write(proc_prolog + "0, 0");
+    write(proc_prolog + to_string(m_ast->m_allVariables.raw().size() * 4 + 4) + ", 0");
 
 
     write(m_main);
     write(proc_epilogue);
+
+    write(program_exit);
+
     write(function_return);
+
+
 
     write(text_end);
     write(label_end);
 
     Log::write("-- Code generation done\n");
+
+    m_file.close();
 }
 
 void stc::Asm::initLocalVariables()
 {
-    for (const auto& globalVariable : m_ast->m_globalVariables.raw())
+    m_byteOnStack = 8;
+
+    for (const auto& variable : m_ast->m_allVariables.raw())
     {
-        stack_variable(globalVariable);
+        if (variable->isGlobal())
+        {
+            stack_variable(variable);
+        }
     }
 
     m_byteOnStack = 4;
@@ -77,6 +89,19 @@ void stc::Asm::initLocalVariables()
 
 }
 
+void stc::Asm::initGlobalVariables()
+{
+    setPlaceForWriting(asm_place_for_writing::DATA);
+    raw("\n; Global variable START\n");
+
+    for (const auto& array: m_ast->m_arrays)
+    {
+        global_array(array);
+    }
+
+    raw("; Global variable END\n\n");
+    setPlaceForWriting(asm_place_for_writing::MAIN);
+}
 
 void stc::Asm::initFunctionArguments()
 {
@@ -139,13 +164,13 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
     }
     else if (currentNode->type == NodeType::IF || currentNode->type == NodeType::IF_ELSE)
     {
-        const auto conditionNode         = currentNode->operand1->operand1;
-        const auto statementNode         = currentNode->operand2;
-        const auto elseStatementNode     = currentNode->operand3;
+        const auto conditionNode = currentNode->operand1->operand1;
+        const auto statementNode = currentNode->operand2;
+        const auto elseStatementNode = currentNode->operand3;
 
-        const auto startLabel     = "_if_start_" + to_string(statementNode->scopeId());
-        const auto endLabel       = "_if_end_" + to_string(statementNode->scopeId());
-        const auto elseLabel      = "_if_else_" + to_string(statementNode->scopeId());
+        const auto startLabel = "_if_start_" + to_string(statementNode->scopeId());
+        const auto endLabel = "_if_end_" + to_string(statementNode->scopeId());
+        const auto elseLabel = "_if_else_" + to_string(statementNode->scopeId());
 
 
         blockToAsmRecursive(conditionNode);
@@ -161,7 +186,6 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
 
 
         je(endOrElseLabel);
-
 
 
         if (currentNode->type == NodeType::IF_ELSE)
@@ -198,9 +222,9 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
         const auto conditionNode = currentNode->operand1->operand1;
         const auto statementNode = currentNode->operand2;
 
-        const auto startLabel         = "_loop_start_" + to_string(statementNode->scopeId());
-        const auto endLabel           = "_loop_end_" + to_string(statementNode->scopeId());
-        const auto afterEffectsLabel  = "_loop_aftereffects_" + to_string(statementNode->scopeId());
+        const auto startLabel = "_loop_start_" + to_string(statementNode->scopeId());
+        const auto endLabel = "_loop_end_" + to_string(statementNode->scopeId());
+        const auto afterEffectsLabel = "_loop_aftereffects_" + to_string(statementNode->scopeId());
 
 
         label(startLabel);
@@ -227,9 +251,9 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
         const auto conditionNode = currentNode->operand1->operand1;
         const auto statementNode = currentNode->operand2;
 
-        const auto startLabel           = "_loop_start_" + to_string(statementNode->scopeId());
-        const auto endLabel             = "_loop_end_" + to_string(statementNode->scopeId());
-        const auto afterEffectsLabel    = "_loop_aftereffects_" + to_string(statementNode->scopeId());
+        const auto startLabel = "_loop_start_" + to_string(statementNode->scopeId());
+        const auto endLabel = "_loop_end_" + to_string(statementNode->scopeId());
+        const auto afterEffectsLabel = "_loop_aftereffects_" + to_string(statementNode->scopeId());
 
 
         label(startLabel);
@@ -254,14 +278,14 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
     }
     else if (currentNode->type == NodeType::FOR)
     {
-        const auto preventionNode     = currentNode->operand1->operand1;
-        const auto conditionNode      = currentNode->operand2->operand1;
-        const auto afterEffectsNode   = currentNode->operand3->operand1;
-        const auto statementNode      = currentNode->operand4;
+        const auto preventionNode = currentNode->operand1->operand1;
+        const auto conditionNode = currentNode->operand2->operand1;
+        const auto afterEffectsNode = currentNode->operand3->operand1;
+        const auto statementNode = currentNode->operand4;
 
-        const auto startLabel         = "_loop_start_" + to_string(statementNode->scopeId());
-        const auto endLabel           = "_loop_end_" + to_string(statementNode->scopeId());
-        const auto afterEffectsLabel  = "_loop_aftereffects_" + to_string(statementNode->scopeId());
+        const auto startLabel = "_loop_start_" + to_string(statementNode->scopeId());
+        const auto endLabel = "_loop_end_" + to_string(statementNode->scopeId());
+        const auto afterEffectsLabel = "_loop_aftereffects_" + to_string(statementNode->scopeId());
 
 
         blockToAsmRecursive(preventionNode);
@@ -273,7 +297,6 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
         cmp(eax, null);
 
         je(endLabel);
-
 
 
         blockToAsmRecursive(statementNode);
@@ -454,21 +477,21 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
     else if (currentNode->type == NodeType::NUMBER_CONST)
     {
         // push const
-        const auto numberValue = to_string((int)any_cast<number>(currentNode->value));
+        const auto numberValue = to_string((int) any_cast<number>(currentNode->value));
         push(numberValue);
     }
     else if (currentNode->type == NodeType::BOOLEAN_CONST)
     {
         // push const
-        const auto booleanValue = to_string((size_t)any_cast<int>(currentNode->value));
+        const auto booleanValue = to_string((size_t) any_cast<int>(currentNode->value));
         push(booleanValue);
     }
     else if (currentNode->type == NodeType::STRING_CONST)
     {
         // push const
         const auto scopeId = currentNode->scopeId();
-        const auto string_access = "string_const_" + to_string(scopeId);
-        push(offset(string_access));
+        const auto stringAccess = "string_const_" + to_string(scopeId);
+        push(offset(stringAccess));
     }
     else if (currentNode->type == NodeType::USING_VARIABLE ||
              currentNode->type == NodeType::USING_CONSTANT)
@@ -491,8 +514,8 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
     }
     else if (currentNode->type == NodeType::FUNCTION_CALL)
     {
-        const auto function = any_cast<Function*>(currentNode->value);
-        const auto functionName = function->name();
+        const auto& function = any_cast<Function*>(currentNode->value);
+        const auto& functionName = function->name();
 
         raw("\n");
         comment("init stack for " + functionName);
@@ -500,7 +523,7 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
         initArgumentsOnStackRecursive(currentNode->operand1);
 
         const auto& types = function->arguments();
-        const auto functionReturnVoid = function->returnType() == GenericType("void");
+        const auto functionReturnVoid = function->returnType() == Type("void");
 
         comment("call " + functionName);
         call(functionName);
@@ -517,6 +540,12 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
     {
         expressionToAsmRecursive(currentNode->operand1);
     }
+    else if (currentNode->type == NodeType::CLASS_ACCESS_TO_FIELD)
+    {
+        const auto aClass = any_cast<Class*>(currentNode->value);
+
+        initClassFunctionOrField(currentNode->operand2, aClass);
+    }
 }
 
 void stc::Asm::relationExpressionToAsmRecursive(Node* currentNode)
@@ -527,7 +556,7 @@ void stc::Asm::relationExpressionToAsmRecursive(Node* currentNode)
 
     if (currentNode->type == NodeType::NUMBER_CONST)
     {
-        const auto value = (int)any_cast<number>(currentNode->value);
+        const auto value = (int) any_cast<number>(currentNode->value);
 
         if (value == 0)
         {
@@ -554,11 +583,12 @@ void stc::Asm::relationExpressionToAsmRecursive(Node* currentNode)
     else if (currentNode->type == NodeType::USING_VARIABLE ||
              currentNode->type == NodeType::USING_CONSTANT)
     {
-        const auto currentTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+        const auto currentTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::high_resolution_clock::now().time_since_epoch());
 
-        const auto labelIfEqual     = "_compare_equal" + to_string(currentTime.count());
-        const auto labelIfNotEqual  = "_compare_not_equal" + to_string(currentTime.count());
-        const auto labelCompareEnd  = "_compare_end" + to_string(currentTime.count());
+        const auto labelIfEqual = "_compare_equal" + to_string(currentTime.count());
+        const auto labelIfNotEqual = "_compare_not_equal" + to_string(currentTime.count());
+        const auto labelCompareEnd = "_compare_end" + to_string(currentTime.count());
 
         const auto variable = any_cast<Variable*>(currentNode->value);
         const auto variableName = variable->nameWithPostfix();
@@ -629,7 +659,8 @@ void stc::Asm::relationExpressionToAsmRecursive(Node* currentNode)
     }
     else
     {
-        const auto currentTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+        const auto currentTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::high_resolution_clock::now().time_since_epoch());
 
         const auto op1 = currentNode->operand1;
         const auto op2 = currentNode->operand2;
@@ -730,8 +761,9 @@ void stc::Asm::functionImplementationRecursive(stc::Node* currentNode)
         return;
 
 
-    // if function body is empty
-    if (currentNode->operand3->type == NodeType::EXPRESSION)
+    // if function body is empty or is declaration
+    if (currentNode->operand3->type == NodeType::STATEMENT &&
+        currentNode->operand3->operand1 == nullptr)
         return;
 
     const auto function = any_cast<Function*>(currentNode->value);
@@ -757,14 +789,16 @@ void stc::Asm::initArgumentsOnStackRecursive(stc::Node* currentNode)
     if (currentNode == nullptr)
         return;
 
-    if (currentNode->type == NodeType::FUNCTION_ARGS)
+    if (currentNode->type == NodeType::FUNCTION_CALL)
     {
-        expressionToAsmRecursive(currentNode->operand1);
-    }
-    else if (currentNode->type == NodeType::FUNCTION_CALL)
-    {
+        //expressionToAsmRecursive(currentNode);
         return;
     }
+
+    expressionToAsmRecursive(currentNode->operand1);
+    expressionToAsmRecursive(currentNode->operand2);
+    expressionToAsmRecursive(currentNode->operand3);
+    expressionToAsmRecursive(currentNode->operand4);
 
     initArgumentsOnStackRecursive(currentNode->operand1);
     initArgumentsOnStackRecursive(currentNode->operand2);
@@ -784,8 +818,8 @@ void stc::Asm::initGlobalFunctionsRecursive(stc::Node* currentNode)
 
     if (currentNode->type == NodeType::FUNCTION_IMPLEMENTATION)
     {
-        const auto function = any_cast<Function*>(currentNode->value);
-        const auto functionName = function->name();
+        const auto& function = any_cast<Function*>(currentNode->value);
+        const auto& functionName = function->name();
 
         initGlobalFunction(functionName);
     }
@@ -797,7 +831,7 @@ void stc::Asm::initGlobalFunctionsRecursive(stc::Node* currentNode)
 }
 
 
-void stc::Asm::init_input_function()
+void stc::Asm::initInputFunction()
 {
     setPlaceForWriting(asm_place_for_writing::DATA);
     raw(tab + "input_format db \"%d\", 0\n");
@@ -807,7 +841,7 @@ void stc::Asm::init_input_function()
     proc("input");
     procedure_prolog(0, 0);
 
-    push(eax);
+
     push(ebx);
     push(ecx);
     push(edx);
@@ -815,7 +849,7 @@ void stc::Asm::init_input_function()
     raw(tab + "invoke crt_scanf, offset input_format, offset input_result\n");
     mov(eax, "input_result");
 
-    pop(eax);
+
     pop(ebx);
     pop(ecx);
     pop(edx);
@@ -827,7 +861,7 @@ void stc::Asm::init_input_function()
     setPlaceForWriting(asm_place_for_writing::MAIN);
 }
 
-void stc::Asm::init_print_function()
+void stc::Asm::initPrintFunction()
 {
     setPlaceForWriting(asm_place_for_writing::DATA);
     raw(tab + "print_format db \"%d \", 0\n");
@@ -856,7 +890,7 @@ void stc::Asm::init_print_function()
     setPlaceForWriting(asm_place_for_writing::MAIN);
 }
 
-void stc::Asm::init_println_function()
+void stc::Asm::initPrintlnFunction()
 {
     setPlaceForWriting(asm_place_for_writing::DATA);
     raw(tab + "println_format db \"%s\", 0\n");
@@ -885,7 +919,7 @@ void stc::Asm::init_println_function()
     setPlaceForWriting(asm_place_for_writing::MAIN);
 }
 
-void stc::Asm::init_sqrt_function()
+void stc::Asm::initSqrtFunction()
 {
     setPlaceForWriting(asm_place_for_writing::DATA);
     raw(tab + "sqrt_result dd 0\n");
@@ -894,7 +928,7 @@ void stc::Asm::init_sqrt_function()
     proc("sqrt");
     procedure_prolog(0, 0);
 
-    push(eax);
+
     push(ebx);
     push(ecx);
     push(edx);
@@ -1010,7 +1044,8 @@ void stc::Asm::stack_variable(const Variable* variable)
     const auto variableName = variable->nameWithPostfix();
     const auto variableSize = variable->type().size();
 
-    m_beforeMain.append(variableName + " = " + "-" + to_string(m_byteOnStack) + " ; size = " + to_string(variableSize) + "\n");
+    m_beforeMain.append(
+            variableName + " = " + "-" + to_string(m_byteOnStack) + " ; size = " + to_string(variableSize) + "\n");
 
     m_byteOnStack += variableSize;
 }
@@ -1027,9 +1062,125 @@ void stc::Asm::stack_argument(const stc::Variable* variable)
         prefix = "arg_";
     }
 
-    m_beforeMain.append(prefix + variableName + " = " + to_string(m_byteOnStack) + " ; size = " + to_string(variableSize) + "\n");
+    m_beforeMain.append(
+            prefix + variableName + " = " + to_string(m_byteOnStack) + " ; size = " + to_string(variableSize) + "\n");
 
     m_byteOnStack += variableSize;
+}
+
+void stc::Asm::global_array(const stc::Array& array)
+{
+    const auto variable = array.variable();
+    const auto arrayType = variable->type();
+    const auto arrayName = variable->nameWithPostfix();
+
+    if (arrayType.is(FundamentalType::SYMBOL, true))
+        return;
+
+
+    const auto arraySize = array.size();
+    const auto& arrayValues = array.values();
+
+
+    string arrayTypeString;
+    string arrayValuesString;
+
+
+    setPlaceForWriting(asm_place_for_writing::MAIN);
+
+
+    switch (arrayType.fundamentalType())
+    {
+        case FundamentalType::NUMBER:
+        {
+            if (arraySize > 0)
+            {
+                raw(tab + "push eax\n");
+                raw(tab + "push ebx\n");
+                raw(tab + "push " + to_string(arraySize * 4) + "\n");
+                raw(tab + "call crt_malloc\n");
+                raw(tab + "mov " + arrayName + ", eax\n");
+            }
+
+            arrayTypeString = "dd";
+
+            if (!arrayValues.empty())
+            {
+                raw(tab + "mov ebx, eax\n");
+
+                auto values = array.values();
+                for (int i = values.size() - 1; i >= 0; --i)
+                {
+                    const auto& value = values[i];
+
+                    auto rawValue = (int) std::get<number>(value);
+
+                    raw(tab + "mov DWORD PTR [ebx], " + to_string(rawValue) + "\n");
+
+                    if (i != 0)
+                        raw(tab + "add ebx, 4\n");
+                }
+
+                arrayValuesString = array.valuesToString();
+            }
+
+            if (arraySize > 0)
+            {
+                raw(tab + "pop eax\n");
+                raw(tab + "pop ebx\n");
+            }
+            break;
+        }
+        case FundamentalType::BOOLEAN:
+        {
+            if (arraySize > 0)
+            {
+                raw(tab + "push eax\n");
+                raw(tab + "push ebx\n");
+                raw(tab + "push " + to_string(arraySize) + "\n");
+                raw(tab + "call crt_malloc\n");
+                raw(tab + "mov " + arrayName + ", eax\n");
+            }
+
+            arrayTypeString = "db";
+
+            if (!arrayValues.empty())
+            {
+                raw(tab + "mov ebx, eax\n");
+
+                auto values = array.values();
+                for (int i = values.size() - 1; i >= 0; --i)
+                {
+                    const auto& value = values[i];
+
+                    auto rawValue = std::get<bool>(value);
+
+                    raw(tab + "mov BYTE PTR [ebx], " + to_string(rawValue) + "\n");
+
+                    if (i != 0)
+                        raw(tab + "add ebx, 1\n");
+                }
+
+                arrayValuesString = array.valuesToString();
+            }
+
+            if (arraySize > 0)
+            {
+                raw(tab + "pop eax\n");
+                raw(tab + "pop ebx\n");
+            }
+            break;
+        }
+        case FundamentalType::SYMBOL:
+        case FundamentalType::VOID:
+        case FundamentalType::ANY:
+            break;
+    }
+
+    setPlaceForWriting(asm_place_for_writing::DATA);
+    raw(tab + arrayName + " " + arrayTypeString + " 0\n");
+    raw(tab + arrayName + "_len dd " + to_string(arraySize) + "\n");
+    setPlaceForWriting(asm_place_for_writing::DATA);
 }
 
 void stc::Asm::logical_or(const string& value1, const string& value2)
@@ -1237,19 +1388,19 @@ void stc::Asm::initGlobalFunction(const string& name)
 {
     if (name == "input")
     {
-        init_input_function();
+        initInputFunction();
     }
     else if (name == "print")
     {
-        init_print_function();
+        initPrintFunction();
     }
     else if (name == "println")
     {
-        init_println_function();
+        initPrintlnFunction();
     }
     else if (name == "sqrt")
     {
-        init_sqrt_function();
+        initSqrtFunction();
     }
     else if (name == "concat")
     {
@@ -1377,7 +1528,7 @@ void stc::Asm::initGlobalFunction(const string& name)
             " \n"
             "   mov edx, DWORD PTR [ebp + 8]\n"
             "   add edx, DWORD PTR [ebp + 12]\n"
-            "   sub edx, 1 ; вычитаем 1, чтобы начать с нужного символа\n"
+            "   sub edx, 0 ; вычитаем 1, чтобы начать с нужного символа\n"
             "\n"
             "   push ebx\n"
             "   push edx\n"
@@ -1427,7 +1578,7 @@ void stc::Asm::initGlobalFunction(const string& name)
             "   pop edx"
             "\n"
             "   leave\n"
-            "   ret 8\n"
+            "   ret 4\n"
             "strlen ENDP\n");
         setPlaceForWriting(asm_place_for_writing::MAIN);
     }
@@ -1517,7 +1668,6 @@ void stc::Asm::initGlobalFunction(const string& name)
             "   mov ebx, [ebp + 12]\n"
             "   sub eax, ebx\n"
             "\n"
-            "   pop eax\n"
             "   pop ebx\n"
             "   pop ecx\n"
             "   pop edx"
@@ -1556,6 +1706,9 @@ void stc::Asm::initGlobalFunction(const string& name)
             "   push [ebp + 8]\n"
             "   call crt__itoa\n"
             "\n"
+            "   pop ebx\n"
+            "   pop ecx\n"
+            "   pop edx\n"
             "   leave\n"
             "   ret 8\n"
             "toString ENDP\n");
@@ -1585,4 +1738,126 @@ void stc::Asm::initGlobalFunction(const string& name)
         setPlaceForWriting(asm_place_for_writing::MAIN);
     }
 }
+
+void stc::Asm::initInterfaces()
+{
+    for (const auto& aClass : m_ast->m_classTable.raw())
+    {
+        if (!aClass->isInterface())
+            continue;
+
+        initInterfacesRecursive(aClass->node(), aClass);
+    }
+}
+
+void stc::Asm::initInterfacesRecursive(stc::Node* currentNode, Class* interface)
+{
+    if (currentNode == nullptr)
+        return;
+
+    if (currentNode->type == NodeType::INTERFACE_FUNCTION_DEFINITION)
+    {
+        initInterfaceFunctionRecursive(currentNode, interface);
+        return;
+    }
+
+    initInterfacesRecursive(currentNode->operand1, interface);
+    initInterfacesRecursive(currentNode->operand2, interface);
+    initInterfacesRecursive(currentNode->operand3, interface);
+    initInterfacesRecursive(currentNode->operand4, interface);
+}
+
+void stc::Asm::initInterfaceFunctionRecursive(stc::Node* currentNode, stc::Class* interface)
+{
+    if (currentNode == nullptr)
+        return;
+
+    if (currentNode->type == NodeType::INTERFACE_FUNCTION_DEFINITION)
+    {
+        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+
+        const auto& interfaceName = interface->name();
+        const auto& functionName = any_cast<Function*>(currentNode->value)->name();
+
+        if (interfaceName == "__number" && functionName == "toString")
+        {
+            initNumberToString();
+        }
+
+        setPlaceForWriting(asm_place_for_writing::MAIN);
+        return;
+    }
+
+    initInterfaceFunctionRecursive(currentNode->operand1, interface);
+    initInterfaceFunctionRecursive(currentNode->operand2, interface);
+    initInterfaceFunctionRecursive(currentNode->operand3, interface);
+    initInterfaceFunctionRecursive(currentNode->operand4, interface);
+}
+
+void stc::Asm::initNumberToString()
+{
+    raw("__number_toString PROC\n"
+        "   enter 0, 0\n"
+        "\n"
+        "   push ebx\n"
+        "   push ecx\n"
+        "   push edx"
+        "\n"
+        "   push 20\n"
+        "   call crt_malloc\n"
+        "   mov ebx, eax\n"
+        "    \n"
+        "   push [ebp + 12]\n"
+        "   push ebx\n"
+        "   push [ebp + 8]\n"
+        "   call crt__itoa\n"
+        "\n"
+        "   leave\n"
+        "   ret 8\n"
+        "__number_toString ENDP\n");
+}
+
+void stc::Asm::initClassFunctionOrField(Node* currentNode, Class* aClass)
+{
+    if (currentNode == nullptr)
+        return;
+
+
+    if (currentNode->type == NodeType::FUNCTION_CALL)
+    {
+        initClassFunctionCall(currentNode, aClass);
+    }
+
+}
+
+void stc::Asm::initClassFunctionCall(stc::Node* currentNode, Class* aClass)
+{
+    if (currentNode == nullptr)
+        return;
+
+    const auto& className = aClass->name();
+    const auto& function = any_cast<Function*>(currentNode->value);
+    const auto& functionName = function->name();
+
+    const auto callName = className + "_" + functionName;
+
+    raw("\n");
+    comment("init stack for " + callName);
+
+    initArgumentsOnStackRecursive(currentNode->operand1);
+
+    const auto& types = function->arguments();
+    const auto& functionReturnVoid = function->returnType() == Type("void");
+
+    comment("call " + callName);
+    call(callName);
+    raw("\n");
+
+    if (!functionReturnVoid)
+    {
+        push(eax);
+    }
+
+}
+
 

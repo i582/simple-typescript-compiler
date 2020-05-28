@@ -11,9 +11,9 @@ stc::Parser::Parser(Lexer* lexer)
 void stc::Parser::error(const std::string& message)
 {
     auto fullMessage = "Parse error: " + message + "\n" +
-            "Current token: '" + m_lexer->currentToken().lexeme() + "' (" +
-                                 to_string(m_lexer->currentToken().line()) + ", " +
-                                 to_string(m_lexer->currentToken().pos()) + ")" + "\n";
+                       "Current token: '" + m_lexer->currentToken().lexeme() + "' (" +
+                       to_string(m_lexer->currentToken().line()) + ", " +
+                       to_string(m_lexer->currentToken().pos()) + ")" + "\n";
 
 
 
@@ -49,7 +49,7 @@ void stc::Parser::check()
 
 
     m_tree->identifyVariables();
-    m_tree->identifyGlobalVariables();
+    m_tree->identifyArrays();
 
     m_tree->addImportVariables();
 
@@ -59,6 +59,9 @@ void stc::Parser::check()
 
 
     m_tree->identifyClasses();
+
+
+    m_tree->identifyInterfaces();
 
     m_tree->checkClassAccessInImplementation();
     m_tree->addPointerToClassForAccessNodesInImplementation();
@@ -421,7 +424,7 @@ stc::Node* stc::Parser::logicalOrExpression()
 
 stc::Node* stc::Parser::assignmentExpression()
 {
-    Node* tempNode = logicalOrExpression();
+    auto tempNode = logicalOrExpression();
 
     if (tryEat([](TokenType type){ return Token::isAssignmentOperator(type); }))
     {
@@ -488,8 +491,8 @@ stc::Node* stc::Parser::statement()
         tempNode = functionStatement();
     }
     else if (tryEat(TokenType::RETURN) ||
-            tryEat(TokenType::BREAK) ||
-            tryEat(TokenType::CONTINUE))
+             tryEat(TokenType::BREAK) ||
+             tryEat(TokenType::CONTINUE))
     {
         return operatorStatement();
     }
@@ -508,6 +511,10 @@ stc::Node* stc::Parser::statement()
     else if (tryEat(TokenType::CLASS))
     {
         return classStatement();
+    }
+    else if (tryEat(TokenType::INTERFACE))
+    {
+        return interfaceStatement();
     }
     else
     {
@@ -637,12 +644,10 @@ stc::Node* stc::Parser::declarationType()
 {
     eat(TokenType::COLON);
 
-    auto fieldTypeString = eat([](TokenType type)
-    {
-        return type == TokenType::IDENTIFIER || type == TokenType::NUMBER ||
-               type == TokenType::BOOLEAN || type == TokenType::STRING ||
-               type == TokenType::VOID || type == TokenType::ANY;
-    });
+    const auto fieldTypeString = eat([](TokenType type)
+                               {
+                               return Token::isThisTypeIsVariableType(type);
+                               });
     auto isArray = false;
 
     if (tryEat(TokenType::LSQR))
@@ -654,7 +659,7 @@ stc::Node* stc::Parser::declarationType()
         eat(TokenType::RSQR);
     }
 
-    auto declarationType = GenericType(fieldTypeString);
+    const auto declarationType = Type(fieldTypeString, isArray);
 
     return new Node(NodeType::DECLARATION_TYPE, declarationType);
 }
@@ -707,7 +712,7 @@ stc::Node* stc::Parser::functionStatement()
     auto functionBodyNode = statement();
 
     return new Node(NodeType::FUNCTION_IMPLEMENTATION, functionName, functionReturnTypeNode,
-                        functionArgsNode, functionBodyNode);
+                    functionArgsNode, functionBodyNode);
 }
 
 stc::Node* stc::Parser::functionArgumentList()
@@ -718,7 +723,7 @@ stc::Node* stc::Parser::functionArgumentList()
 
     while (!tryEat(TokenType::RPAR))
     {
-        auto tempFunctionArgument = functionArgument();
+        const auto tempFunctionArgument = functionArgument();
 
         tempNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_ARGS, 0, tempNode, tempFunctionArgument);
 
@@ -732,17 +737,15 @@ stc::Node* stc::Parser::functionArgumentList()
 
 stc::Node* stc::Parser::functionArgument()
 {
-    Node* tempNode = nullptr;
-
-    auto variableName = eat(TokenType::IDENTIFIER);
-    auto declarationTypeNode = declarationType();
+    const auto variableName = eat(TokenType::IDENTIFIER);
+    const auto declarationTypeNode = declarationType();
 
     if (tryEat(TokenType::ASSIGN))
     {
         skip();
 
-        auto defaultValueExpressionNode = primaryExpression();
-        auto defaultValueNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_DEFAULT_ARG_VALUE, 0, defaultValueExpressionNode);
+        const auto defaultValueExpressionNode = primaryExpression();
+        const auto defaultValueNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_DEFAULT_ARG_VALUE, 0, defaultValueExpressionNode);
 
         return new Node(NodeType::FUNCTION_IMPLEMENTATION_ARG, variableName, declarationTypeNode, defaultValueNode);
     }
@@ -791,7 +794,7 @@ std::string stc::Parser::eat(stc::TokenType type, bool shift)
         error(Token::tokenTypeToString(type) + " expected!");
     }
 
-    auto value = m_lexer->currentToken().lexeme();
+    const auto value = m_lexer->currentToken().lexeme();
 
     if (shift)
     {
@@ -873,21 +876,21 @@ stc::Node* stc::Parser::declareFunctionStatement()
 {
     skip();
     eat(TokenType::FUNCTION);
-    auto functionName = eat(TokenType::IDENTIFIER);
-    auto functionArgsNode = functionArgumentList();
+    const auto functionName = eat(TokenType::IDENTIFIER);
+    const auto functionArgsNode = functionArgumentList();
     auto functionReturnType = Type("void");
 
     if (tryEat(TokenType::COLON))
     {
-        auto declarationNode = declarationType();
+        const auto declarationNode = declarationType();
 
         functionReturnType = any_cast<Type>(declarationNode->value);
     }
 
 
-    auto functionReturnTypeNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, functionReturnType);
+    const auto functionReturnTypeNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, functionReturnType);
 
-    auto functionBodyNode = new Node(NodeType::STATEMENT);
+    const auto functionBodyNode = new Node(NodeType::STATEMENT);
     eat(TokenType::SEMICOLON);
 
 

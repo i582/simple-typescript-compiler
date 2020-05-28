@@ -71,5 +71,5 @@ function bubbleSort(array: number[], size: number)
 }
 
 
-export { input, print, println };
+
 export { printArray, quickSort, bubbleSort };

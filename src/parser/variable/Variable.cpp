@@ -87,6 +87,11 @@ size_t stc::Variable::scopeId() const
     return m_scopeId;
 }
 
+bool stc::Variable::isArray() const
+{
+    return m_type.isArray();
+}
+
 stc::Type stc::Variable::typeVariableValue(VariableValue value)
 {
     Type type{};
@@ -94,15 +99,15 @@ stc::Type stc::Variable::typeVariableValue(VariableValue value)
     std::visit(overload {
         [&](const number& n)
         {
-            type = Type("number");
+            type = Type(FundamentalType::NUMBER);
         },
         [&](const string& s)
         {
-            type = Type("string");
+            type = Type(FundamentalType::SYMBOL, true);
         },
         [&](const bool b)
         {
-            type = Type("boolean");
+            type = Type(FundamentalType::BOOLEAN);
         }
     }, value);
 

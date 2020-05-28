@@ -2,7 +2,7 @@
 
 stc::Node::Node(stc::NodeType type_, const any& value_, stc::Node* operand1_,
                 stc::Node* operand2_, stc::Node* operand3_, stc::Node* operand4_,
-                VariableTable* vars_)
+                VariableTable* vars_, size_t tokenIndex)
 {
     this->type = type_;
     this->value = value_;
@@ -13,6 +13,8 @@ stc::Node::Node(stc::NodeType type_, const any& value_, stc::Node* operand1_,
     this->m_scopeId = -1;
     this->variables = vars_;
 
+
+    this->m_tokenIndex = tokenIndex;
 }
 
 void stc::Node::scopeId(size_t id)

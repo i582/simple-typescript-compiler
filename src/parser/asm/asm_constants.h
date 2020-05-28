@@ -27,6 +27,9 @@ namespace stc
 
     const string function_return =       "   ret\n";
 
+    const string program_exit = "   push 0\n"
+                                "   call ExitProcess\n";
+
     const string tab = "   ";
 
 
