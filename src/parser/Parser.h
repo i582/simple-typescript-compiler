@@ -1,11 +1,12 @@
 #pragma once
 
 #include <functional>
-#include "asm/Asm.h"
+#include "asm/asm.h"
 #include "ast/Ast.h"
 #include "../log/Log.h"
 #include "class/Class.h"
 
+#include "../report/reports.h"
 
 namespace stc
 {
@@ -16,30 +17,31 @@ class Parser
 {
 
 private:
-    Lexer* m_lexer;
+    Lexer2* m_lexer;
     Ast* m_tree;
 
 
 public:
-    explicit Parser(Lexer* lexer);
+    explicit Parser(Lexer2* lexer);
 
 public:
     void parse();
     void check();
     void printTree();
-    Ast* ast();
+    _NODISCARD Ast* ast();
 
 private:
-    void error(const string& message);
+    void report(Node* node, ReportLevel level, const string& name, const string& message);
 
 
-    string eat(TokenType type, bool shift = true);
+
+    Token eat(TokenType type, bool shift = true);
     bool tryEat(TokenType type);
 
-    string eat(const function<bool(TokenType)>& predicate, bool shift = true);
+    Token eat(const function<bool(TokenType)>& predicate, bool shift = true);
     bool tryEat(const function<bool(TokenType)>& predicate);
 
-    string eat();
+    Token eat();
     void skip();
     void unEat();
 
@@ -164,7 +166,13 @@ private:
 
 
             if (hasStaticModifier && hasVisibilityModifier)
-                error("Visibility modifier must precede 'static' modifier");
+            {
+                auto token = eat();
+                auto tempNode = Node(NodeType::CONSTANT_DECLARATION);
+                tempNode.position(token.position());
+
+                report(&tempNode, ReportLevel::FatalError, "errorVisibilityModifier", "Visibility modifier must precede 'static' modifier");
+            }
 
 
             if (!hasStaticModifier && hasVisibilityModifier)
@@ -221,7 +229,7 @@ private:
 
         if (tryEat([](TokenType type){ return Token::isVisibilityModifier(type); }))
         {
-            auto visibilityModifierString = eat();
+            auto visibilityModifierString = eat().lexeme();
             skip();
             visibilityModifier = Class::modifierFromString(visibilityModifierString);
         }

@@ -1,12 +1,11 @@
 #include "Token.h"
 
-stc::Token::Token(const std::string& lexeme, size_t line, size_t pos)
+stc::Token::Token(const std::string& lexeme, const Position& position)
 {
     this->m_lexeme = lexeme;
     this->m_type = typeByLexeme(lexeme);
 
-    this->m_line = line;
-    this->m_pos = pos;
+    this->m_position = position;
 }
 
 stc::TokenType stc::Token::type() const
@@ -17,16 +16,6 @@ stc::TokenType stc::Token::type() const
 std::string stc::Token::lexeme() const
 {
     return m_lexeme;
-}
-
-size_t stc::Token::line() const
-{
-    return m_line;
-}
-
-size_t stc::Token::pos() const
-{
-    return m_pos;
 }
 
 stc::TokenType stc::Token::typeByLexeme(const std::string& lexeme)
@@ -211,7 +200,7 @@ stc::TokenType stc::Token::typeByLexeme(const std::string& lexeme)
     if (isCorrectIdentifier(lexeme))
         return TokenType::IDENTIFIER;
     else
-        ErrorHandle::raise("Lexical error! Incorrect identifier '" + lexeme + "'!");
+        ErrorHandle::report(nullptr, nullptr, ReportLevel::FatalError, "incorrectIdentifier", "Lexical error! Incorrect identifier '" + lexeme + "'!");
 }
 
 bool stc::Token::isNumber(const std::string& lexeme)
@@ -295,24 +284,46 @@ void stc::Token::print() const
     Log::write("'" + tokenTypeToString(m_type) + "'");
     Log::setLogInOutputStream(logInOutputStream);
 
-    Log::write(" Line: ");
+    Log::write("Start Line: ");
 
     if (logInOutputStream)
-        cout << std::setw(10) << std::left << ("'" + std::to_string(m_line) + "'");
+        cout << std::setw(10) << std::left << ("'" + std::to_string(m_position.startLine) + "'");
 
 
     Log::setLogInOutputStream(false);
-    Log::write("'" + std::to_string(m_line) + "'");
+    Log::write("'" + std::to_string(m_position.startLine) + "'");
     Log::setLogInOutputStream(logInOutputStream);
 
-    Log::write(" Pos: ");
+    Log::write("Start Pos: ");
 
     if (logInOutputStream)
-        cout << std::setw(10) << std::left << ("'" + std::to_string(m_pos) + "'");
+        cout << std::setw(10) << std::left << ("'" + std::to_string(m_position.startPos) + "'");
 
     logInOutputStream = Log::loggedInOutputStream();
     Log::setLogInOutputStream(false);
-    Log::write("'" + std::to_string(m_pos) + "'");
+    Log::write("'" + std::to_string(m_position.startPos) + "'");
+
+
+    Log::setLogInOutputStream(logInOutputStream);
+    Log::write("  End Line: ");
+
+    if (logInOutputStream)
+        cout << std::setw(10) << std::left << ("'" + std::to_string(m_position.endLine) + "'");
+
+
+    Log::setLogInOutputStream(false);
+    Log::write("'" + std::to_string(m_position.endLine) + "'");
+    Log::setLogInOutputStream(logInOutputStream);
+
+    Log::write("End Pos: ");
+
+    if (logInOutputStream)
+        cout << std::setw(10) << std::left << ("'" + std::to_string(m_position.endPos) + "'");
+
+    logInOutputStream = Log::loggedInOutputStream();
+    Log::setLogInOutputStream(false);
+    Log::write("'" + std::to_string(m_position.endPos) + "'");
+
     Log::setLogInOutputStream(logInOutputStream);
     Log::write("\n");
 }
@@ -388,43 +399,43 @@ stc::string stc::Token::tokenTypeToString(stc::TokenType type)
         case TokenType::NOT_EQUAL:
             return "Not Equal";
         case TokenType::AND:
-            return "AND";
+            return "&&";
         case TokenType::OR:
-            return "OR";
+            return "||";
         case TokenType::PLUS:
-            return "Plus";
+            return "+";
         case TokenType::MINUS:
-            return "Minus";
+            return "-";
         case TokenType::STAR:
-            return "Star";
+            return "*";
         case TokenType::SLASH:
-            return "Slash";
+            return "/";
         case TokenType::INC:
-            return "Inc";
+            return "++";
         case TokenType::DEC:
-            return "Dec";
+            return "--";
         case TokenType::LBRA:
-            return "Lbra";
+            return "{";
         case TokenType::RBRA:
-            return "Rbra";
+            return "}";
         case TokenType::LPAR:
-            return "Lpar";
+            return "(";
         case TokenType::RPAR:
-            return "Rpar";
+            return ")";
         case TokenType::LSQR:
-            return "Lsqr";
+            return "[";
         case TokenType::RSQR:
-            return "Rsqr";
+            return "]";
         case TokenType::ASSIGN:
-            return "Assign";
+            return "=";
         case TokenType::ADD_ASSIGN:
-            return "Add Assign";
+            return "+=";
         case TokenType::SUB_ASSIGN:
-            return "Sub Assign";
+            return "-=";
         case TokenType::MUL_ASSIGN:
-            return "Mul Assign";
+            return "*=";
         case TokenType::DIV_ASSIGN:
-            return "Div Assign";
+            return "/=";
         case TokenType::FUNCTION:
             return "Function";
         case TokenType::RETURN:
@@ -434,17 +445,17 @@ stc::string stc::Token::tokenTypeToString(stc::TokenType type)
         case TokenType::FALSE:
             return "False";
         case TokenType::SEMICOLON:
-            return "Semicolon";
+            return ";";
         case TokenType::COLON:
-            return "Colon";
+            return ":";
         case TokenType::COMMA:
-            return "Comma";
+            return ",";
         case TokenType::POINT:
-            return "Point";
+            return ".";
         case TokenType::QUESTION:
-            return "Question";
+            return "?";
         case TokenType::EXCLAMATION:
-            return "Exclamation";
+            return "!";
         case TokenType::LINE_COMMENT:
             return "Line Comment";
         case TokenType::BLOCK_COMMENT_START:
@@ -482,4 +493,15 @@ stc::string stc::Token::tokenTypeToString(stc::TokenType type)
         default:
             return "";
     }
+}
+
+bool stc::Token::isComment() const
+{
+    return  m_type == TokenType::BLOCK_COMMENT_START ||
+            m_type == TokenType::LINE_COMMENT;
+}
+
+const stc::Position& stc::Token::position() const
+{
+    return m_position;
 }

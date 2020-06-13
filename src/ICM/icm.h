@@ -1,10 +1,11 @@
 #pragma once
 
-#include "../lexer/Lexer.h"
+
+#include "../lexer/Lexer2.h"
 #include "../parser/Parser.h"
 #include "../parser/ast/Ast.h"
 #include "../analyzer/Analyzer.h"
-#include "../parser/asm/Asm.h"
+#include "../parser/asm/asm.h"
 #include "../log/Log.h"
 #include "../rang.hpp"
 
@@ -15,7 +16,7 @@ namespace stc
 class ICM
 {
 private:
-    Lexer* m_lexer;
+    Lexer2* m_lexer2;
     Parser* m_parser;
     Ast* m_ast;
     Asm* m_asm;
@@ -29,7 +30,7 @@ private:
 public:
     ICM(const string& inputFilePath, const string& outputFilePath)
     {
-        this->m_lexer = nullptr;
+        this->m_lexer2 = nullptr;
         this->m_parser = nullptr;
         this->m_ast = nullptr;
         this->m_asm = nullptr;
@@ -41,7 +42,7 @@ public:
 
     ~ICM()
     {
-        delete m_lexer;
+        delete m_lexer2;
         delete m_parser;
         delete m_ast;
         delete m_asm;
@@ -56,17 +57,18 @@ public:
 
         try
         {
-            this->m_lexer = new Lexer(m_inputFilePath);
-            this->m_parser = new Parser(m_lexer);
+            this->m_lexer2 = new Lexer2(m_inputFilePath);
+            this->m_parser = new Parser(m_lexer2);
             this->m_ast = m_parser->ast();
             this->m_asm = new Asm(m_outputFilePath, m_ast);
 
             this->m_analyzer = new Analyzer(m_ast);
 
+
             if (!withoutLexer)
             {
-                m_lexer->split();
-                m_lexer->printTokens();
+                m_lexer2->split();
+                m_lexer2->print();
             }
 
             if (!withoutParser)
@@ -75,7 +77,7 @@ public:
 
                 if (!withoutSemantic)
                 {
-                    m_parser->check();
+                    m_ast->analyze();
                 }
 
                 m_parser->printTree();
@@ -104,20 +106,31 @@ public:
             rang::fg::gray << rang::style::italic <<
             m_inputFilePath
             << rang::fg::reset << rang::style::reset <<
-            ":" << std::endl;
+            ":" << std::endl << std::endl;
 
-            std::cout << rang::fgB::red << rang::style::bold <<
-            error.what()
-            << rang::fg::reset << rang::style::reset << std::endl;
+
+            const auto loggedInStream = Log::loggedInOutputStream();
+            Log::setLogInOutputStream(true);
+
+
+            ErrorHandle::reports().print();
+            ErrorHandle::reports().clear();
+
+            Log::setLogInOutputStream(loggedInStream);
+
+            std::cerr << rang::fgB::red << rang::style::bold <<
+
+            error.what();
+            std::cerr << rang::fg::reset << rang::style::reset << std::endl;
 
             return false;
         }
     }
 
 public:
-    _NODISCARD Lexer* lexer() const noexcept
+    _NODISCARD Lexer2* lexer() const noexcept
     {
-        return m_lexer;
+        return m_lexer2;
     }
 
     _NODISCARD Parser* parser() const noexcept

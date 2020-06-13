@@ -7,8 +7,6 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(stc
         src/lexer/token/Token.cpp
         src/lexer/token/Token.h
-        src/lexer/Lexer.cpp
-        src/lexer/Lexer.h
         src/main.cpp src/parser/node/Node.cpp
         src/parser/node/Node.h src/parser/Parser.cpp
         src/parser/Parser.h src/parser/ast/Ast.cpp
@@ -40,4 +38,4 @@ add_executable(stc
         src/parser/class/ClassTable.h
         src/parser/class/ClassTable.cpp
 
-        )
+        src/report/report.h src/report/reports.h src/lexer/token/Position.h src/lexer/token/TokenType.h src/lexer/Lexer2.h src/utils/utils.h src/parser/node/NodeType.h src/errorHandle/errorHandle.cpp src/report/report.cpp src/parser/ast/AstVariables.cpp src/parser/ast/AstChecks.cpp src/parser/ast/AstUtils.cpp src/parser/ast/AstExpressionType.cpp src/parser/asm/AsmGeneralBlocks.cpp src/parser/initializer/initializer.h src/parser/ast/AstPrint.cpp src/parser/ast/AstClasses.cpp src/parser/ast/AstImports.cpp)

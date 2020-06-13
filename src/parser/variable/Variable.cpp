@@ -99,15 +99,15 @@ stc::Type stc::Variable::typeVariableValue(VariableValue value)
     std::visit(overload {
         [&](const number& n)
         {
-            type = Type(FundamentalType::NUMBER);
+            type = Type(FundamentalType::Number);
         },
         [&](const string& s)
         {
-            type = Type(FundamentalType::SYMBOL, true);
+            type = Type(FundamentalType::Symbol, true);
         },
         [&](const bool b)
         {
-            type = Type(FundamentalType::BOOLEAN);
+            type = Type(FundamentalType::Boolean);
         }
     }, value);
 

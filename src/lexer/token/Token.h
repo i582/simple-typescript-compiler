@@ -4,7 +4,8 @@
 #include <string>
 #include "../../errorHandle/errorHandle.h"
 #include "../../log/Log.h"
-
+#include "TokenType.h"
+#include "Position.h"
 
 namespace stc
 {
@@ -12,127 +13,11 @@ using std::string;
 using std::cout;
 using std::endl;
 
-enum class TokenType
+
+enum class StringLiteralType
 {
-    NUMBER_CONST, // number const
-    STRING_CONST, // string const
-
-    // general for variable and function
-    IDENTIFIER,
-
-
-    // variables
-    LET,
-    CONST = 0x0010,
-
-
-    // type
-    NUMBER          = 0x001000,
-    BOOLEAN         = 0x002000,
-    STRING          = 0x003000,
-    VOID            = 0x004000,
-    ANY             = 0x005000,
-
-
-    // cycles
-    DO_WHILE = 0x00F0,
-    WHILE,
-    FOR,
-    // cycles addition
-    BREAK,
-    CONTINUE,
-
-
-    // conditions
-    IF,
-    ELSE,
-
-
-    // relationship operators
-    LESS, // <
-    GREATER, // >
-    LESS_EQUAL, // <=
-    GREATER_EQUAL, // >=
-
-
-    // equal operators
-    EQUAL, // ==
-    NOT_EQUAL, // !=
-
-
-    // logical operators
-    AND, // &&
-    OR, // ||
-
-
-    // math operators
-    PLUS, // +
-    MINUS, // -
-    STAR, // *
-    SLASH, // /
-    INC, // ++
-    DEC, // --
-
-
-    // brackets
-    LBRA, // {
-    RBRA, // }
-    LPAR, // (
-    RPAR, // )
-    LSQR, // [
-    RSQR, // ]
-
-
-    // assign
-    ASSIGN, // =
-    ADD_ASSIGN, // +=
-    SUB_ASSIGN, // -=
-    MUL_ASSIGN, // *=
-    DIV_ASSIGN, // /=
-
-
-    // function
-    FUNCTION,
-    RETURN,
-
-    // boolean values
-    TRUE,
-    FALSE,
-
-    // other symbols
-    SEMICOLON, // ;
-    COLON, // :
-    COMMA, // ,
-    POINT, // .
-    QUESTION, // ?
-    EXCLAMATION, // !
-
-    // comment
-    LINE_COMMENT, // //
-    BLOCK_COMMENT_START, // /*
-    BLOCK_COMMENT_END, // */
-
-
-    // operator new
-    NEW,
-
-
-    DECLARE,
-    IMPORT,
-    EXPORT,
-    FROM,
-
-
-    // classes
-    CLASS,
-    CONSTRUCTOR,
-    PRIVATE,
-    PUBLIC,
-    PROTECTED,
-    STATIC,
-    THIS,
-
-    INTERFACE,
+    DoubleQuoted,
+    SingleQuoted
 };
 
 class Token
@@ -141,17 +26,19 @@ private:
     string m_lexeme;
     TokenType m_type;
 
-    size_t m_line;
-    size_t m_pos;
+    Position m_position;
 
 public:
-    explicit Token(const string& lexeme, size_t line = 0, size_t pos = 0);
+    explicit Token(const string& lexeme, const Position& position);
 
 public:
     _NODISCARD TokenType type() const;
     _NODISCARD string lexeme() const;
-    _NODISCARD size_t line() const;
-    _NODISCARD size_t pos() const;
+
+    _NODISCARD const Position& position() const;
+
+
+    _NODISCARD bool isComment() const;
 
 public:
     void print() const;
@@ -169,7 +56,8 @@ public:
     _NODISCARD static string tokenTypeToString(TokenType type);
 
     static bool isCorrectIdentifier(const string& lexeme);
-    static bool isVisibilityModifier(stc::TokenType type);
+    static bool isVisibilityModifier(TokenType type);
+
 };
 
 

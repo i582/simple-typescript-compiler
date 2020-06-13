@@ -14,7 +14,7 @@ using std::to_string;
 using std::ofstream;
 
 
-enum class asm_place_for_writing
+enum class AsmPlaceForWriting
 {
     DATA,
     BEFORE_MAIN,
@@ -80,6 +80,32 @@ private:
     void initClassFunctionCall(Node* currentNode, Class* aClass);
 
 private:
+
+    void initMemoryManager();
+    void freeMemoryManager();
+
+    // AsmGeneralBlocks.cpp
+    void setBlockToAsm(Node* currentNode);
+    void ifBlockToAsm(Node* currentNode);
+    void whileBlockToAsm(Node* currentNode);
+    void doWhileBlockToAsm(Node* currentNode);
+    void forBlockToAsm(Node* currentNode);
+    void functionImplementationToAsm(Node* currentNode);
+    void functionCallToAsm(Node* currentNode);
+    void returnOperatorToAsm(Node* currentNode);
+    void breakOperatorToAsm(Node* currentNode);
+    void continueOperatorToAsm(Node* currentNode);
+
+
+    /**
+     * @brief Функция генерирует ассемблерный код для инициализатора вида [...]
+     * @param currentNode
+     */
+    void initializerToAsm(Node* currentNode);
+    void initializerElementToAsm(Node* currentNode, size_t initializerSize, size_t& elementIndex);
+
+
+
     void blockToAsmRecursive(Node* currentNode);
     void expressionToAsmRecursive(Node* currentNode);
     void relationExpressionToAsmRecursive(Node* currentNode);
@@ -87,6 +113,8 @@ private:
     void initStringConstantsRecursive(Node* currentNode, size_t& countConstant);
 
     void initArgumentsOnStackRecursive(Node* currentNode);
+
+
     void initGlobalFunctionsRecursive(Node* currentNode);
 
 
@@ -104,11 +132,11 @@ private:
 
 
 
-
+    void malloc(const string& value);
 
     void write(const string& text);
 
-    void setPlaceForWriting(asm_place_for_writing place);
+    void setPlaceForWriting(AsmPlaceForWriting place);
 
     // generic functions
     static string offset(const string& value);
@@ -121,11 +149,11 @@ private:
 
 
 
-    void stack_variable(const Variable* variable);
-    void stack_argument(const Variable* variable);
+    void stackVariable(const Variable* variable);
+    void stackArgument(const Variable* variable);
 
 
-    void global_array(const Array& array);
+    void globalArray(const Array& array);
 
 
     // stack

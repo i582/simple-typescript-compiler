@@ -1,20 +1,19 @@
 #include "Node.h"
 
-stc::Node::Node(stc::NodeType type_, const any& value_, stc::Node* operand1_,
-                stc::Node* operand2_, stc::Node* operand3_, stc::Node* operand4_,
-                VariableTable* vars_, size_t tokenIndex)
+stc::Node::Node(stc::NodeType tType, const any& tValue, stc::Node* tOperand1,
+                stc::Node* tOperand2, stc::Node* tOperand3, stc::Node* tOperand4,
+                VariableTable* tVariables)
 {
-    this->type = type_;
-    this->value = value_;
-    this->operand1 = operand1_;
-    this->operand2 = operand2_;
-    this->operand3 = operand3_;
-    this->operand4 = operand4_;
+    this->type = tType;
+    this->value = tValue;
+    this->operand1 = tOperand1;
+    this->operand2 = tOperand2;
+    this->operand3 = tOperand3;
+    this->operand4 = tOperand4;
     this->m_scopeId = -1;
-    this->variables = vars_;
+    this->variables = tVariables;
 
-
-    this->m_tokenIndex = tokenIndex;
+    this->positionFromChilds();
 }
 
 void stc::Node::scopeId(size_t id)
@@ -211,7 +210,7 @@ std::string stc::Node::nodeTypeToString(stc::NodeType type)
         {
             return "initializer";
         }
-        case NodeType::INITIALIZER_LIST:
+        case NodeType::INITIALIZER_LIST_ELEMENT:
         {
             return "initializer list";
         }
@@ -275,4 +274,46 @@ bool stc::Node::isLvalueNodeType(stc::NodeType type)
             type == NodeType::INDEX_CAPTURE ||
             type == NodeType::CLASS_ACCESS_TO_FIELD ||
             type == NodeType::CLASS_ACCESS_TO_STATIC_FIELD;
+}
+
+const stc::Position& stc::Node::position() const
+{
+    return m_position;
+}
+
+void stc::Node::position(const Position& position)
+{
+    m_position = position;
+}
+
+void stc::Node::positionFromChilds()
+{
+    vector<Node*> childs;
+
+    if (operand1 != nullptr) childs.push_back(operand1);
+    if (operand2 != nullptr) childs.push_back(operand2);
+    if (operand3 != nullptr) childs.push_back(operand3);
+    if (operand4 != nullptr) childs.push_back(operand4);
+
+
+    if (childs.empty())
+    {
+        return;
+    }
+    else if (childs.size() == 1)
+    {
+        m_position = childs[0]->position();
+    }
+    else
+    {
+        const auto first = childs[0]->position();
+        const auto last = childs[childs.size() - 1]->position();
+
+        m_position = Position(first.startPos, last.endPos, first.startLine, last.endLine);
+    }
+}
+
+bool stc::Node::isComparisonOperator() const
+{
+    return Node::isComparisonOperator(this->type);
 }

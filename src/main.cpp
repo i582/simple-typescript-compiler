@@ -9,8 +9,6 @@ using namespace std;
 namespace fs = filesystem;
 
 
-
-
 int main(int argc, char** argv)
 {
     string inputFile;
@@ -28,7 +26,7 @@ int main(int argc, char** argv)
     auto showAbout = false;
     auto updateMode = false;
 
-    auto cli = (
+    const auto cli = (
         (
             value("input file", inputFile),
             option("-o") & value("output file", outputFile) % "output asm file",
@@ -119,14 +117,12 @@ int main(int argc, char** argv)
 
                 const auto begin = chrono::steady_clock::now();
 
-
                 const auto result = icm.compile(false, false, false, false);
-
 
                 const auto end = chrono::steady_clock::now();
 
-                auto elapsed_ms = chrono::duration_cast<chrono::milliseconds>(end - begin);
-                auto elapsed_mcs = chrono::duration_cast<chrono::microseconds>(end - begin);
+                const auto elapsed_ms = chrono::duration_cast<chrono::milliseconds>(end - begin);
+                const auto elapsed_mcs = chrono::duration_cast<chrono::microseconds>(end - begin);
 
                 if (result)
                 {
@@ -191,8 +187,6 @@ int main(int argc, char** argv)
 
 
     }
-
-    //../testPrograms/factorial.ts
 
     return 0;
 }

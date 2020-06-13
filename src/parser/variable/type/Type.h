@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include "../../../errorHandle/errorHandle.h"
-#include "../../../lexer/Lexer.h"
+#include "../../../lexer/Lexer2.h"
 #include "../../../log/Log.h"
 
 namespace stc
@@ -14,11 +14,13 @@ using std::string;
 
 enum class FundamentalType
 {
-    NUMBER,
-    BOOLEAN,
-    SYMBOL,
-    VOID,
-    ANY
+    Undefined,
+
+    Number,
+    Boolean,
+    Symbol,
+    Void,
+    Any
 };
 
 class Type
@@ -28,7 +30,11 @@ private:
     bool m_isArray;
 
 public:
-    Type() = default;
+    Type()
+    {
+        this->m_fundamentalType = FundamentalType::Undefined;
+        this->m_isArray = false;
+    }
 
     explicit Type(const string& value, bool isArray = false)
     {
@@ -42,23 +48,23 @@ public:
         {
             case TokenType::NUMBER:
             {
-                this->m_fundamentalType = FundamentalType::NUMBER;
+                this->m_fundamentalType = FundamentalType::Number;
                 break;
             }
             case TokenType::BOOLEAN:
             {
-                this->m_fundamentalType = FundamentalType::BOOLEAN;
+                this->m_fundamentalType = FundamentalType::Boolean;
                 break;
             }
             case TokenType::STRING:
             {
-                this->m_fundamentalType = FundamentalType::SYMBOL;
+                this->m_fundamentalType = FundamentalType::Symbol;
                 this->m_isArray = true;
                 break;
             }
             case TokenType::VOID:
             {
-                this->m_fundamentalType = FundamentalType::VOID;
+                this->m_fundamentalType = FundamentalType::Void;
                 break;
             }
 
@@ -94,6 +100,11 @@ public:
 
 
 public:
+    bool isUndefined() const
+    {
+        return m_fundamentalType == FundamentalType::Undefined;
+    }
+
     bool is(FundamentalType type, bool isArray = false) const noexcept
     {
         return m_fundamentalType == type && m_isArray == isArray;
@@ -127,39 +138,45 @@ public:
     {
         switch (m_fundamentalType)
         {
-            case FundamentalType::NUMBER:
+            case FundamentalType::Number:
                 return 4;
-            case FundamentalType::BOOLEAN:
+            case FundamentalType::Boolean:
                 return 1;
-            case FundamentalType::SYMBOL:
+            case FundamentalType::Symbol:
                 return isArray() ? 4 : 1;
-            case FundamentalType::VOID:
+            case FundamentalType::Void:
                 return 0;
             default:
                 return 0;
         }
     }
 
-
+    /**
+     * @brief Функция проверяющая являются ли переданные типы приводимыми друг к другу
+     * @param type Тип для проверки
+     * @return bool
+     */
     _NODISCARD bool isReducibleWith(const Type& type) const noexcept
     {
         return  this->m_fundamentalType == type.m_fundamentalType ||
-                type.m_fundamentalType == FundamentalType::ANY;
+                type.m_fundamentalType == FundamentalType::Any;
     }
 
 public:
     static FundamentalType typeFromString(const string& value)
     {
         if (value == "number")
-            return FundamentalType::NUMBER;
+            return FundamentalType::Number;
         if (value == "boolean")
-            return FundamentalType::BOOLEAN;
+            return FundamentalType::Boolean;
         if (value == "symbol")
-            return FundamentalType::SYMBOL;
+            return FundamentalType::Symbol;
         if (value == "string")
-            return FundamentalType::SYMBOL;
+            return FundamentalType::Symbol;
         if (value == "void")
-            return FundamentalType::VOID;
+            return FundamentalType::Void;
+        if (value == "any")
+            return FundamentalType::Any;
 
         throw std::logic_error("Unrecognized type!");
     }
@@ -167,16 +184,18 @@ public:
     {
         switch (type)
         {
-            case FundamentalType::NUMBER:
+            case FundamentalType::Number:
                 return "number";
-            case FundamentalType::BOOLEAN:
+            case FundamentalType::Boolean:
                 return "boolean";
-            case FundamentalType::SYMBOL:
+            case FundamentalType::Symbol:
                 return "symbol";
-            case FundamentalType::VOID:
+            case FundamentalType::Void:
                 return "void";
-            case FundamentalType::ANY:
+            case FundamentalType::Any:
                 return "any";
+            case FundamentalType::Undefined:
+                return "undefined";
             default:
                 return "";
 

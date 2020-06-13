@@ -13,6 +13,8 @@ void stc::Asm::generate()
 {
     Log::write("-- Started preparation for code generation\n");
 
+    initMemoryManager();
+
     initStringConstants();
     initOperandsForDivision();
     initLocalVariables();
@@ -28,7 +30,7 @@ void stc::Asm::generate()
     Log::write("-- Started code generation\n");
     blocksToAsm();
 
-
+    freeMemoryManager();
 
     write(asm_header);
 
@@ -71,7 +73,7 @@ void stc::Asm::initLocalVariables()
     {
         if (variable->isGlobal())
         {
-            stack_variable(variable);
+            stackVariable(variable);
         }
     }
 
@@ -81,7 +83,7 @@ void stc::Asm::initLocalVariables()
     {
         for (const auto& localVariable : function->localVariables())
         {
-            stack_variable(localVariable);
+            stackVariable(localVariable);
         }
 
         m_byteOnStack = 4;
@@ -91,16 +93,16 @@ void stc::Asm::initLocalVariables()
 
 void stc::Asm::initGlobalVariables()
 {
-    setPlaceForWriting(asm_place_for_writing::DATA);
+    setPlaceForWriting(AsmPlaceForWriting::DATA);
     raw("\n; Global variable START\n");
 
     for (const auto& array: m_ast->m_arrays)
     {
-        global_array(array);
+        globalArray(array);
     }
 
     raw("; Global variable END\n\n");
-    setPlaceForWriting(asm_place_for_writing::MAIN);
+    setPlaceForWriting(AsmPlaceForWriting::MAIN);
 }
 
 void stc::Asm::initFunctionArguments()
@@ -109,9 +111,9 @@ void stc::Asm::initFunctionArguments()
     {
         m_byteOnStack = 8;
 
-        for (const auto& argument_variable : function->argumentVariables())
+        for (const auto& argumentVariable : function->argumentVariables())
         {
-            stack_argument(argument_variable);
+            stackArgument(argumentVariable);
         }
     }
 }
@@ -128,261 +130,84 @@ void stc::Asm::blockToAsmRecursive(stc::Node* currentNode)
 
     if (currentNode->type == NodeType::SET)
     {
-        const auto op1 = currentNode->operand1;
-        const auto op2 = currentNode->operand2;
-
-        if (op1->type == NodeType::USING_VARIABLE ||
-            op1->type == NodeType::VARIABLE_DECLARATION ||
-            op1->type == NodeType::CONSTANT_DECLARATION)
-        {
-            const auto variable = any_cast<Variable*>(op1->value);
-            const auto variableName = variable->nameWithPostfix();
-
-
-            expressionToAsmRecursive(op2);
-
-            // pop eax
-            pop(eax);
-
-            if (variable->isArgument())
-            {
-                // mov arg_variable, eax
-                mov(argument_var(variableName), eax);
-            }
-            else
-            {
-                // mov variable[ebp], eax
-                mov(local_var(variableName), eax);
-            }
-        }
+        setBlockToAsm(currentNode);
         return;
     }
-    else if (Node::isComparisonOperator(currentNode->type))
+    else if (currentNode->isComparisonOperator())
     {
         relationExpressionToAsmRecursive(currentNode);
         return;
     }
     else if (currentNode->type == NodeType::IF || currentNode->type == NodeType::IF_ELSE)
     {
-        const auto conditionNode = currentNode->operand1->operand1;
-        const auto statementNode = currentNode->operand2;
-        const auto elseStatementNode = currentNode->operand3;
-
-        const auto startLabel = "_if_start_" + to_string(statementNode->scopeId());
-        const auto endLabel = "_if_end_" + to_string(statementNode->scopeId());
-        const auto elseLabel = "_if_else_" + to_string(statementNode->scopeId());
-
-
-        blockToAsmRecursive(conditionNode);
-        pop(eax);
-        cmp(eax, null);
-
-
-        auto endOrElseLabel = endLabel;
-        if (currentNode->type == NodeType::IF_ELSE)
-        {
-            endOrElseLabel = elseLabel;
-        }
-
-
-        je(endOrElseLabel);
-
-
-        if (currentNode->type == NodeType::IF_ELSE)
-        {
-            // label:
-            label(startLabel);
-            blockToAsmRecursive(statementNode);
-
-            // jmp label
-            jmp(endLabel);
-
-            // label:
-            label(elseLabel);
-            blockToAsmRecursive(elseStatementNode);
-
-            // label:
-            label(endLabel);
-
-        }
-        else if (currentNode->type == NodeType::IF)
-        {
-            // label:
-            label(startLabel);
-            blockToAsmRecursive(statementNode);
-
-            // label:
-            label(endLabel);
-        }
-
+        ifBlockToAsm(currentNode);
         return;
     }
     else if (currentNode->type == NodeType::WHILE)
     {
-        const auto conditionNode = currentNode->operand1->operand1;
-        const auto statementNode = currentNode->operand2;
-
-        const auto startLabel = "_loop_start_" + to_string(statementNode->scopeId());
-        const auto endLabel = "_loop_end_" + to_string(statementNode->scopeId());
-        const auto afterEffectsLabel = "_loop_aftereffects_" + to_string(statementNode->scopeId());
-
-
-        label(startLabel);
-        label(afterEffectsLabel);
-
-
-        blockToAsmRecursive(conditionNode);
-
-        pop(eax);
-        cmp(eax, null);
-
-        je(endLabel);
-
-        blockToAsmRecursive(statementNode);
-        jmp(startLabel);
-
-        // label:
-        label(endLabel);
-
+        whileBlockToAsm(currentNode);
         return;
     }
     else if (currentNode->type == NodeType::DO_WHILE)
     {
-        const auto conditionNode = currentNode->operand1->operand1;
-        const auto statementNode = currentNode->operand2;
-
-        const auto startLabel = "_loop_start_" + to_string(statementNode->scopeId());
-        const auto endLabel = "_loop_end_" + to_string(statementNode->scopeId());
-        const auto afterEffectsLabel = "_loop_aftereffects_" + to_string(statementNode->scopeId());
-
-
-        label(startLabel);
-        label(afterEffectsLabel);
-
-
-        blockToAsmRecursive(statementNode);
-        blockToAsmRecursive(conditionNode);
-
-
-        pop(eax);
-        cmp(eax, null);
-
-        je(endLabel);
-
-        jmp(startLabel);
-
-        // label:
-        label(endLabel);
-
+        doWhileBlockToAsm(currentNode);
         return;
     }
     else if (currentNode->type == NodeType::FOR)
     {
-        const auto preventionNode = currentNode->operand1->operand1;
-        const auto conditionNode = currentNode->operand2->operand1;
-        const auto afterEffectsNode = currentNode->operand3->operand1;
-        const auto statementNode = currentNode->operand4;
-
-        const auto startLabel = "_loop_start_" + to_string(statementNode->scopeId());
-        const auto endLabel = "_loop_end_" + to_string(statementNode->scopeId());
-        const auto afterEffectsLabel = "_loop_aftereffects_" + to_string(statementNode->scopeId());
-
-
-        blockToAsmRecursive(preventionNode);
-        label(startLabel);
-
-        blockToAsmRecursive(conditionNode);
-
-        pop(eax);
-        cmp(eax, null);
-
-        je(endLabel);
-
-
-        blockToAsmRecursive(statementNode);
-        label(afterEffectsLabel);
-
-        blockToAsmRecursive(afterEffectsNode);
-        jmp(startLabel);
-
-        // label:
-        label(endLabel);
+        forBlockToAsm(currentNode);
         return;
     }
     else if (currentNode->type == NodeType::BREAK)
     {
-        const auto scopeId = currentNode->scopeId() + 2;
-        const auto labelValue = "_loop_end_" + to_string(scopeId);
-
-        jmp(labelValue);
+        breakOperatorToAsm(currentNode);
         return;
     }
     else if (currentNode->type == NodeType::CONTINUE)
     {
-        const auto scopeId = currentNode->scopeId() + 2;
-        const auto labelValue = "_loop_aftereffects_" + to_string(scopeId);
-
-        jmp(labelValue);
+        continueOperatorToAsm(currentNode);
         return;
     }
-
     else if (currentNode->type == NodeType::FUNCTION_IMPLEMENTATION)
     {
-        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
-
-        functionImplementationRecursive(currentNode);
-
-        setPlaceForWriting(asm_place_for_writing::MAIN);
-
+        functionImplementationToAsm(currentNode);
         return;
     }
     else if (currentNode->type == NodeType::RETURN)
     {
-        if (currentNode->operand1->operand1 != nullptr)
-        {
-            expressionToAsmRecursive(currentNode->operand1);
-            pop(eax);
-        }
-
-        const auto argumentsSize = any_cast<size_t>(currentNode->value);
-
-        procedure_epilogue();
-        ret(to_string(argumentsSize));
+        returnOperatorToAsm(currentNode);
         return;
     }
     else if (currentNode->type == NodeType::FUNCTION_CALL)
     {
-        expressionToAsmRecursive(currentNode);
+        functionCallToAsm(currentNode);
         return;
     }
-    else if (currentNode->type == NodeType::BEFORE_INC ||
-             currentNode->type == NodeType::BEFORE_DEC)
+    else if (currentNode->type == NodeType::INITIALIZER)
     {
-        expressionToAsmRecursive(currentNode);
+        initializerToAsm(currentNode);
         return;
     }
-    else if (currentNode->type == NodeType::NUMBER_CONST ||
-             currentNode->type == NodeType::BOOLEAN_CONST ||
-             currentNode->type == NodeType::USING_VARIABLE ||
-             currentNode->type == NodeType::USING_CONSTANT ||
-             currentNode->type == NodeType::INDEX_CAPTURE ||
-             currentNode->type == NodeType::UNARY_EXCLAMATION ||
-             currentNode->type == NodeType::UNARY_MINUS)
+    else if (currentNode->type == NodeType::STATEMENT || currentNode->type == NodeType::PROGRAM)
     {
-        expressionToAsmRecursive(currentNode);
+        blockToAsmRecursive(currentNode->operand1);
+        return;
+    }
+    else if (currentNode->type == NodeType::STATEMENT_LIST)
+    {
+        blockToAsmRecursive(currentNode->operand1);
+        blockToAsmRecursive(currentNode->operand2);
         return;
     }
     else if (currentNode->type == NodeType::EXPRESSION)
     {
         blockToAsmRecursive(currentNode->operand1);
+    }
+    else
+    {
+        expressionToAsmRecursive(currentNode);
         return;
     }
-
-
-    blockToAsmRecursive(currentNode->operand1);
-    blockToAsmRecursive(currentNode->operand2);
-    blockToAsmRecursive(currentNode->operand3);
-    blockToAsmRecursive(currentNode->operand4);
 }
 
 void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
@@ -514,26 +339,7 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
     }
     else if (currentNode->type == NodeType::FUNCTION_CALL)
     {
-        const auto& function = any_cast<Function*>(currentNode->value);
-        const auto& functionName = function->name();
-
-        raw("\n");
-        comment("init stack for " + functionName);
-
-        initArgumentsOnStackRecursive(currentNode->operand1);
-
-        const auto& types = function->arguments();
-        const auto functionReturnVoid = function->returnType() == Type("void");
-
-        comment("call " + functionName);
-        call(functionName);
-        raw("\n");
-
-        if (!functionReturnVoid)
-        {
-            push(eax);
-        }
-
+        functionCallToAsm(currentNode);
         return;
     }
     else if (currentNode->type == NodeType::EXPRESSION)
@@ -545,6 +351,26 @@ void stc::Asm::expressionToAsmRecursive(stc::Node* currentNode)
         const auto aClass = any_cast<Class*>(currentNode->value);
 
         initClassFunctionOrField(currentNode->operand2, aClass);
+    }
+    else if (currentNode->type == NodeType::INDEX_CAPTURE)
+    {
+        const auto type = m_ast->checkAndGiveExpressionType(currentNode->operand1);
+
+
+        expressionToAsmRecursive(currentNode->operand1);
+        pop(eax);
+
+        mov(edi, eax);
+
+        expressionToAsmRecursive(currentNode->operand2);
+        pop(ebx);
+
+
+
+        imul(ebx, "4");
+
+        add(edi, ebx);
+        push("DWORD PTR [edi]");
     }
 }
 
@@ -789,22 +615,22 @@ void stc::Asm::initArgumentsOnStackRecursive(stc::Node* currentNode)
     if (currentNode == nullptr)
         return;
 
-    if (currentNode->type == NodeType::FUNCTION_CALL)
+    if (currentNode->type == NodeType::FUNCTION_ARGS)
     {
-        //expressionToAsmRecursive(currentNode);
+        blockToAsmRecursive(currentNode->operand1);
+
+        initArgumentsOnStackRecursive(currentNode->operand2);
         return;
     }
 
-    expressionToAsmRecursive(currentNode->operand1);
-    expressionToAsmRecursive(currentNode->operand2);
-    expressionToAsmRecursive(currentNode->operand3);
-    expressionToAsmRecursive(currentNode->operand4);
 
     initArgumentsOnStackRecursive(currentNode->operand1);
     initArgumentsOnStackRecursive(currentNode->operand2);
     initArgumentsOnStackRecursive(currentNode->operand3);
     initArgumentsOnStackRecursive(currentNode->operand4);
 }
+
+
 
 void stc::Asm::initGlobalFunctions()
 {
@@ -833,13 +659,13 @@ void stc::Asm::initGlobalFunctionsRecursive(stc::Node* currentNode)
 
 void stc::Asm::initInputFunction()
 {
-    setPlaceForWriting(asm_place_for_writing::DATA);
+    setPlaceForWriting(AsmPlaceForWriting::DATA);
     raw(tab + "input_format db \"%d\", 0\n");
     raw(tab + "input_result dd 0\n");
-    setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+    setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
 
     proc("input");
-    procedure_prolog(0, 0);
+    procedure_prolog(16, 0);
 
 
     push(ebx);
@@ -858,43 +684,37 @@ void stc::Asm::initInputFunction()
     ret();
     endp("input");
 
-    setPlaceForWriting(asm_place_for_writing::MAIN);
+    setPlaceForWriting(AsmPlaceForWriting::MAIN);
 }
 
 void stc::Asm::initPrintFunction()
 {
-    setPlaceForWriting(asm_place_for_writing::DATA);
+    setPlaceForWriting(AsmPlaceForWriting::DATA);
     raw(tab + "print_format db \"%d \", 0\n");
-    setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+    setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
 
     proc("print");
-    procedure_prolog(0, 0);
+    procedure_prolog(4, 0);
 
     push(eax);
-    push(ebx);
-    push(ecx);
-    push(edx);
 
     mov(eax, "[ebp + 8]");
     raw(tab + "invoke crt_printf, offset print_format, eax\n");
 
     pop(eax);
-    pop(ebx);
-    pop(ecx);
-    pop(edx);
 
     procedure_epilogue();
     ret("4");
     endp("print");
 
-    setPlaceForWriting(asm_place_for_writing::MAIN);
+    setPlaceForWriting(AsmPlaceForWriting::MAIN);
 }
 
 void stc::Asm::initPrintlnFunction()
 {
-    setPlaceForWriting(asm_place_for_writing::DATA);
+    setPlaceForWriting(AsmPlaceForWriting::DATA);
     raw(tab + "println_format db \"%s\", 0\n");
-    setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+    setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
 
     proc("println");
     procedure_prolog(0, 0);
@@ -916,14 +736,14 @@ void stc::Asm::initPrintlnFunction()
     ret("4");
     endp("println");
 
-    setPlaceForWriting(asm_place_for_writing::MAIN);
+    setPlaceForWriting(AsmPlaceForWriting::MAIN);
 }
 
 void stc::Asm::initSqrtFunction()
 {
-    setPlaceForWriting(asm_place_for_writing::DATA);
+    setPlaceForWriting(AsmPlaceForWriting::DATA);
     raw(tab + "sqrt_result dd 0\n");
-    setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+    setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
 
     proc("sqrt");
     procedure_prolog(0, 0);
@@ -950,38 +770,38 @@ void stc::Asm::initSqrtFunction()
     ret("4");
     endp("sqrt");
 
-    setPlaceForWriting(asm_place_for_writing::MAIN);
+    setPlaceForWriting(AsmPlaceForWriting::MAIN);
 }
 
 
 void stc::Asm::initOperandsForDivision()
 {
-    setPlaceForWriting(asm_place_for_writing::DATA);
+    setPlaceForWriting(AsmPlaceForWriting::DATA);
     raw(tab + "div_operand_1 dd 0\n");
     raw(tab + "div_operand_2 dd 0\n");
-    setPlaceForWriting(asm_place_for_writing::MAIN);
+    setPlaceForWriting(AsmPlaceForWriting::MAIN);
 }
 
-void stc::Asm::setPlaceForWriting(stc::asm_place_for_writing place)
+void stc::Asm::setPlaceForWriting(stc::AsmPlaceForWriting place)
 {
     switch (place)
     {
-        case asm_place_for_writing::DATA:
+        case AsmPlaceForWriting::DATA:
         {
             m_currentPlaceForWriting = &m_data;
             break;
         }
-        case asm_place_for_writing::BEFORE_MAIN:
+        case AsmPlaceForWriting::BEFORE_MAIN:
         {
             m_currentPlaceForWriting = &m_beforeMain;
             break;
         }
-        case asm_place_for_writing::FUNCTION_IMPLEMENTATIONS:
+        case AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS:
         {
             m_currentPlaceForWriting = &m_functionImplementations;
             break;
         }
-        case asm_place_for_writing::MAIN:
+        case AsmPlaceForWriting::MAIN:
         {
             m_currentPlaceForWriting = &m_main;
             break;
@@ -1039,7 +859,7 @@ void stc::Asm::raw(const string& value)
     m_currentPlaceForWriting->append(value);
 }
 
-void stc::Asm::stack_variable(const Variable* variable)
+void stc::Asm::stackVariable(const Variable* variable)
 {
     const auto variableName = variable->nameWithPostfix();
     const auto variableSize = variable->type().size();
@@ -1050,7 +870,7 @@ void stc::Asm::stack_variable(const Variable* variable)
     m_byteOnStack += variableSize;
 }
 
-void stc::Asm::stack_argument(const stc::Variable* variable)
+void stc::Asm::stackArgument(const stc::Variable* variable)
 {
     const auto variableName = variable->nameWithPostfix();
     const auto variableSize = variable->type().size();
@@ -1068,13 +888,13 @@ void stc::Asm::stack_argument(const stc::Variable* variable)
     m_byteOnStack += variableSize;
 }
 
-void stc::Asm::global_array(const stc::Array& array)
+void stc::Asm::globalArray(const stc::Array& array)
 {
     const auto variable = array.variable();
     const auto arrayType = variable->type();
     const auto arrayName = variable->nameWithPostfix();
 
-    if (arrayType.is(FundamentalType::SYMBOL, true))
+    if (arrayType.is(FundamentalType::Symbol, true))
         return;
 
 
@@ -1086,12 +906,12 @@ void stc::Asm::global_array(const stc::Array& array)
     string arrayValuesString;
 
 
-    setPlaceForWriting(asm_place_for_writing::MAIN);
+    setPlaceForWriting(AsmPlaceForWriting::MAIN);
 
 
     switch (arrayType.fundamentalType())
     {
-        case FundamentalType::NUMBER:
+        case FundamentalType::Number:
         {
             if (arraySize > 0)
             {
@@ -1099,7 +919,7 @@ void stc::Asm::global_array(const stc::Array& array)
                 raw(tab + "push ebx\n");
                 raw(tab + "push " + to_string(arraySize * 4) + "\n");
                 raw(tab + "call crt_malloc\n");
-                raw(tab + "mov " + arrayName + ", eax\n");
+                raw(tab + "mov " + arrayName + "__array_pointer" + ", eax\n");
             }
 
             arrayTypeString = "dd";
@@ -1128,21 +948,23 @@ void stc::Asm::global_array(const stc::Array& array)
             {
                 raw(tab + "pop eax\n");
                 raw(tab + "pop ebx\n");
+                raw(tab + "push " + arrayName + "__array_pointer" + "\n");
             }
             break;
         }
-        case FundamentalType::BOOLEAN:
+
+        case FundamentalType::Boolean:
         {
             if (arraySize > 0)
             {
                 raw(tab + "push eax\n");
                 raw(tab + "push ebx\n");
-                raw(tab + "push " + to_string(arraySize) + "\n");
+                raw(tab + "push " + to_string(arraySize * 4) + "\n");
                 raw(tab + "call crt_malloc\n");
-                raw(tab + "mov " + arrayName + ", eax\n");
+                raw(tab + "mov " + arrayName + "__array_pointer" + ", eax\n");
             }
 
-            arrayTypeString = "db";
+            arrayTypeString = "dd";
 
             if (!arrayValues.empty())
             {
@@ -1153,12 +975,12 @@ void stc::Asm::global_array(const stc::Array& array)
                 {
                     const auto& value = values[i];
 
-                    auto rawValue = std::get<bool>(value);
+                    auto rawValue = (int)std::get<bool>(value);
 
-                    raw(tab + "mov BYTE PTR [ebx], " + to_string(rawValue) + "\n");
+                    raw(tab + "mov DWORD PTR [ebx], " + to_string(rawValue) + "\n");
 
                     if (i != 0)
-                        raw(tab + "add ebx, 1\n");
+                        raw(tab + "add ebx, 4\n");
                 }
 
                 arrayValuesString = array.valuesToString();
@@ -1168,19 +990,20 @@ void stc::Asm::global_array(const stc::Array& array)
             {
                 raw(tab + "pop eax\n");
                 raw(tab + "pop ebx\n");
+                raw(tab + "push " + arrayName + "__array_pointer" + "\n");
             }
             break;
         }
-        case FundamentalType::SYMBOL:
-        case FundamentalType::VOID:
-        case FundamentalType::ANY:
+        case FundamentalType::Symbol:
+        case FundamentalType::Void:
+        case FundamentalType::Any:
             break;
     }
 
-    setPlaceForWriting(asm_place_for_writing::DATA);
-    raw(tab + arrayName + " " + arrayTypeString + " 0\n");
+    setPlaceForWriting(AsmPlaceForWriting::DATA);
+    raw(tab + arrayName + "__array_pointer dd 0\n");
     raw(tab + arrayName + "_len dd " + to_string(arraySize) + "\n");
-    setPlaceForWriting(asm_place_for_writing::DATA);
+    setPlaceForWriting(AsmPlaceForWriting::DATA);
 }
 
 void stc::Asm::logical_or(const string& value1, const string& value2)
@@ -1404,7 +1227,7 @@ void stc::Asm::initGlobalFunction(const string& name)
     }
     else if (name == "concat")
     {
-        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
         raw("concat PROC\n"
             "   enter 0, 0\n"
             "\n"
@@ -1461,11 +1284,11 @@ void stc::Asm::initGlobalFunction(const string& name)
             "   ret 8\n"
             "concat ENDP\n");
 
-        setPlaceForWriting(asm_place_for_writing::MAIN);
+        setPlaceForWriting(AsmPlaceForWriting::MAIN);
     }
     else if (name == "slice")
     {
-        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
         raw("slice PROC\n"
             "   enter 0, 0\n"
             "\n"
@@ -1558,11 +1381,11 @@ void stc::Asm::initGlobalFunction(const string& name)
             "   leave\n"
             "   ret 12\n"
             "slice ENDP\n");
-        setPlaceForWriting(asm_place_for_writing::MAIN);
+        setPlaceForWriting(AsmPlaceForWriting::MAIN);
     }
     else if (name == "strlen")
     {
-        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
         raw("strlen PROC\n"
             "   enter 0, 0\n"
             "\n"
@@ -1580,11 +1403,11 @@ void stc::Asm::initGlobalFunction(const string& name)
             "   leave\n"
             "   ret 4\n"
             "strlen ENDP\n");
-        setPlaceForWriting(asm_place_for_writing::MAIN);
+        setPlaceForWriting(AsmPlaceForWriting::MAIN);
     }
     else if (name == "at")
     {
-        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
         raw("at PROC\n"
             "   enter 0, 0\n"
             "\n"
@@ -1646,11 +1469,11 @@ void stc::Asm::initGlobalFunction(const string& name)
             "   ret 8\n"
             "\n"
             "at ENDP\n");
-        setPlaceForWriting(asm_place_for_writing::MAIN);
+        setPlaceForWriting(AsmPlaceForWriting::MAIN);
     }
     else if (name == "find")
     {
-        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
         raw("find PROC\n"
             "   enter 0, 0\n"
             "\n"
@@ -1685,11 +1508,11 @@ void stc::Asm::initGlobalFunction(const string& name)
             "   leave\n"
             "   ret 8\n"
             "find ENDP\n");
-        setPlaceForWriting(asm_place_for_writing::MAIN);
+        setPlaceForWriting(AsmPlaceForWriting::MAIN);
     }
     else if (name == "toString")
     {
-        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
         raw("toString PROC\n"
             "   enter 0, 0\n"
             "\n"
@@ -1712,11 +1535,11 @@ void stc::Asm::initGlobalFunction(const string& name)
             "   leave\n"
             "   ret 8\n"
             "toString ENDP\n");
-        setPlaceForWriting(asm_place_for_writing::MAIN);
+        setPlaceForWriting(AsmPlaceForWriting::MAIN);
     }
     else if (name == "toNumber")
     {
-        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
         raw("toNumber PROC\n"
             "   enter 0, 0\n"
             "\n"
@@ -1735,7 +1558,7 @@ void stc::Asm::initGlobalFunction(const string& name)
             "   leave\n"
             "   ret 4\n"
             "toNumber ENDP\n");
-        setPlaceForWriting(asm_place_for_writing::MAIN);
+        setPlaceForWriting(AsmPlaceForWriting::MAIN);
     }
 }
 
@@ -1774,7 +1597,7 @@ void stc::Asm::initInterfaceFunctionRecursive(stc::Node* currentNode, stc::Class
 
     if (currentNode->type == NodeType::INTERFACE_FUNCTION_DEFINITION)
     {
-        setPlaceForWriting(asm_place_for_writing::FUNCTION_IMPLEMENTATIONS);
+        setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
 
         const auto& interfaceName = interface->name();
         const auto& functionName = any_cast<Function*>(currentNode->value)->name();
@@ -1784,7 +1607,7 @@ void stc::Asm::initInterfaceFunctionRecursive(stc::Node* currentNode, stc::Class
             initNumberToString();
         }
 
-        setPlaceForWriting(asm_place_for_writing::MAIN);
+        setPlaceForWriting(AsmPlaceForWriting::MAIN);
         return;
     }
 
@@ -1860,4 +1683,46 @@ void stc::Asm::initClassFunctionCall(stc::Node* currentNode, Class* aClass)
 
 }
 
+void stc::Asm::initMemoryManager()
+{
+    setPlaceForWriting(AsmPlaceForWriting::DATA);
+    raw(tab + "memoryManagerPointers dd 1000 dup(0)\n");
+    raw(tab + "memoryManagerCurrentIndex dd 0\n");
+    setPlaceForWriting(AsmPlaceForWriting::DATA);
+}
+
+void stc::Asm::malloc(const std::string& value)
+{
+    push(value);
+    call("crt_malloc");
+    pop(ecx);
+    mov(edi, offset("memoryManagerPointers"));
+    mov(edx, "memoryManagerCurrentIndex");
+    imul(edx, "4");
+    add(edi, edx);
+
+    mov("DWORD PTR [edi]", eax);
+
+    add("memoryManagerCurrentIndex", one);
+}
+
+void stc::Asm::freeMemoryManager()
+{
+    label("__freeMemory");
+    cmp("memoryManagerCurrentIndex", minus_one);
+    je("__freeMemoryEnd");
+    sub("memoryManagerCurrentIndex", one);
+
+    mov(edi, offset("memoryManagerPointers"));
+    mov(edx, "memoryManagerCurrentIndex");
+    imul(edx, "4");
+    add(edi, edx);
+
+    push("DWORD PTR [edi]");
+    call("crt_free");
+
+    jmp("__freeMemory");
+
+    label("__freeMemoryEnd");
+}
 

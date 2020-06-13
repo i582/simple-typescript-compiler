@@ -16,44 +16,44 @@ stc::GlobalFunctions::~GlobalFunctions()
 
 void stc::GlobalFunctions::init()
 {
-    auto newFunction = new Function("Array", Type(FundamentalType::ANY), { Type(FundamentalType::NUMBER) });
+    auto newFunction = new Function("Array", Type(FundamentalType::Any), {Type(FundamentalType::Number) });
     m_table.add(newFunction);
 
-    newFunction = new Function("input", Type(FundamentalType::NUMBER), {});
+    newFunction = new Function("input", Type(FundamentalType::Number), {});
     m_table.add(newFunction);
 
-    newFunction = new Function("print", Type(FundamentalType::VOID), { Type(FundamentalType::NUMBER) });
+    newFunction = new Function("print", Type(FundamentalType::Void), {Type(FundamentalType::Number) });
     m_table.add(newFunction);
 
-    newFunction = new Function("println", Type(FundamentalType::VOID), { Type(FundamentalType::SYMBOL, true) });
+    newFunction = new Function("println", Type(FundamentalType::Void), {Type(FundamentalType::Symbol, true) });
     m_table.add(newFunction);
 
-    newFunction = new Function("sqrt", Type(FundamentalType::NUMBER), { Type(FundamentalType::NUMBER) });
+    newFunction = new Function("sqrt", Type(FundamentalType::Number), {Type(FundamentalType::Number) });
     m_table.add(newFunction);
 
-    newFunction = new Function("concat", Type(FundamentalType::SYMBOL, true), { Type(FundamentalType::SYMBOL, true), Type(FundamentalType::SYMBOL, true) });
+    newFunction = new Function("concat", Type(FundamentalType::Symbol, true), {Type(FundamentalType::Symbol, true), Type(FundamentalType::Symbol, true) });
     m_table.add(newFunction);
 
-    newFunction = new Function("slice", Type(FundamentalType::SYMBOL, true), { Type(FundamentalType::SYMBOL, true), Type(FundamentalType::NUMBER), Type(FundamentalType::NUMBER) });
+    newFunction = new Function("slice", Type(FundamentalType::Symbol, true), {Type(FundamentalType::Symbol, true), Type(FundamentalType::Number), Type(FundamentalType::Number) });
     m_table.add(newFunction);
 
-    newFunction = new Function("strlen", Type(FundamentalType::NUMBER), { Type(FundamentalType::SYMBOL, true)});
+    newFunction = new Function("strlen", Type(FundamentalType::Number), {Type(FundamentalType::Symbol, true)});
     m_table.add(newFunction);
 
-    newFunction = new Function("at", Type(FundamentalType::SYMBOL, true), { Type(FundamentalType::SYMBOL, true), Type(FundamentalType::NUMBER)});
+    newFunction = new Function("at", Type(FundamentalType::Symbol, true), {Type(FundamentalType::Symbol, true), Type(FundamentalType::Number)});
     m_table.add(newFunction);
 
-    newFunction = new Function("find", Type(FundamentalType::NUMBER), { Type(FundamentalType::SYMBOL, true), Type(FundamentalType::SYMBOL, true)});
+    newFunction = new Function("find", Type(FundamentalType::Number), {Type(FundamentalType::Symbol, true), Type(FundamentalType::Symbol, true)});
     m_table.add(newFunction);
 
-    newFunction = new Function("toString", Type(FundamentalType::SYMBOL, true), { Type(FundamentalType::NUMBER), Type(FundamentalType::NUMBER)});
+    newFunction = new Function("toString", Type(FundamentalType::Symbol, true), {Type(FundamentalType::Number), Type(FundamentalType::Number)});
     m_table.add(newFunction);
 
-    newFunction = new Function("toNumber",  Type(FundamentalType::NUMBER), { Type(FundamentalType::SYMBOL, true) });
+    newFunction = new Function("toNumber", Type(FundamentalType::Number), {Type(FundamentalType::Symbol, true) });
     m_table.add(newFunction);
 
 
-    newFunction = new Function("crt_cos", Type(FundamentalType::NUMBER), { Type(FundamentalType::NUMBER) });
+    newFunction = new Function("crt_cos", Type(FundamentalType::Number), {Type(FundamentalType::Number) });
     m_table.add(newFunction);
 
 }

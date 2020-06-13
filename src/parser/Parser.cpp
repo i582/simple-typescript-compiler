@@ -1,26 +1,10 @@
 #include "Parser.h"
 
-stc::Parser::Parser(Lexer* lexer)
+stc::Parser::Parser(Lexer2* lexer)
 {
     this->m_lexer = lexer;
-    this->m_tree = new Ast(m_lexer->filePath());
+    this->m_tree = new Ast(lexer, m_lexer->filePath());
 
-}
-
-
-void stc::Parser::error(const std::string& message)
-{
-    auto fullMessage = "Parse error: " + message + "\n" +
-                       "Current token: '" + m_lexer->currentToken().lexeme() + "' (" +
-                       to_string(m_lexer->currentToken().line()) + ", " +
-                       to_string(m_lexer->currentToken().pos()) + ")" + "\n";
-
-
-
-
-    //m_lexer->printCurrentTokenLine();
-
-    throw std::logic_error(fullMessage);
 }
 
 void stc::Parser::parse()
@@ -30,83 +14,19 @@ void stc::Parser::parse()
     Node* statementNode = statement();
     m_tree->m_root = new Node(NodeType::PROGRAM, 0, statementNode);
 
+
+    if (!ErrorHandle::reports().empty())
+    {
+        throw std::logic_error("");
+    }
+
     Log::write("-- Construction of the abstract syntax tree done\n");
 }
 
 
 void stc::Parser::check()
 {
-    Log::write("-- Started semantic correctness checks\n");
-    Log::write("-- Started import processing\n");
-    m_tree->checkImports();
-    m_tree->handleImports();
-    Log::write("-- Import processing done\n");
-
-    Log::write("-- Started analysis preparation\n");
-    m_tree->identifyBlocks();
-
-    m_tree->markAllScopes();
-
-
-    m_tree->identifyVariables();
-    m_tree->identifyArrays();
-
-    m_tree->addImportVariables();
-
-
-    m_tree->identifyFunctions();
-    m_tree->markBreakContinueOperators();
-
-
-    m_tree->identifyClasses();
-
-
-    m_tree->identifyInterfaces();
-
-    m_tree->checkClassAccessInImplementation();
-    m_tree->addPointerToClassForAccessNodesInImplementation();
-    m_tree->addPointerToClassForThisInClassImplementation();
-    m_tree->transformStaticFunctionCallInClassImplementation();
-
-    m_tree->checkOperatorNew();
-    m_tree->transformOperatorNewToConstructorCall();
-
-
-    m_tree->addPointerToClassForAccessNodesOutImplementation();
-    m_tree->checkClassAccessOutImplementation();
-
-
-    m_tree->markReturnOperator();
-
-
-    Log::write("-- Analysis preparation done\n");
-
-    Log::write("-- Started constant verification\n");
-    m_tree->checkConstant();
-    Log::write("-- Constant verification done\n");
-
-    Log::write("-- Started array verification\n");
-    m_tree->checkArray();
-    Log::write("-- Array verification done\n");
-
-    Log::write("-- Started functions call verification\n");
-    m_tree->checkFunctionsCall();
-    Log::write("-- Functions call verification done\n");
-
-    Log::write("-- Started expression verification\n");
-    m_tree->checkExpressions();
-    Log::write("-- Expression verification done\n");
-
-    Log::write("-- Started assignment verification\n");
-    m_tree->checkAssignment();
-    Log::write("-- Expression assignment done\n");
-
-    Log::write("-- Started export verification\n");
-    m_tree->checkExports();
-    m_tree->handleExports();
-    Log::write("-- Export verification done\n");
-
-    Log::write("-- Semantic correctness checks done\n");
+    m_tree->analyze();
 }
 
 void stc::Parser::printTree()
@@ -131,34 +51,52 @@ stc::Node* stc::Parser::primaryExpression()
 {
     if (tryEat(TokenType::NUMBER_CONST))
     {
-        auto value = eat(TokenType::NUMBER_CONST);
-        auto number = stold(value);
+        const auto token = eat(TokenType::NUMBER_CONST);
+        const auto value = token.lexeme();
+        const auto number = stold(value);
 
-        return new Node(NodeType::NUMBER_CONST, number);
+        const auto resultNode = new Node(NodeType::NUMBER_CONST, number);
+        resultNode->position(token.position());
+
+        return resultNode;
     }
     else if (tryEat(TokenType::STRING_CONST))
     {
-        auto value = eat(TokenType::STRING_CONST);
+        const auto token = eat(TokenType::STRING_CONST);
+        const auto value = token.lexeme();
 
-        return new Node(NodeType::STRING_CONST, value);
+        const auto resultNode = new Node(NodeType::STRING_CONST, value);
+        resultNode->position(token.position());
+
+        return resultNode;
     }
     else if (tryEat(TokenType::TRUE))
     {
-        eat(TokenType::TRUE);
+        const auto token = eat(TokenType::TRUE);
 
-        return new Node(NodeType::BOOLEAN_CONST, 1);
+        const auto resultNode = new Node(NodeType::BOOLEAN_CONST, 1);
+        resultNode->position(token.position());
+
+        return resultNode;
     }
     else if (tryEat(TokenType::FALSE))
     {
-        eat(TokenType::FALSE);
+        const auto token = eat(TokenType::FALSE);
 
-        return new Node(NodeType::BOOLEAN_CONST, 0);
+        const auto resultNode = new Node(NodeType::BOOLEAN_CONST, 0);
+        resultNode->position(token.position());
+
+        return resultNode;
     }
     else if (tryEat(TokenType::IDENTIFIER))
     {
-        auto name = eat(TokenType::IDENTIFIER);
+        const auto token = eat(TokenType::IDENTIFIER);
+        const auto name = token.lexeme();
 
-        return new Node(NodeType::USING_VARIABLE, name);
+        const auto resultNode = new Node(NodeType::USING_VARIABLE, name);
+        resultNode->position(token.position());
+
+        return resultNode;
     }
     else if (tryEat(TokenType::LPAR))
     {
@@ -205,7 +143,7 @@ stc::Node* stc::Parser::postfixExpression()
     {
         eat(TokenType::LSQR);
 
-        auto tempExpression = expression();
+        const auto tempExpression = expression();
 
         eat(TokenType::RSQR);
 
@@ -215,8 +153,8 @@ stc::Node* stc::Parser::postfixExpression()
     {
         eat(TokenType::LPAR);
 
-        auto functionName = any_cast<string>(tempNode->value);
-        auto argumentExpressionListNode = argumentExpressionList();
+        const auto functionName = any_cast<string>(tempNode->value);
+        const auto argumentExpressionListNode = argumentExpressionList();
 
         eat(TokenType::RPAR);
 
@@ -225,7 +163,7 @@ stc::Node* stc::Parser::postfixExpression()
     else if (tryEat(TokenType::POINT))
     {
         skip();
-        auto postfixExpressionNode = postfixExpression();
+        const auto postfixExpressionNode = postfixExpression();
 
         return new Node(NodeType::CLASS_ACCESS_TO_FIELD, 0, tempNode, postfixExpressionNode);
     }
@@ -239,7 +177,7 @@ stc::Node* stc::Parser::argumentExpressionList()
 
     while (!tryEat(TokenType::RPAR))
     {
-        auto tempFunctionArgument = assignmentExpression();
+        const auto tempFunctionArgument = assignmentExpression();
 
         tempNode = new Node(NodeType::FUNCTION_ARGS, 0, tempFunctionArgument, tempNode);
 
@@ -257,13 +195,13 @@ stc::Node* stc::Parser::unaryExpression()
     if (tryEat(TokenType::INC))
     {
         skip();
-        auto unaryExpressionNode = unaryExpression();
+        const auto unaryExpressionNode = unaryExpression();
         return new Node(NodeType::BEFORE_INC, 0, unaryExpressionNode);
     }
     else if (tryEat(TokenType::DEC))
     {
         skip();
-        auto unaryExpressionNode = unaryExpression();
+        const auto unaryExpressionNode = unaryExpression();
         return new Node(NodeType::BEFORE_DEC, 0, unaryExpressionNode);
     }
     else if (tryEat([](TokenType type){ return Token::isUnaryOperator(type); }))
@@ -280,7 +218,7 @@ stc::Node* stc::Parser::unaryExpression()
         }
 
         skip();
-        auto unaryExpressionNode = unaryExpression();
+        const auto unaryExpressionNode = unaryExpression();
         return new Node(type, 0, unaryExpressionNode);
     }
 
@@ -302,9 +240,7 @@ stc::Node* stc::Parser::multiplicativeExpression()
         }
 
         skip();
-
-        auto multiplicativeNode = multiplicativeExpression();
-
+        const auto multiplicativeNode = multiplicativeExpression();
         return new Node(tempType, 0, tempNode, multiplicativeNode);
     }
 
@@ -325,9 +261,7 @@ stc::Node* stc::Parser::additiveExpression()
         }
 
         skip();
-
-        auto additiveNode = additiveExpression();
-
+        const auto additiveNode = additiveExpression();
         return new Node(tempType, 0, tempNode, additiveNode);
     }
 
@@ -341,29 +275,25 @@ stc::Node* stc::Parser::relationalExpression()
     if (tryEat(TokenType::LESS))
     {
         skip();
-        auto additiveExpressionNode = additiveExpression();
-
+        const auto additiveExpressionNode = additiveExpression();
         return new Node(NodeType::LESS, 0, tempNode, additiveExpressionNode);
     }
     else if (tryEat(TokenType::GREATER))
     {
         skip();
-        auto additiveExpressionNode = additiveExpression();
-
+        const auto additiveExpressionNode = additiveExpression();
         return new Node(NodeType::GREATER, 0, tempNode, additiveExpressionNode);
     }
     else if (tryEat(TokenType::GREATER_EQUAL))
     {
         skip();
-        auto additiveExpressionNode = additiveExpression();
-
+        const auto additiveExpressionNode = additiveExpression();
         return new Node(NodeType::GREATER_EQUAL, 0, tempNode, additiveExpressionNode);
     }
     else if (tryEat(TokenType::LESS_EQUAL))
     {
         skip();
-        auto additiveExpressionNode = additiveExpression();
-
+        const auto additiveExpressionNode = additiveExpression();
         return new Node(NodeType::LESS_EQUAL, 0, tempNode, additiveExpressionNode);
     }
 
@@ -377,15 +307,13 @@ stc::Node* stc::Parser::equalityExpression()
     if (tryEat(TokenType::EQUAL))
     {
         skip();
-        auto relationalExpressionNode = relationalExpression();
-
+        const auto relationalExpressionNode = relationalExpression();
         return new Node(NodeType::EQUAL, 0, tempNode, relationalExpressionNode);
     }
     else if (tryEat(TokenType::NOT_EQUAL))
     {
         skip();
-        auto relationalExpressionNode = relationalExpression();
-
+        const auto relationalExpressionNode = relationalExpression();
         return new Node(NodeType::NOT_EQUAL, 0, tempNode, relationalExpressionNode);
     }
 
@@ -399,8 +327,7 @@ stc::Node* stc::Parser::logicalAndExpression()
     if (tryEat(TokenType::AND))
     {
         skip();
-        auto logicalAndExpressionNode = logicalAndExpression();
-
+        const auto logicalAndExpressionNode = logicalAndExpression();
         return new Node(NodeType::LOGICAL_AND, 0, tempNode, logicalAndExpressionNode);
     }
 
@@ -414,8 +341,7 @@ stc::Node* stc::Parser::logicalOrExpression()
     if (tryEat(TokenType::OR))
     {
         skip();
-        auto logicalOrExpressionNode = logicalOrExpression();
-
+        const auto logicalOrExpressionNode = logicalOrExpression();
         return tempNode = new Node(NodeType::LOGICAL_OR, 0, tempNode, logicalOrExpressionNode);
     }
 
@@ -428,8 +354,8 @@ stc::Node* stc::Parser::assignmentExpression()
 
     if (tryEat([](TokenType type){ return Token::isAssignmentOperator(type); }))
     {
-        auto currentTokenType = eatType();
-        auto tempAssignmentExpression = assignmentExpression();
+        const auto currentTokenType = eatType();
+        const auto tempAssignmentExpression = assignmentExpression();
 
         if (currentTokenType == TokenType::ASSIGN)
         {
@@ -437,22 +363,22 @@ stc::Node* stc::Parser::assignmentExpression()
         }
         else if (currentTokenType == TokenType::ADD_ASSIGN)
         {
-            auto addNode = new Node(NodeType::ADD, 0, tempNode, tempAssignmentExpression);
+            const  auto addNode = new Node(NodeType::ADD, 0, tempNode, tempAssignmentExpression);
             return new Node(NodeType::SET, 0, tempNode, addNode);
         }
         else if (currentTokenType == TokenType::SUB_ASSIGN)
         {
-            auto subNode = new Node(NodeType::SUB, 0, tempNode, tempAssignmentExpression);
+            const auto subNode = new Node(NodeType::SUB, 0, tempNode, tempAssignmentExpression);
             return new Node(NodeType::SET, 0, tempNode, subNode);
         }
         else if (currentTokenType == TokenType::MUL_ASSIGN)
         {
-            auto mulNode = new Node(NodeType::MUL, 0, tempNode, tempAssignmentExpression);
+            const auto mulNode = new Node(NodeType::MUL, 0, tempNode, tempAssignmentExpression);
             return new Node(NodeType::SET, 0, tempNode, mulNode);
         }
         else if (currentTokenType == TokenType::DIV_ASSIGN)
         {
-            auto divNode = new Node(NodeType::DIV, 0, tempNode, tempAssignmentExpression);
+            const auto divNode = new Node(NodeType::DIV, 0, tempNode, tempAssignmentExpression);
             return new Node(NodeType::SET, 0, tempNode, divNode);
         }
     }
@@ -462,7 +388,7 @@ stc::Node* stc::Parser::assignmentExpression()
 
 stc::Node* stc::Parser::expression()
 {
-    auto tempNode = assignmentExpression();
+    const auto tempNode = assignmentExpression();
 
     return new Node(NodeType::EXPRESSION, 0, tempNode);
 }
@@ -538,7 +464,7 @@ stc::Node* stc::Parser::statementList()
 
     while (!tryEat(TokenType::RBRA))
     {
-        auto statementNode = statement();
+        const auto statementNode = statement();
         tempNode = new Node(NodeType::STATEMENT_LIST, 0, tempNode, statementNode);
     }
     skip();
@@ -548,7 +474,7 @@ stc::Node* stc::Parser::statementList()
 
 stc::Node* stc::Parser::expressionStatement()
 {
-    auto tempNode = expression();
+    const auto tempNode = expression();
 
     eat(TokenType::SEMICOLON);
 
@@ -559,8 +485,8 @@ stc::Node* stc::Parser::selectionStatement()
 {
     skip();
 
-    auto conditionNode = parenthesizedExpression();
-    auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
+    const auto conditionNode = parenthesizedExpression();
+    const auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
     auto elseNode = (Node*)nullptr;
     auto nodeType = NodeType::IF;
 
@@ -581,8 +507,8 @@ stc::Node* stc::Parser::iterationStatement()
     {
         skip();
 
-        auto conditionNode = parenthesizedExpression();
-        auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
+        const auto conditionNode = parenthesizedExpression();
+        const auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
 
         return new Node(NodeType::WHILE, 0, conditionNode, bodyNode);
     }
@@ -590,9 +516,9 @@ stc::Node* stc::Parser::iterationStatement()
     {
         skip();
 
-        auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
+        const auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
         eat(TokenType::WHILE);
-        auto conditionNode = parenthesizedExpression();
+        const auto conditionNode = parenthesizedExpression();
 
         return new Node(NodeType::DO_WHILE, 0, conditionNode, bodyNode);
     }
@@ -601,14 +527,13 @@ stc::Node* stc::Parser::iterationStatement()
         skip();
 
         eat(TokenType::LPAR);
-        auto variableNode = expression();
+        const auto variableNode = expression();
         eat(TokenType::SEMICOLON);
-        auto conditionNode = expression();
+        const auto conditionNode = expression();
         eat(TokenType::SEMICOLON);
-        auto actionNode = expression();
+        const auto actionNode = expression();
         eat(TokenType::RPAR);
-        auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
-
+        const auto bodyNode = new Node(NodeType::STATEMENT, 0, statement());
 
         return new Node(NodeType::FOR, 0, variableNode, conditionNode, actionNode, bodyNode);
     }
@@ -618,9 +543,10 @@ stc::Node* stc::Parser::iterationStatement()
 
 stc::Node* stc::Parser::declarationStatement()
 {
-    auto isConst = tryEat(TokenType::CONST);
+    const auto isConst = tryEat(TokenType::CONST);
     skip();
-    auto variableName = eat(TokenType::IDENTIFIER);
+    const auto token = eat(TokenType::IDENTIFIER);
+    const auto variableName = token.lexeme();
 
     auto declarationTypeNode = (Node*)nullptr;
 
@@ -634,20 +560,25 @@ stc::Node* stc::Parser::declarationStatement()
     }
     else
     {
-        error("Expected variable type or assignment to expression.");
+        auto tempNode = Node(NodeType::CONSTANT_DECLARATION);
+        tempNode.position(token.position());
+
+        report(&tempNode, ReportLevel::FatalError, "typeOrAssignmentExpected", "Expected variable type or assignment to expression");
     }
 
-    return new Node(isConst ? NodeType::CONSTANT_DECLARATION : NodeType::VARIABLE_DECLARATION, variableName, declarationTypeNode);
+    const auto resultNode = new Node(isConst ? NodeType::CONSTANT_DECLARATION : NodeType::VARIABLE_DECLARATION, variableName, declarationTypeNode);
+    resultNode->position(token.position());
+
+    return resultNode;
 }
 
 stc::Node* stc::Parser::declarationType()
 {
     eat(TokenType::COLON);
 
-    const auto fieldTypeString = eat([](TokenType type)
-                               {
-                               return Token::isThisTypeIsVariableType(type);
-                               });
+    const auto fieldTypeString = eat([](TokenType type) {
+                                    return Token::isThisTypeIsVariableType(type);
+                                 }).lexeme();
     auto isArray = false;
 
     if (tryEat(TokenType::LSQR))
@@ -671,8 +602,8 @@ stc::Node* stc::Parser::initializer()
     skip();
     while (!tryEat(TokenType::RSQR))
     {
-        auto initializerListNode = initializerList();
-        tempNode = new Node(NodeType::INITIALIZER_LIST, 0, tempNode, initializerListNode);
+        const auto initializerListNode = initializerList();
+        tempNode = new Node(NodeType::INITIALIZER_LIST_ELEMENT, 0, tempNode, initializerListNode);
     }
     skip();
 
@@ -695,21 +626,21 @@ stc::Node* stc::Parser::initializerList()
 
 stc::Node* stc::Parser::functionStatement()
 {
-    auto functionName = eat([](TokenType type){ return type == TokenType::IDENTIFIER || type == TokenType::CONSTRUCTOR; });
-    auto functionArgsNode = functionArgumentList();
+    const auto functionName = eat([](TokenType type){ return type == TokenType::IDENTIFIER || type == TokenType::CONSTRUCTOR; }).lexeme();
+    const auto functionArgsNode = functionArgumentList();
     auto functionReturnType = Type("void");
 
     if (tryEat(TokenType::COLON))
     {
-        auto declarationNode = declarationType();
+        const auto declarationNode = declarationType();
 
         functionReturnType = any_cast<Type>(declarationNode->value);
     }
 
-    auto functionReturnTypeNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, functionReturnType);
+    const auto functionReturnTypeNode = new Node(NodeType::FUNCTION_IMPLEMENTATION_RETURN_TYPE, functionReturnType);
 
 
-    auto functionBodyNode = statement();
+    const auto functionBodyNode = statement();
 
     return new Node(NodeType::FUNCTION_IMPLEMENTATION, functionName, functionReturnTypeNode,
                     functionArgsNode, functionBodyNode);
@@ -737,7 +668,7 @@ stc::Node* stc::Parser::functionArgumentList()
 
 stc::Node* stc::Parser::functionArgument()
 {
-    const auto variableName = eat(TokenType::IDENTIFIER);
+    const auto variableName = eat(TokenType::IDENTIFIER).lexeme();
     const auto declarationTypeNode = declarationType();
 
     if (tryEat(TokenType::ASSIGN))
@@ -758,7 +689,7 @@ stc::Node* stc::Parser::operatorStatement()
     if (tryEat(TokenType::RETURN))
     {
         skip();
-        auto expressionStatementNode = expressionStatement();
+        const auto expressionStatementNode = expressionStatement();
 
         return new Node(NodeType::RETURN, 0, expressionStatementNode);
     }
@@ -787,14 +718,19 @@ stc::Node* stc::Parser::operatorStatement()
     return nullptr;
 }
 
-std::string stc::Parser::eat(stc::TokenType type, bool shift)
+stc::Token stc::Parser::eat(stc::TokenType type, bool shift)
 {
     if (!tryEat(type))
     {
-        error(Token::tokenTypeToString(type) + " expected!");
+        unEat();
+        auto token = eat();
+        auto tempNode = Node(NodeType::CONSTANT_DECLARATION);
+        tempNode.position(token.position());
+
+        report(&tempNode, ReportLevel::FatalError, "someExpected", "'" + Token::tokenTypeToString(type) + "' expected!");
     }
 
-    const auto value = m_lexer->currentToken().lexeme();
+    auto value = m_lexer->currentToken();
 
     if (shift)
     {
@@ -809,16 +745,21 @@ bool stc::Parser::tryEat(stc::TokenType type)
     return m_lexer->currentTokenType() == type;
 }
 
-std::string stc::Parser::eat(const std::function<bool(stc::TokenType)>& predicate, bool shift)
+stc::Token stc::Parser::eat(const std::function<bool(stc::TokenType)>& predicate, bool shift)
 {
-    auto currentType = m_lexer->currentTokenType();
+    const auto currentType = m_lexer->currentTokenType();
 
     if (!predicate(currentType))
     {
-        error(to_string((int)currentType) + " expected!");
+        unEat();
+        auto token = eat();
+        auto tempNode = Node(NodeType::CONSTANT_DECLARATION);
+        tempNode.position(token.position());
+
+        report(&tempNode, ReportLevel::FatalError, "someExpected", "'" + Token::tokenTypeToString(currentType) + "' expected!");
     }
 
-    auto value = m_lexer->currentToken().lexeme();
+    auto value = m_lexer->currentToken();
 
     if (shift)
     {
@@ -833,10 +774,9 @@ bool stc::Parser::tryEat(const std::function<bool(stc::TokenType)>& predicate)
     return predicate(m_lexer->currentTokenType());
 }
 
-std::string stc::Parser::eat()
+stc::Token stc::Parser::eat()
 {
-    auto value = m_lexer->currentToken().lexeme();
-    return value;
+    return m_lexer->currentToken();
 }
 
 void stc::Parser::skip()
@@ -858,11 +798,16 @@ stc::TokenType stc::Parser::eatType()
 
 stc::TokenType stc::Parser::eatType(const std::function<bool(stc::TokenType)>& predicate)
 {
-    auto currentType = m_lexer->currentTokenType();
+    const auto currentType = m_lexer->currentTokenType();
 
     if (!predicate(currentType))
     {
-        error(to_string((int)currentType) + " expected!");
+        unEat();
+        auto token = eat();
+        auto tempNode = Node(NodeType::CONSTANT_DECLARATION);
+        tempNode.position(token.position());
+
+        report(&tempNode, ReportLevel::FatalError, "someExpected", "'" + Token::tokenTypeToString(currentType) + "' expected!");
     }
 
     auto value = m_lexer->currentToken().type();
@@ -876,7 +821,7 @@ stc::Node* stc::Parser::declareFunctionStatement()
 {
     skip();
     eat(TokenType::FUNCTION);
-    const auto functionName = eat(TokenType::IDENTIFIER);
+    const auto functionName = eat(TokenType::IDENTIFIER).lexeme();
     const auto functionArgsNode = functionArgumentList();
     auto functionReturnType = Type("void");
 
@@ -902,14 +847,14 @@ stc::Node* stc::Parser::importStatement()
 {
     eat(TokenType::IMPORT);
 
-    auto importItemListNode = importList();
+    const auto importItemListNode = importList();
 
     eat(TokenType::FROM);
 
-    auto relativeFilePath = eat(TokenType::STRING_CONST);
-    auto relativeFilePathNode = new Node(NodeType::IMPORT_FILE, relativeFilePath);
+    const auto relativeFilePath = eat(TokenType::STRING_CONST).lexeme();
+    const auto relativeFilePathNode = new Node(NodeType::IMPORT_FILE, relativeFilePath);
 
-    auto importNode = new Node(NodeType::IMPORT, 0, importItemListNode, relativeFilePathNode);
+    const auto importNode = new Node(NodeType::IMPORT, 0, importItemListNode, relativeFilePathNode);
 
     return importNode;
 }
@@ -921,8 +866,8 @@ stc::Node* stc::Parser::importList()
     Node* tempNode = nullptr;
     while (!tryEat(TokenType::RBRA))
     {
-        auto importItem = eat(TokenType::IDENTIFIER);
-        auto importItemNode = new Node(NodeType::IMPORT_LIST_ELEMENT, importItem);
+        const auto importItem = eat(TokenType::IDENTIFIER).lexeme();
+        const auto importItemNode = new Node(NodeType::IMPORT_LIST_ELEMENT, importItem);
         tempNode = new Node(NodeType::IMPORT_LIST, 0, importItemNode, tempNode);
 
         if (tryEat(TokenType::COMMA))
@@ -940,8 +885,8 @@ stc::Node* stc::Parser::exportList()
     Node* tempNode = nullptr;
     while (!tryEat(TokenType::RBRA))
     {
-        auto exportItem = eat(TokenType::IDENTIFIER);
-        auto exportItemNode = new Node(NodeType::EXPORT_LIST_ELEMENT, exportItem);
+        const auto exportItem = eat(TokenType::IDENTIFIER).lexeme();
+        const auto exportItemNode = new Node(NodeType::EXPORT_LIST_ELEMENT, exportItem);
         tempNode = new Node(NodeType::EXPORT_LIST, 0, exportItemNode, tempNode);
 
         if (tryEat(TokenType::COMMA))
@@ -956,9 +901,13 @@ stc::Node* stc::Parser::exportStatement()
 {
     eat(TokenType::EXPORT);
 
-    auto exportItemListNode = exportList();
-    auto exportNode = new Node(NodeType::EXPORT, 0, exportItemListNode);
+    const auto exportItemListNode = exportList();
+    const auto exportNode = new Node(NodeType::EXPORT, 0, exportItemListNode);
 
     return exportNode;
 }
 
+void stc::Parser::report(stc::Node* node, stc::ReportLevel level, const std::string& name, const std::string& message)
+{
+    ErrorHandle::report(m_lexer, node, level, name, message);
+}

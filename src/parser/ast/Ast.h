@@ -11,6 +11,9 @@
 #include "../../log/Log.h"
 #include "../class/ClassTable.h"
 
+#include "../initializer/initializer.h"
+
+#include "../../report/reports.h"
 
 namespace stc
 {
@@ -25,6 +28,9 @@ using fs::path;
 
 class Ast
 {
+private:
+    Lexer2* m_lexer;
+
 private:
     vector<std::pair<Node*, Node*>> m_allScopeNodes;
 
@@ -50,14 +56,22 @@ private:
 
     path m_filePath;
 
+
 public:
     Node* m_root;
 
 public:
-    explicit Ast(const path& filePath);
+    explicit Ast(Lexer2* lexer, const path& filePath);
 
 public:
     friend Asm;
+
+public:
+    void analyze();
+
+
+    void report(Node* node, ReportLevel level, const string& name, const string& message);
+
 
 public:
     void printVariableTable();
@@ -79,12 +93,17 @@ public:
 
     // identify functions
     void identifyBlocks();
+
+
     void identifyVariables();
-    void identifyFunctions();
     void identifyArrays();
 
 
-    // check functions
+    void identifyFunctions();
+
+
+
+    // check functions AstChecks.cpp
     void checkConstant();
     void checkArray();
     void checkFunctionsCall();
@@ -111,25 +130,45 @@ private:
     void identifyFunctionLocalVariablesRecursive(Node* currentNode, size_t& size, vector<Variable*>& variables);
 
 
-    void identifyArraysRecursive(Node* currentNode);
-    void identifyArrayInitializerListRecursive(Node* currentNode, vector<VariableValue>& list, Type arrayType);
+    void identifyInitializerRecursive(Node* currentNode);
+
+    //void identifyArraysRecursive(Node* currentNode);
 
 
-    // check functions
+
+    /**
+     * @brief Функция возвращает тип инициализатора вида [...]
+     * @param currentNode Указатель на поддерево
+     * @return Type Тип элементов
+     */
+    _NODISCARD Type giveInitializerType(Node* currentNode);
+    void giveInitializerTypeRecursive(Node* currentNode, Type& initializerType, bool begin);
+
+    _NODISCARD size_t giveInitializerCountElement(Node* currentNode);
+    void giveInitializerCountElementRecursive(Node* currentNode, size_t& size);
+
+
+
+    // check functions AstChecks.cpp
     void checkFunctionsCallRecursive(Node* currentNode);
     void identifyFunctionCallArgumentsRecursive(Node* currentNode, vector<Type>& arguments);
     _NODISCARD vector<Type> getFunctionCallArguments(Node* currentNode);
 
 
+
+
     void checkExpressionsRecursive(Node* currentNode);
     void checkAssignmentRecursive(Node* currentNode);
+
+
+
+
 
     void checkConstantsRecursive(Node* currentNode);
     void checkArrayRecursive(Node* currentNode);
 
     _NODISCARD Type checkAndGiveExpressionType(Node* currentNode);
-
-    Type variableTypeOfNode(Node* currentNode);
+    _NODISCARD Type expressionType(Node* node);
 
 
 private:

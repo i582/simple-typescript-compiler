@@ -40,6 +40,7 @@ namespace stc
     const string ecx("ecx");
     const string edx("edx");
     const string esi("esi");
+    const string edi("edi");
 
 
 

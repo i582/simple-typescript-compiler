@@ -45,17 +45,17 @@ std::string stc::Array::valuesToString() const
 
         switch (type.fundamentalType())
         {
-            case FundamentalType::NUMBER:
+            case FundamentalType::Number:
             {
                 result += std::to_string((int)std::get<number>(value));
                 break;
             }
-            case FundamentalType::BOOLEAN:
+            case FundamentalType::Boolean:
             {
                 result += std::to_string(std::get<bool>(value));
                 break;
             }
-            case FundamentalType::SYMBOL:
+            case FundamentalType::Symbol:
             {
                 if (type.isArray())
                 {
@@ -65,8 +65,8 @@ std::string stc::Array::valuesToString() const
                 break;
             }
 
-            case FundamentalType::VOID:
-            case FundamentalType::ANY:
+            case FundamentalType::Void:
+            case FundamentalType::Any:
                 break;
         }
 

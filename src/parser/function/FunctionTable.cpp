@@ -46,8 +46,8 @@ stc::Function* stc::FunctionTable::get(const std::string& name,
 
     if (it == m_functions.end())
     {
-        ErrorHandle::raise("Error! A function with name '" + name + "' and " +
-        Function::argumentsToString(argumentDescriptions) + " parameter list was not found!");
+        ErrorHandle::report(nullptr, nullptr, ReportLevel::FatalError, "functionNotFound", "A function with name '" + name + "' and " +
+                                                                                           Function::argumentsToString(argumentDescriptions) + " parameter list was not found!");
     }
 
     return *it;
@@ -62,7 +62,7 @@ stc::Function* stc::FunctionTable::get(const std::string& name) const
 
     if (it == m_functions.end())
     {
-        ErrorHandle::raise("Error! A function with name '" + name + "' was not found!");
+        ErrorHandle::report(nullptr, nullptr, ReportLevel::FatalError, "functionNotFound", "A function with name '" + name + "' was not found!");
     }
 
     return *it;

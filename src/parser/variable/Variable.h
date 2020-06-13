@@ -47,7 +47,6 @@ public:
     Variable(const string& name, const Type& type, size_t scopeId, bool isConst = false);
 
 
-
 public:
     void print() const;
 
