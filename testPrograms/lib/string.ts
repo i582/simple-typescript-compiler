@@ -50,4 +50,31 @@ declare function toString(num: number, radix: number): string;
 declare function toNumber(str: string): number;
 
 
-export { concat, slice, strlen, at, find, toString, toNumber};
+/**
+ * The function returns true if strings is equal
+ * @param str1 First string
+ * @param str2 Second string
+ */
+declare function strEqual(str1: string, str2: string): boolean;
+
+/**
+ * The function returns true if strings is not equal
+ * @param str1 First string
+ * @param str2 Second string
+ */
+function strNotEqual(str1: string, str2: string): boolean
+{
+    return !strEqual(str1, str2);
+}
+
+/**
+ * The function returns true if string contains other string
+ * @param str1 Main string
+ * @param str2 String for search
+ */
+function contains(str1: string, str2: string): boolean
+{
+    return find(str1, str2) != -1;
+}
+
+export { concat, slice, strlen, at, find, toString, toNumber, strEqual, strNotEqual, contains};

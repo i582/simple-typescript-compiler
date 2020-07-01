@@ -74,6 +74,13 @@ stc::TokenType stc::Token::typeByLexeme(const std::string& lexeme)
     if (lexeme == "!=")
         return TokenType::NOT_EQUAL;
 
+    // bitwise operators
+    if (lexeme == "&")
+        return TokenType::BITWISE_AND;
+    if (lexeme == "|")
+        return TokenType::BITWISE_OR;
+
+
     // logical operators
     if (lexeme == "&&")
         return TokenType::AND;
@@ -489,9 +496,13 @@ stc::string stc::Token::tokenTypeToString(stc::TokenType type)
             return "This";
         case TokenType::INTERFACE:
             return "Interface";
-
+        case TokenType::BITWISE_AND:
+            return "&";
+        case TokenType::BITWISE_OR:
+            return "|";
         default:
             return "";
+
     }
 }
 

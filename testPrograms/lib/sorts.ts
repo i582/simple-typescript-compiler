@@ -1,7 +1,7 @@
-import { print, println, input, print_a } from "./lib/io";
+import { print, println, input, print_a } from "../lib/io";
 
 
-function quickSort(array: number[], size: number)
+function sort(array: number[], size: number)
 {
     quickSortHide(array, 0, size - 1);
 }
@@ -59,4 +59,4 @@ function bubbleSort(array: number[], size: number)
 
 
 
-export { quickSort, bubbleSort };
+export { bubbleSort, sort };

@@ -1,4 +1,5 @@
 #include "Node.h"
+#include "node2/Node.h"
 
 stc::Node::Node(stc::NodeType tType, const any& tValue, stc::Node* tOperand1,
                 stc::Node* tOperand2, stc::Node* tOperand3, stc::Node* tOperand4,

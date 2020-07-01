@@ -171,12 +171,39 @@ void stc::Ast::identifyVariablesRecursive(stc::Node* currentNode, stc::VariableT
 }
 
 
+void stc::Ast::identifyGlobalVariablesRecursive(stc::Node* currentNode)
+{
+    if (currentNode == nullptr)
+        return;
+
+
+    if (currentNode->type == NodeType::FUNCTION_IMPLEMENTATION)
+        return;
+
+    if (currentNode->type == NodeType::VARIABLE_DECLARATION ||
+        currentNode->type == NodeType::CONSTANT_DECLARATION)
+    {
+        const auto variable = any_cast<Variable*>(currentNode->value);
+
+        variable->isGlobal(true);
+
+        //globalVariablesTable.add(variable);
+        return;
+    }
+
+
+    identifyGlobalVariablesRecursive(currentNode->operand1);
+    identifyGlobalVariablesRecursive(currentNode->operand2);
+    identifyGlobalVariablesRecursive(currentNode->operand3);
+    identifyGlobalVariablesRecursive(currentNode->operand4);
+}
 
 
 
 
 
-void stc::Ast::identifyArrays()
+
+void stc::Ast::identifyInitializers()
 {
     identifyInitializerRecursive(m_root);
 

@@ -481,7 +481,7 @@ stc::Node* stc::Parser::expressionStatement()
     return tempNode;
 }
 
-stc::Node* stc::Parser::selectionStatement()
+stc::Node* stc::Parser::selectionStatement() // "if" "(" expression ")" "{"....
 {
     skip();
 
@@ -688,10 +688,15 @@ stc::Node* stc::Parser::operatorStatement()
 {
     if (tryEat(TokenType::RETURN))
     {
+        const auto token = eat();
         skip();
         const auto expressionStatementNode = expressionStatement();
 
-        return new Node(NodeType::RETURN, 0, expressionStatementNode);
+        const auto result = new Node(NodeType::RETURN, 0, expressionStatementNode);
+
+        result->position(token.position());
+
+        return result;
     }
     else if (tryEat(TokenType::BREAK))
     {
@@ -845,7 +850,7 @@ stc::Node* stc::Parser::declareFunctionStatement()
 
 stc::Node* stc::Parser::importStatement()
 {
-    eat(TokenType::IMPORT);
+    const auto token = eat(TokenType::IMPORT);
 
     const auto importItemListNode = importList();
 
@@ -855,6 +860,8 @@ stc::Node* stc::Parser::importStatement()
     const auto relativeFilePathNode = new Node(NodeType::IMPORT_FILE, relativeFilePath);
 
     const auto importNode = new Node(NodeType::IMPORT, 0, importItemListNode, relativeFilePathNode);
+
+    importNode->position(token.position());
 
     return importNode;
 }
@@ -899,10 +906,12 @@ stc::Node* stc::Parser::exportList()
 
 stc::Node* stc::Parser::exportStatement()
 {
-    eat(TokenType::EXPORT);
+    const auto token = eat(TokenType::EXPORT);
 
     const auto exportItemListNode = exportList();
     const auto exportNode = new Node(NodeType::EXPORT, 0, exportItemListNode);
+
+    exportNode->position(token.position());
 
     return exportNode;
 }

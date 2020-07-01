@@ -34,10 +34,7 @@ public:
 public:
     _NODISCARD TokenType type() const;
     _NODISCARD string lexeme() const;
-
     _NODISCARD const Position& position() const;
-
-
     _NODISCARD bool isComment() const;
 
 public:

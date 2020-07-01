@@ -6,7 +6,7 @@
 #include "../node/Node.h"
 #include "../ast/Ast.h"
 
-#include "asm_constants.h"
+#include "asmConstants.h"
 
 namespace stc
 {
@@ -16,10 +16,10 @@ using std::ofstream;
 
 enum class AsmPlaceForWriting
 {
-    DATA,
-    BEFORE_MAIN,
-    FUNCTION_IMPLEMENTATIONS,
-    MAIN
+    Data,
+    BeforeMain,
+    FunctionImplementations,
+    Main
 };
 
 
@@ -55,22 +55,14 @@ private:
 
 
     void initLocalVariables();
-    void initGlobalVariables();
+
     void initFunctionArguments();
 
     void initGlobalFunctions();
-    void initGlobalFunction(const string& name);
+
 
     void initStringConstants();
-
-    // global functions
-    void initInputFunction();
-    void initPrintFunction();
-    void initPrintlnFunction();
-    void initSqrtFunction();
-
-    void initOperandsForDivision();
-
+    void initGeneralVariables();
 
 
     void initInterfaces();
@@ -141,9 +133,9 @@ private:
     // generic functions
     static string offset(const string& value);
 
-    static string local_var(const string& value);
+    static string localVar(const string& value);
 
-    static string argument_var(const string& value);
+    static string argumentVar(const string& value);
 
     void raw(const string& value);
 
@@ -151,9 +143,6 @@ private:
 
     void stackVariable(const Variable* variable);
     void stackArgument(const Variable* variable);
-
-
-    void globalArray(const Array& array);
 
 
     // stack
@@ -172,9 +161,9 @@ private:
 
 
     // logical
-    void logical_or(const string& value1, const string& value2);
-    void logical_and(const string& value1, const string& value2);
-    void logical_xor(const string& value1, const string& value2);
+    void logicalOr(const string& value1, const string& value2);
+    void logicalAnd(const string& value1, const string& value2);
+    void logicalXor(const string& value1, const string& value2);
 
 
     // comparisons
@@ -198,8 +187,8 @@ private:
     void proc(const string& value);
     void endp(const string& value);
 
-    void procedure_prolog(size_t level, size_t size_local_variable);
-    void procedure_epilogue();
+    void procedureProlog(size_t level, size_t sizeLocalVariable);
+    void procedureEpilogue();
 
 
     // fpu

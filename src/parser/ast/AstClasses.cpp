@@ -683,3 +683,4 @@ void stc::Ast::identifyInterfaceFunctionsRecursive(stc::Node* currentNode, size_
     identifyInterfaceFunctionsRecursive(currentNode->operand3, scopeId, table);
     identifyInterfaceFunctionsRecursive(currentNode->operand4, scopeId, table);
 }
+

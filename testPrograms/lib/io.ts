@@ -16,4 +16,23 @@ declare function println(n: string): void;
 declare function input(): number;
 
 
-export { print, println, input };
+/**
+ * Function print array to console.
+ * @param array 
+ * @param size 
+ */
+function print_a(array: number[], size: number)
+{
+    if (size < 0)
+    {
+        println("Size < 0!");
+        return;
+    }
+
+    for (let i = 0; i < size; i += 1)
+    {
+        print(array[i]);
+    }
+}
+
+export { print, println, input, print_a };

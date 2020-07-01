@@ -24,7 +24,8 @@ void stc::Ast::checkConstantsRecursive(stc::Node* currentNode)
 
             if (variable->isConst())
             {
-                report(currentNode, ReportLevel::Error, "assignmentToConstant", "Assignment to constant '" + variable->name() + "' after declaration!");
+                report(currentNode, ReportLevel::Error, "assignmentToConstant",
+                       "Assignment to constant '" + variable->name() + "' after declaration!");
             }
         }
     }
@@ -33,8 +34,9 @@ void stc::Ast::checkConstantsRecursive(stc::Node* currentNode)
         currentNode->operand1 != nullptr &&
         currentNode->operand1->type == NodeType::CONSTANT_DECLARATION)
     {
-        report(currentNode->operand1, ReportLevel::Error, "constantNotInit", "The constant '" + any_cast<Variable*>(currentNode->operand1->value)->name() +
-                                                                             "' must be initialized when defining!");
+        report(currentNode->operand1, ReportLevel::Error, "constantNotInit",
+               "The constant '" + any_cast<Variable*>(currentNode->operand1->value)->name() +
+               "' must be initialized when defining!");
     }
 
 
@@ -43,81 +45,6 @@ void stc::Ast::checkConstantsRecursive(stc::Node* currentNode)
     checkConstantsRecursive(currentNode->operand3);
     checkConstantsRecursive(currentNode->operand4);
 }
-
-void stc::Ast::checkArray()
-{
-    for (auto& [_, thisScopeNode] : m_allScopeNodes)
-    {
-        checkArrayRecursive(thisScopeNode->operand1);
-    }
-}
-
-void stc::Ast::checkArrayRecursive(stc::Node* currentNode)
-{
-    if (currentNode == nullptr)
-        return;
-
-    if (currentNode->type == NodeType::STATEMENT)
-        return;
-
-
-    if (currentNode->type == NodeType::SET)
-    {
-        Node* op1 = currentNode->operand1;
-        Node* op2 = currentNode->operand2;
-
-        if (op1->type == NodeType::VARIABLE_DECLARATION)
-        {
-            auto op1Type = any_cast<Type>(op1->operand1->value);
-
-
-//            if (op1Type.isArray() && !op1Type.is(FundamentalType::SYMBOL, true))
-//            {
-//                bool isInitializerList = op2->type == NodeType::INITIALIZER;
-//                bool isOperatorNewArray = op2->type == NodeType::NEW &&
-//                                             any_cast<string>(op2->operand1->value) == "Array";
-//
-//                if (!isInitializerList && !isOperatorNewArray)
-//                {
-//                    report(op1, ReportLevel::Error, "invalidAssignmentToArray", "Invalid assignment to '" + any_cast<Variable*>(op1->value)->name() +
-//                                                                                        "'! You can only assign a value of the form [...] or new Array(const_number) to an array!");
-//                }
-//            }
-        }
-
-//        if (op1->type == NodeType::USING_VARIABLE)
-//        {
-//            const auto variable = any_cast<Variable*>(op1->value);
-//            const auto variableName = variable->name();
-//            const auto variableType = variable->type();
-//
-//            if (variableType.isArray() && !variableType.is(FundamentalType::Symbol, true))
-//            {
-//                report(currentNode, ReportLevel::Error, "invalidExplicitAssignmentToArray", "Explicit array assignment is prohibited!");
-//            }
-//        }
-    }
-
-
-    if (currentNode->type == NodeType::EXPRESSION && currentNode->operand1 != nullptr &&
-        currentNode->operand1->type == NodeType::VARIABLE_DECLARATION)
-    {
-        bool isArray = any_cast<Type>(currentNode->operand1->operand1->value).isArray();
-
-        if (isArray)
-        {
-            report(currentNode->operand1, ReportLevel::Error, "arrayNotInit", "The array '" + any_cast<Variable*>(currentNode->operand1->value)->name() +
-                                                                              "' must be initialized when defining!");
-        }
-    }
-
-
-    checkArrayRecursive(currentNode->operand1);
-    checkArrayRecursive(currentNode->operand2);
-    checkArrayRecursive(currentNode->operand3);
-    checkArrayRecursive(currentNode->operand4);
-}
-
 
 
 void stc::Ast::checkFunctionsCall()
@@ -135,10 +62,6 @@ void stc::Ast::checkFunctionsCallRecursive(stc::Node* currentNode)
     checkFunctionsCallRecursive(currentNode->operand2);
     checkFunctionsCallRecursive(currentNode->operand3);
     checkFunctionsCallRecursive(currentNode->operand4);
-
-    // не проверяем вызовы функций через доступ к объекту класса
-    if (currentNode->type == NodeType::CLASS_ACCESS_TO_FIELD || currentNode->type == NodeType::CLASS_ACCESS_TO_STATIC_FIELD)
-        return;
 
 
 
@@ -159,7 +82,7 @@ void stc::Ast::checkFunctionsCallRecursive(stc::Node* currentNode)
 
         const auto& types = getFunctionCallArguments(currentNode);
 
-        auto function = (Function*)nullptr;
+        auto function = (Function*) nullptr;
         if (GlobalFunctions::contains(functionName))
         {
             function = GlobalFunctions::get(functionName, types);
@@ -173,11 +96,69 @@ void stc::Ast::checkFunctionsCallRecursive(stc::Node* currentNode)
 
 
         currentNode->value = function;
-        return;
+
+
+
     }
+
+
 
 }
 
+void stc::Ast::checkFunctionReturnOperator()
+{
+    for (const auto& function : m_functions.raw())
+    {
+        checkFunctionReturnOperatorRecursive(function->implementationNode(), function);
+    }
+}
+
+void stc::Ast::checkFunctionReturnOperatorRecursive(stc::Node* currentNode, Function* function)
+{
+    if (currentNode == nullptr)
+        return;
+
+    if (currentNode->type == NodeType::RETURN)
+    {
+        const auto returnExpressionNode = currentNode->operand1->operand1;
+        const auto functionReturnType = function->returnType();
+
+        if (returnExpressionNode == nullptr && !functionReturnType.is(FundamentalType::Void))
+        {
+            ErrorHandle::report(m_lexer, currentNode, ReportLevel::Error, "emptyReturnInNonVoidFunction",
+                                "Non-void function '" + function->name() + "' should return a value");
+            return;
+        }
+
+        if (returnExpressionNode != nullptr && functionReturnType.is(FundamentalType::Void))
+        {
+            ErrorHandle::report(m_lexer, currentNode, ReportLevel::Error, "nonEmptyReturnInVoidFunction",
+                                "Void function '" + function->name() + "' should not return a value");
+            return;
+        }
+
+        if (returnExpressionNode == nullptr && functionReturnType.is(FundamentalType::Void))
+        {
+            return;
+        }
+
+        const auto returnExpressionType = Ast::expressionType(returnExpressionNode);
+
+        if (!functionReturnType.isReducibleWith(returnExpressionType))
+        {
+            ErrorHandle::report(m_lexer, currentNode, ReportLevel::Error, "errorReturnType",
+                                "No viable conversion from returned value of type '" + returnExpressionType.toString() +
+                                "' to function return type '" + functionReturnType.toString() + "'");
+            return;
+        }
+    }
+
+
+    checkFunctionReturnOperatorRecursive(currentNode->operand1, function);
+    checkFunctionReturnOperatorRecursive(currentNode->operand2, function);
+    checkFunctionReturnOperatorRecursive(currentNode->operand3, function);
+    checkFunctionReturnOperatorRecursive(currentNode->operand4, function);
+}
 
 
 void stc::Ast::checkAssignment()
@@ -203,8 +184,10 @@ void stc::Ast::checkAssignmentRecursive(stc::Node* currentNode)
 
             if (!Node::isLvalueNodeType(lvalueNode->type))
             {
-                report(currentNode, ReportLevel::Error, "errorAssignment", "Non-correct assignment, can only assign to variables, constants (only when declaring)"
-                                                                           " and element of an array, however, the '" + Node::nodeTypeToString(lvalueNode->type) + "' is passed.");
+                report(currentNode, ReportLevel::Error, "errorAssignment",
+                       "Non-correct assignment, can only assign to variables, constants (only when declaring)"
+                       " and element of an array, however, the '" + Node::nodeTypeToString(lvalueNode->type) +
+                       "' is passed.");
             }
 
             const auto rvalueNode = setNode->operand2;
@@ -216,7 +199,8 @@ void stc::Ast::checkAssignmentRecursive(stc::Node* currentNode)
                 const auto& lvalueTypeString = lvalueType.toString();
                 const auto& rvalueTypeString = rvalueType.toString();
 
-                report(lvalueNode, ReportLevel::Error, "errorAssignmentOperandsType", "Cannot assign a variable of type '" + lvalueTypeString + "' to '" + rvalueTypeString + "'!");
+                report(lvalueNode, ReportLevel::Error, "errorAssignmentOperandsType",
+                       "Cannot assign a variable of type '" + lvalueTypeString + "' to '" + rvalueTypeString + "'!");
             }
         }
 
@@ -229,7 +213,6 @@ void stc::Ast::checkAssignmentRecursive(stc::Node* currentNode)
     checkAssignmentRecursive(currentNode->operand3);
     checkAssignmentRecursive(currentNode->operand4);
 }
-
 
 
 void stc::Ast::checkExpressions()
@@ -256,75 +239,3 @@ void stc::Ast::checkExpressionsRecursive(stc::Node* currentNode)
 }
 
 
-
-
-
-void stc::Ast::checkImports()
-{
-    checkImportsRecursive(m_root);
-}
-
-void stc::Ast::checkImportsRecursive(Node* currentNode)
-{
-    if (currentNode == nullptr)
-        return;
-
-    if (currentNode->type == NodeType::IMPORT)
-    {
-        auto importFilePath = any_cast<string>(currentNode->operand2->value);
-
-        importFilePath.pop_back();
-        importFilePath.erase(importFilePath.begin());
-
-        auto path = m_filePath.remove_filename();
-        path = path / importFilePath;
-        path = path.lexically_normal();
-        path.replace_extension(".ts");
-
-
-        if (!fs::exists(path))
-        {
-            report(currentNode, ReportLevel::FatalError, "errorPathToImportFile", "Cannot open file: \"" + importFilePath + "\", full path: " + path.string());
-        }
-    }
-
-    checkImportsRecursive(currentNode->operand1);
-    checkImportsRecursive(currentNode->operand2);
-    checkImportsRecursive(currentNode->operand3);
-    checkImportsRecursive(currentNode->operand4);
-}
-
-
-void stc::Ast::checkExports()
-{
-    checkExportsRecursive(m_root);
-}
-
-void stc::Ast::checkExportsRecursive(stc::Node* currentNode)
-{
-    if (currentNode == nullptr)
-        return;
-
-    if (currentNode->type == NodeType::EXPORT)
-    {
-        vector<string> exportNames;
-        identifyAllExportName(currentNode, exportNames);
-
-        for (const auto& exportName : exportNames)
-        {
-            const auto isFunction = m_functions.contains(exportName);
-            const auto isVariable = m_allVariables.contains(exportName);
-
-
-            if (!isFunction && !isVariable)
-            {
-                report(currentNode, ReportLevel::FatalError, "errorExportName", "Cannot find name \'" + exportName + "\"");
-            }
-        }
-    }
-
-    checkExportsRecursive(currentNode->operand1);
-    checkExportsRecursive(currentNode->operand2);
-    checkExportsRecursive(currentNode->operand3);
-    checkExportsRecursive(currentNode->operand4);
-}

@@ -36,6 +36,7 @@ private:
     size_t m_currentTokenIndex;
     path m_filePath;
 
+
 public:
     explicit Lexer2(const string& path)
     {
@@ -45,7 +46,7 @@ public:
 
         this->m_filePath = (fs::current_path() / path).lexically_normal();
 
-        this->m_possibleComplexOperators = "<>=-+*/!";
+        this->m_possibleComplexOperators = "<>=-+*/!&|";
 
         this->m_position = Position();
         this->m_currentTokenIndex = 0;

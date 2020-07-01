@@ -105,9 +105,9 @@ int main(int argc, char** argv)
                 }
 
 
-                ICM icm(inputFile, outputFile);
+                Icm icm(inputFile, outputFile);
 
-                cout << "Typescript to MASM compiler, v0.1 (c) 2020 \n\n";
+                cout << "Typescript to MASM compiler, v0.2 (c) 2020 \n\n";
                 cout << "-- Compilation of the program ";
 
                 cout << fg::gray << style::italic

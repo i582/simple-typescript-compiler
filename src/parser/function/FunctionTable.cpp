@@ -31,11 +31,11 @@ stc::Function* stc::FunctionTable::get(const std::string& name,
         if (!eq)
             return false;
 
-        auto current_args = function->arguments();
+        auto currentArgs = function->arguments();
 
-        for (int i = current_args.size() - 1, j = 0; i >= 0; --i, ++j)
+        for (int i = currentArgs.size() - 1, j = 0; i >= 0; --i, ++j)
         {
-            if (current_args[i] != argumentDescriptions[j])
+            if (currentArgs[i] != argumentDescriptions[j])
             {
                 return false;
             }
@@ -43,6 +43,7 @@ stc::Function* stc::FunctionTable::get(const std::string& name,
 
         return true;
     });
+
 
     if (it == m_functions.end())
     {

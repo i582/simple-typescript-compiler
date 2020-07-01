@@ -15,19 +15,19 @@ enum class TokenType
 
     // variables
     LET,
-    CONST = 0x0010,
+    CONST,
 
 
     // type
-    NUMBER = 0x001000,
-    BOOLEAN = 0x002000,
-    STRING = 0x003000,
-    VOID = 0x004000,
-    ANY = 0x005000,
+    NUMBER,
+    BOOLEAN,
+    STRING,
+    VOID,
+    ANY,
 
 
     // cycles
-    DO_WHILE = 0x00F0,
+    DO_WHILE,
     WHILE,
     FOR,
     // cycles addition
@@ -50,6 +50,11 @@ enum class TokenType
     // equal operators
     EQUAL, // ==
     NOT_EQUAL, // !=
+
+
+    // bitwise operators
+    BITWISE_AND, // &
+    BITWISE_OR, // |
 
 
     // logical operators

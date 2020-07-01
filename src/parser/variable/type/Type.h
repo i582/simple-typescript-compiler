@@ -158,8 +158,8 @@ public:
      */
     _NODISCARD bool isReducibleWith(const Type& type) const noexcept
     {
-        return  this->m_fundamentalType == type.m_fundamentalType ||
-                type.m_fundamentalType == FundamentalType::Any;
+        return  (this->m_fundamentalType == type.m_fundamentalType && this->m_isArray == type.m_isArray) ||
+                 type.m_fundamentalType == FundamentalType::Any;
     }
 
 public:

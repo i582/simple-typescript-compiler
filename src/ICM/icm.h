@@ -13,7 +13,7 @@ namespace stc
 {
 
 // integrated compilation module
-class ICM
+class Icm
 {
 private:
     Lexer2* m_lexer2;
@@ -28,7 +28,7 @@ private:
 
 
 public:
-    ICM(const string& inputFilePath, const string& outputFilePath)
+    Icm(const string& inputFilePath, const string& outputFilePath)
     {
         this->m_lexer2 = nullptr;
         this->m_parser = nullptr;
@@ -40,7 +40,7 @@ public:
         this->m_outputFilePath = outputFilePath;
     }
 
-    ~ICM()
+    ~Icm()
     {
         delete m_lexer2;
         delete m_parser;

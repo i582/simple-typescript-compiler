@@ -2,7 +2,7 @@
 #include "../../ICM/icm.h"
 
 
-void stc::Ast::print() const noexcept
+void stc::Ast::print() const
 {
     Log::write("-- Started print AST\n");
 

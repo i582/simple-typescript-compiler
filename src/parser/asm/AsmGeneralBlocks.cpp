@@ -22,12 +22,12 @@ void stc::Asm::setBlockToAsm(stc::Node* currentNode)
         if (variable->isArgument())
         {
             // mov arg_variable, eax
-            mov(argument_var(variableName), eax);
+            mov(argumentVar(variableName), eax);
         }
         else
         {
             // mov variable[ebp], eax
-            mov(local_var(variableName), eax);
+            mov(localVar(variableName), eax);
         }
     }
     else if (lvalue->type == NodeType::INDEX_CAPTURE)
@@ -215,11 +215,11 @@ void stc::Asm::forBlockToAsm(stc::Node* currentNode)
 
 void stc::Asm::functionImplementationToAsm(stc::Node* currentNode)
 {
-    setPlaceForWriting(AsmPlaceForWriting::FUNCTION_IMPLEMENTATIONS);
+    setPlaceForWriting(AsmPlaceForWriting::FunctionImplementations);
 
     functionImplementationRecursive(currentNode);
 
-    setPlaceForWriting(AsmPlaceForWriting::MAIN);
+    setPlaceForWriting(AsmPlaceForWriting::Main);
 }
 
 void stc::Asm::functionCallToAsm(stc::Node* currentNode)
@@ -256,7 +256,7 @@ void stc::Asm::returnOperatorToAsm(stc::Node* currentNode)
 
     const auto argumentsSize = any_cast<size_t>(currentNode->value);
 
-    procedure_epilogue();
+    procedureEpilogue();
     ret(to_string(argumentsSize));
 }
 
